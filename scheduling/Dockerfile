@@ -7,10 +7,12 @@ FROM python:3.11-alpine
 # copy the requriements file into the image
 COPY ./requirements.txt /code/requirements.txt
 
+WORKDIR /code
+
 # install the dependencies and packages in the requirements file
 RUN pip install -r requirements.txt
 
 # copy every content from the local file to the image
-COPY . /code
+COPY . .
 
 CMD [ "uvicorn", "code.main:app", "--host", "0.0.0.0", "--port", "5000" ]
