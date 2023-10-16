@@ -15,4 +15,4 @@ RUN pip install -r requirements.txt
 # copy every content from the local file to the image
 COPY . .
 
-CMD [ "uvicorn", "code.main:app", "--host", "0.0.0.0", "--port", "5000" ]
+CMD [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000" ]
