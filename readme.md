@@ -38,7 +38,7 @@ To run any other services:
 
 To install all the required Python packages, follow these steps:
 
-1. Open a command prompt and navigate to the directory containing `requiredLibs.txt`.
+1. Open a command prompt and navigate to the directory containing `requirements.txt`.
 2. Run the following command: pip install -r requirements.txt
 
 3. If one or more packages fail to install, you can attempt to install them individually with: pip install <package_name>
