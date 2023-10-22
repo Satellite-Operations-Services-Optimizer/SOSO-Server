@@ -1,6 +1,6 @@
-# Project Title
+# SOSO - Server
 
-[Project description here]
+This repository stores the backend functionalities of Satellite Operation Services Optimizer
 
 ## Prerequisites
 
