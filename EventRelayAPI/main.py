@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from dotenv import dotenv_values
-from Routes.queue_routes import router as queue_router
-from Helpers.ExceptionHandler import HttpErrorHandler
+from Routes.image_routes import router as image_router
+from Helpers.RequestValidator import HttpErrorHandler
 
 config = dotenv_values()
 app = FastAPI()
@@ -27,4 +27,5 @@ async def shutdown_event():
     print("ServerRequestHandlerAPI Closing...")
     pass
 
-app.include_router(queue_router, tags=["SOSO Operations"], prefix="/requests")
+
+app.include_router(image_router, tags=["Image Operations"], prefix="/images")
