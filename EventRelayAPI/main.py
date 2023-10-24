@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from dotenv import dotenv_values
 from Routes.image_routes import router as image_router
+from Routes.satellite_activities_routes import router as activity_router
 from Helpers.RequestValidator import HttpErrorHandler
 
 config = dotenv_values()
@@ -29,3 +30,4 @@ async def shutdown_event():
 
 
 app.include_router(image_router, tags=["Image Operations"], prefix="/images")
+app.include_router(activity_router, tags=["Satellite Activities Operation"], prefix="/activities")

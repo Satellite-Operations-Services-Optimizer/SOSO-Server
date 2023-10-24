@@ -1,6 +1,6 @@
 from dotenv import dotenv_values
-from Models.SASConsumerEventData import SASConsumerEvenData
-from Models.SASProducerEventData import SASProducerEvenData
+from Models.SASConsumerEventData import SASConsumerEventData
+from Models.SASProducerEventData import SASProducerEventData
 from Services.publisher import Publisher
 from Helpers.BasicMessageReceiver import BasicMessageReceiver
 import asyncio
@@ -34,18 +34,23 @@ class Consumer(BasicMessageReceiver):
     @sync
     async def consume(self, channel, method, properties, body):
         body = self.decode_message(body=body)
-        sas_consumer_event_data = SASConsumerEvenData(**body)
+        
+        print("\nConsumedMessage: \n", body, "\n")
+
+        request_body    = body["body"]
+        request_details = body["details"]
+
 
         message = jsonable_encoder(
-            SASProducerEvenData(
-                message=sas_consumer_event_data.message,
-                details=sas_consumer_event_data.details
+            SASProducerEventData(
+                message=request_body,
+                details=request_details
             )
         )
 
-        print("\nConsumedMessage: \n", sas_consumer_event_data, "\n")
+    
 
         # TODO: Add your logic here.
 
         # Sends sample request to EventRelayAPI's response queue
-        self.publisher.publish_message(message)
+        # self.publisher.publish_message(message)

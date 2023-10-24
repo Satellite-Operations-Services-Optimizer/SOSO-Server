@@ -1,7 +1,7 @@
-from Models.QueueModel import QueueRequest, QueueDetails
+from Models.RequestModel import RequestDetails, ActivityRequest
 from pydantic import BaseModel
 
 
-class SASProducerEvenData(BaseModel):
-    message: QueueRequest = None
-    details: QueueDetails = None
+class SASProducerEventData(BaseModel):
+    message: ActivityRequest = None
+    details: RequestDetails = None

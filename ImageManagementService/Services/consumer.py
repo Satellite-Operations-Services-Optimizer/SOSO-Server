@@ -1,7 +1,7 @@
 from dotenv import dotenv_values
-from Models.IMSConsumerEventData import IMSConsumerEvenData
-from Models.IMSProducerEventData import IMSProducerEvenData
-from Models.QueueModel import ImageRequest
+from Models.IMSConsumerEventData import IMSConsumerEventData
+from Models.IMSProducerEventData import IMSProducerEventData
+from Models.RequestModel import ImageRequest
 from Services.publisher import Publisher
 from Helpers.BasicMessageReceiver import BasicMessageReceiver
 import asyncio
@@ -42,7 +42,7 @@ class Consumer(BasicMessageReceiver):
         request_details = body["details"]
 
         message = jsonable_encoder(
-            IMSProducerEvenData(
+            IMSProducerEventData(
                 message=request_body,
                 details=request_details
             )

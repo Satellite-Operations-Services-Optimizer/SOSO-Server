@@ -1,8 +1,8 @@
-from Models.QueueModel import QueueRequest, QueueDetails
+from Models.RequestModel import ActivityRequest, RequestDetails
 from pydantic import BaseModel
 from typing import Optional
 
 
-class SASConsumerEvenData(BaseModel):
-    message: QueueRequest = None
-    details: Optional[QueueDetails] = None
+class SASConsumerEventData(BaseModel):
+    message: ActivityRequest = None
+    details: Optional[RequestDetails] = None

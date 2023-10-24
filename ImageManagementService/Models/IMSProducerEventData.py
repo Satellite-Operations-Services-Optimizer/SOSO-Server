@@ -1,7 +1,8 @@
-from Models.QueueModel import ImageRequest, RequestDetails
+from Models.RequestModel import ImageRequest, RequestDetails
 from pydantic import BaseModel
 
 
-class IMSProducerEvenData(BaseModel):
+
+class IMSProducerEventData(BaseModel):
     message: ImageRequest = None
     details: RequestDetails = None
