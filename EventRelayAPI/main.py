@@ -1,9 +1,19 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from dotenv import dotenv_values
 from Routes.queue_routes import router as queue_router
+from Helpers.ExceptionHandler import HttpErrorHandler
 
 config = dotenv_values()
 app = FastAPI()
+
+
+@app.exception_handler(HttpErrorHandler)
+async def http_error_handler(request: Request, exc: HttpErrorHandler):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"status_text": exc.detail, "status_code": exc.status_code},
+    )
 
 
 @app.on_event("startup")
@@ -17,4 +27,4 @@ async def shutdown_event():
     print("ServerRequestHandlerAPI Closing...")
     pass
 
-app.include_router(queue_router, tags=["Queue Operations"], prefix="/queues")
+app.include_router(queue_router, tags=["SOSO Operations"], prefix="/requests")

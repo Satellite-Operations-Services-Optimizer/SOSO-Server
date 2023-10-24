@@ -1,6 +1,7 @@
 from dotenv import dotenv_values
 from Models.IMSConsumerEventData import IMSConsumerEvenData
 from Models.IMSProducerEventData import IMSProducerEvenData
+from Models.QueueModel import ImageRequest
 from Services.publisher import Publisher
 from Helpers.BasicMessageReceiver import BasicMessageReceiver
 import asyncio
@@ -33,20 +34,23 @@ class Consumer(BasicMessageReceiver):
 
     @sync
     async def consume(self, channel, method, properties, body):
-        print("Reached")
         body = self.decode_message(body=body)
-        ims_consumer_event_data = IMSConsumerEvenData(**body)
+        
+        print("\nConsumedMessage: \n", body , "\n")
+
+        request_body    = body["body"]
+        request_details = body["details"]
 
         message = jsonable_encoder(
             IMSProducerEvenData(
-                message=ims_consumer_event_data.message,
-                details=ims_consumer_event_data.details
+                message=request_body,
+                details=request_details
             )
         )
 
-        print("\nConsumedMessage: \n", ims_consumer_event_data, "\n")
+        
 
         # TODO: Add your logic here.
 
         # Sends sample request to EventRelayAPI's response queue
-        self.publisher.publish_message(message)
+        # self.publisher.publish_message(message)

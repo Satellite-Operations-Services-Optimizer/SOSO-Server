@@ -1,7 +1,7 @@
-from Models.QueueModel import QueueRequest, QueueDetails
+from Models.QueueModel import ImageRequest, RequestDetails
 from pydantic import BaseModel
 
 
 class IMSProducerEvenData(BaseModel):
-    message: QueueRequest = None
-    details: QueueDetails = None
+    message: ImageRequest = None
+    details: RequestDetails = None

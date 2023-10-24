@@ -1,8 +1,8 @@
-from Models.QueueModel import QueueRequest, QueueDetails
+from Models.QueueModel import ImageRequest, RequestDetails
 from pydantic import BaseModel
 from typing import Optional
 
 
 class IMSConsumerEvenData(BaseModel):
-    message: QueueRequest = None
-    details: Optional[QueueDetails] = None
+    body: ImageRequest = None
+    details: Optional[RequestDetails] = None

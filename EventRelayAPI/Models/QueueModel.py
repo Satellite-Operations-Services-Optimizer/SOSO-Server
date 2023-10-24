@@ -4,19 +4,21 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 
 
-class QueueDetails(BaseModel):
+class RequestDetails(BaseModel):
     requestTime: Optional[datetime] = datetime.utcnow()
-    requestOwner: str = Field(...)
+
+class ImageRequest(BaseModel):
+    Latitude: float
+    Longitude: float
+    Priority: int
+    ImageType: str
+    ImageStartTime: str
+    ImageEndTime: str
+    DeliveryTime: str
+    RevisitTime: str
+    
 
 
-class QueueRequest(BaseModel):
-    event: dict = Field(...)
-    correlationId: str = str(uuid.uuid4())
-
-
-class QueueResponse(BaseModel):
-    data: str = Field(...)
-    status: str = Field(...)
 
 
 class BasicAuth(BaseModel):

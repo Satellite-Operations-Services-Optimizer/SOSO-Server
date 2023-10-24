@@ -4,11 +4,21 @@ from typing import Optional
 import uuid
 
 
-class QueueDetails(BaseModel):
+class RequestDetails(BaseModel):
     requestTime: Optional[datetime] = None
-    requestOwner: str = Field(...)
 
 
 class QueueRequest(BaseModel):
     event: dict = Field(...)
     correlationId: str = str(uuid.uuid4())
+
+class ImageRequest(BaseModel):
+    Latitude: float
+    Longitude: float
+    Priority: int
+    ImageType: str
+    ImageStartTime: str
+    ImageEndTime: str
+    DeliveryTime: str
+    RevisitTime: str
+    
