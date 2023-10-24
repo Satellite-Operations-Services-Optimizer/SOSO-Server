@@ -13,26 +13,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# def validate_request_schema(image_request_data: dict = Body(...)) -> ImageRequest:
-#     try:
-#         ImageRequest.model_validate(image_request_data)
-#         return ImageRequest(**image_request_data) 
-#     except ValidationError:
-#         raise HttpErrorHandler(status_code=400, detail="Invalid Payload Schema")
-
-# def validate_request_schema(request_data: dict = Body(...), model_type: Type[BaseModel] = None) -> BaseModel:
-#     try:
-#         model_type.model_validate(request_data)
-#         return model_type(**request_data) 
-#     except ValidationError:
-#         raise HttpErrorHandler(status_code=400, detail="Invalid Payload Schema")
-
-# def get_validator(model_type: Type[BaseModel]) -> Callable:
-#     def _validator(request_data: dict = Body(...)) -> BaseModel:
-#         return validate_request_schema(request_data=request_data, model_type=model_type)
-#     return _validator
-
-
 @router.post("/image_request")
 async def handle_request(image_request: ImageRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ImageRequest))):
     request = jsonable_encoder(image_request)
