@@ -19,7 +19,7 @@ You need to set up a RabbitMQ server. This can be done in one of three ways:
 
 After setting up RabbitMQ, ensure you configure the RabbitMQ settings according to your environment.
 
-## Running the EventRelayAPI 
+## Running the EventRelayAPI
 
 Follow these steps to run the EventRelayAPI:
 
