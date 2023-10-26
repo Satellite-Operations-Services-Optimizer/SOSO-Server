@@ -29,7 +29,7 @@ Follow these steps to run the EventRelayAPI:
 
 ## Running Other Services
 
-To run any other services:
+To run any other services: 
 
 1. Open a command prompt and navigate to the directory with the desired project's `main.py` file.
 2. Run the following command: python main.py
