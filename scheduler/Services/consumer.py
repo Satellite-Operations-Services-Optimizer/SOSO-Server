@@ -46,6 +46,7 @@ class Consumer(BasicMessageReceiver):
         print("\nConsumedMessage: \n", ss_consumer_event_data, "\n")
 
         # TODO: Add your logic here.
+        
 
         # Sends sample request to EventRelayAPI's response queue
         self.publisher.publish_message(message)
