@@ -4,17 +4,15 @@
 # start by pulling the python image
 FROM python:3.11-alpine
 
-# copy the requriements files into the image
-COPY ./requirements.txt requirements.txt
-COPY ./scheduler/requirements.txt code/requirements.txt
-
-# install the dependencies and packages in the requirements file
-RUN pip install -r requirements.txt
-RUN pip install -r code/requirements.txt
+# copy the requriements file into the image
+COPY ./requirements.txt /code/requirements.txt
 
 WORKDIR /code
 
-# copy every content from the local file to the image
-COPY ./scheduler/ .
+# install the dependencies and packages in the requirements file
+RUN pip install -r requirements.txt
 
-CMD ["python", "main.py"] 
+# copy every content from the local file to the image
+COPY ./relay_api/ .
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] 
