@@ -32,48 +32,48 @@ services:
       - rabbitmq
       - postgres
 
-  # satellite-activities:
-  #   container_name: satellite-activities
-  #   build:
-  #     context: ./
-  #     dockerfile: ./satellite_activities/Dockerfile
-  #   volumes:
-  #     - ./satellite-activities:/code
-  #   ports:
-  #     - 82:5000
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - rabbitmq
-  #
-  # image-management:
-  #   container_name: image-management
-  #   build:
-  #     context: ./ 
-  #     dockerfile: ./image_management/Dockerfile
-  #   volumes:
-  #     - ./image_management:/code
-  #   ports:
-  #     - 83:5000
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - rabbitmq
-  #
-  # gs-outbound:
-  #   container_name: gs-outbound
-  #   build:
-  #     context: ./
-  #     dockerfile: ./gs_outbound/Dockerfile
-  #   volumes:
-  #     - ./gs_outbound:/code
-  #   ports:
-  #     - 84:5000
-  #   env_file:
-  #     - .env
-  #   depends_on:
-  #     - rabbitmq
-  #
+  satellite-activities:
+    container_name: satellite-activities
+    build:
+      context: ./
+      dockerfile: ./satellite_activities/Dockerfile
+    volumes:
+      - ./satellite-activities:/code
+    ports:
+      - 82:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
+  image-management:
+    container_name: image-management
+    build:
+      context: ./ 
+      dockerfile: ./image_management/Dockerfile
+    volumes:
+      - ./image_management:/code
+    ports:
+      - 83:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
+  gs-outbound:
+    container_name: gs-outbound
+    build:
+      context: ./
+      dockerfile: ./gs_outbound/Dockerfile
+    volumes:
+      - ./gs_outbound:/code
+    ports:
+      - 84:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
   rabbitmq:
     image: rabbitmq:3.12-management
     container_name: rabbitmq
