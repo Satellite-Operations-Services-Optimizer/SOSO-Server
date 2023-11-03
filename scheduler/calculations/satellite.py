@@ -50,7 +50,7 @@ class Satellite(Base.classes.satellite):
 
     def state_trace(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta):
         """
-        get location data from `start_time` to `end_time` in intervals of `time_delta`
+        get the satelite state from `start_time` to `end_time` at intervals of `time_delta`
         """
         ts = self._get_timescale()
         start_time = self._to_skyfield_time(start_time)
