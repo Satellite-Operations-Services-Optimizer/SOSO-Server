@@ -33,7 +33,7 @@ CREATE TABLE "soso_schema"."schedule" (
 	"start_time" timestamp,
 	"end_time" timestamp,
 	"status" text,
-	CONSTRAINT "fk_asset_id" FOREIGN KEY ("satellite_id") REFERENCES "soso_schema"."satellite" ("id")
+	CONSTRAINT "fk_asset_id" FOREIGN KEY ("satellite_id") REFERENCES "soso_schema"."satellite" ("id"),
 	CONSTRAINT "fk_ground_station_id" FOREIGN KEY ("ground_station_id") REFERENCES "soso_schema"."ground_station" ("id")
 );
 
@@ -119,11 +119,11 @@ CREATE TABLE "soso_schema"."ground_station_request" (
 	CONSTRAINT "fk_station_id" FOREIGN KEY ("station_id") REFERENCES "soso_schema"."ground_station" ("id")
 );
 
-CREATE INDEX "ground_station_request_signal_acquisition_index" ON "soso_scheme"."ground_station_request" (
+CREATE INDEX "ground_station_request_signal_acquisition_index" ON "soso_schema"."ground_station_request" (
 	"signal_acquisition"
 );
 
-CREATE INDEX "ground_station_request_signal_acquisition_index" ON "soso_scheme"."ground_station_request" (
+CREATE INDEX "ground_station_request_signal_loss_index" ON "soso_schema"."ground_station_request" (
 	"signal_loss"
 );
 
@@ -142,11 +142,11 @@ CREATE TABLE "soso_schema"."scheduled_images" (
 	CONSTRAINT "fk_request_id" FOREIGN KEY ("request_id") REFERENCES "soso_schema"."ground_station_request" ("id")
 );
 
-CREATE INDEX "schedule_images_start" ON "soso_scheme"."scheduled_images" (
+CREATE INDEX "schedule_images_start" ON "soso_schema"."scheduled_images" (
 	"downlink_start"
 );
 
-CREATE INDEX "schedule_images_end" ON "soso_scheme"."scheduled_images" (
+CREATE INDEX "schedule_images_end" ON "soso_schema"."scheduled_images" (
 	"downlink_end"
 );
 
@@ -164,11 +164,11 @@ CREATE TABLE "soso_schema"."scheduled_maintenance" (
 	CONSTRAINT "fk_maintenance_id" FOREIGN KEY ("maintenance_id") REFERENCES "soso_schema"."maintenance_order" ("id")
 );
 
-CREATE INDEX "schedule_maintenance_start" ON "soso_scheme"."scheduled_maintenance" (
+CREATE INDEX "schedule_maintenance_start" ON "soso_schema"."scheduled_maintenance" (
 	"maintenance_start"
 );
 
-CREATE INDEX "schedule_maintenance_end" ON "soso_scheme"."scheduled_maintenance" (
+CREATE INDEX "schedule_maintenance_end" ON "soso_schema"."scheduled_maintenance" (
 	"maintenance_end"
 );
 
@@ -183,10 +183,10 @@ CREATE TABLE "soso_schema"."scheduled_outages" (
 	CONSTRAINT "fk_outage_id" FOREIGN KEY ("outage_id") REFERENCES "soso_schema"."outage_order" ("id") 
 );
 
-CREATE INDEX "schedule_outage_start" ON "soso_scheme"."scheduled_outages" (
+CREATE INDEX "schedule_outage_start" ON "soso_schema"."scheduled_outages" (
 	"outage_start"
 );
 
-CREATE INDEX "schedule_outage_end" ON "soso_scheme"."scheduled_outages" (
+CREATE INDEX "schedule_outage_end" ON "soso_schema"."scheduled_outages" (
 	"outage_end"
 );
