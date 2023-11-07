@@ -12,6 +12,14 @@ rabbit = Rabbit(
     vhost=os.getenv("RABBIT_VHOST"),
     blocking=True
 )
+rabbit_async = Rabbit(
+    host=os.getenv("RABBIT_HOST"),
+    port=os.getenv("RABBIT_PORT"),
+    user=os.getenv("RABBIT_USER"),
+    password=os.getenv("RABBIT_PASS"),
+    vhost=os.getenv("RABBIT_VHOST"),
+    blocking=False
+)
 
 # enum for getting names of the services' queues
 class ServiceQueues(Enum):
