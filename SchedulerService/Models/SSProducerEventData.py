@@ -1,4 +1,4 @@
-from Models.QueueModel import QueueRequest, QueueDetails
+from models.QueueModel import QueueRequest, QueueDetails
 from pydantic import BaseModel
 
 

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from dotenv import dotenv_values
-from Helpers.RequestValidator import validate_request_schema
-from Models.ActivityRequestModel import ActivityRequest
-from Models.EventRelayData import EventRelayApiMessage
-from Services.publisher import Publisher
+from helpers.RequestValidator import validate_request_schema
+from models.ActivityRequestModel import ActivityRequest
+from models.EventRelayData import EventRelayApiMessage
+from config.rabbit import rabbit, ServiceQueues
+from rabbit_wrapper import Publisher
 
 import logging
 
@@ -24,8 +25,7 @@ async def handle_request(maintenance_request: ActivityRequest = Depends(lambda r
         )
     )
 
-    publisher = Publisher("SatelliteActivitiesServiceEventData")
-    
+    publisher = Publisher(rabbit, ServiceQueues.SAT_ACTIVITIES)
     publisher.publish_message(message)
 
     return message

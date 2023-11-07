@@ -1,16 +1,12 @@
-from dotenv import dotenv_values
-from Services.consumer import Consumer
+from rabbit_wrapper import Consumer
+from config.rabbit import rabbit, ServiceQueues
+from services.handler import handle_message
+import logging
 
-config = dotenv_values()
-
-
+logger = logging.getLogger(__name__)
 def startup_event():
-    print("Application Starting...")
-
-    queue_name = str(config["SAS_Consume_Queue_Name"])
-
-    consumer = Consumer()
-    consumer.consume_messages(queue=queue_name, callback=consumer.consume)
+    consumer = Consumer(rabbit, ServiceQueues.SAT_ACTIVITIES)
+    consumer.consume_messages(callback=handle_message)
 
 
 if __name__ == "__main__":

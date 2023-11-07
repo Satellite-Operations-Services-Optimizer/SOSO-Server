@@ -22,3 +22,11 @@ uvicorn==0.23.2
 watchfiles==0.21.0
 websockets==11.0.3
 wheel==0.41.2
+
+
+SQLAlchemy==2.0.23
+psycopg2-binary==2.9.9
+inject==5.1.0 # for dependency injection
+
+# our custom rabbitmq wrapper
+rabbit_wrapper @ git+https://github.com/Satellite-Operations-Services-Optimizer/rabbit-wrapper@main # I specified the main branch. if you want to install another branch, change it here

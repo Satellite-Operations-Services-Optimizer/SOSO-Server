@@ -1,4 +1,4 @@
-from Models.RequestModel import RequestDetails, ActivityRequest
+from models.RequestModel import RequestDetails, ActivityRequest
 from pydantic import BaseModel
 
 

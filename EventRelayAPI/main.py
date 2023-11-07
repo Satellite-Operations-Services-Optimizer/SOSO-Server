@@ -1,13 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from dotenv import dotenv_values
-from Routes.image_routes import router as image_router
-from Routes.satellite_activities_routes import router as activity_router
-from Helpers.RequestValidator import HttpErrorHandler
+from routes.image_routes import router as image_router
+from routes.satellite_activities_routes import router as activity_router
+from helpers.RequestValidator import HttpErrorHandler
 
-config = dotenv_values()
 app = FastAPI()
-
 
 @app.exception_handler(HttpErrorHandler)
 async def http_error_handler(request: Request, exc: HttpErrorHandler):

@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
-from dotenv import dotenv_values
-from Helpers.RequestValidator import validate_request_schema
-from Models.ImageRequestModel import ImageRequest
-from Models.EventRelayData import EventRelayApiMessage
-from Services.publisher import Publisher
+from helpers.RequestValidator import validate_request_schema
+from models.ImageRequestModel import ImageRequest
+from models.EventRelayData import EventRelayApiMessage
+from config.rabbit import rabbit, ServiceQueues
+from rabbit_wrapper import Publisher
 
 import logging
 
-config = dotenv_values()
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
@@ -22,9 +21,9 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
             body=request
         )
     )
-
-    publisher = Publisher("ImageManagementServiceEventData")
-    
+    logger.debug("received request")
+    publisher = Publisher(rabbit, ServiceQueues.IMAGE_MANAGEMENT)
+    logger.debug("publisher created")
     publisher.publish_message(message)
 
     return message

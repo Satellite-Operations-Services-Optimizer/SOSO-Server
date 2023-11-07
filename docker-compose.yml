@@ -1,0 +1,115 @@
+# For reference, I used this to figure out how to configure multiple services with docker compose:
+# https://learn.microsoft.com/en-us/dotnet/architecture/microservices/multi-container-microservice-net-applications/multi-container-applications-docker-compose
+
+services:
+  relay-api:
+    container_name: relay-api
+    build:
+      context: ./ # The build context for each service is the current folder and not the service's folder because the requirements.txt is in the current folder and needs to be copied by the Dockerfile into the container.
+      dockerfile: ./EventRelayAPI/Dockerfile
+    volumes:
+      - ./EventRelayAPI:/code
+    ports:
+      - 80:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  scheduler:
+    container_name: scheduler
+    build:
+      context: ./
+      dockerfile: ./SchedulerService/Dockerfile
+    volumes:
+      - ./SchedulerService:/code
+    ports:
+      - 81:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  satellite-activities:
+    container_name: satellite-activities
+    build:
+      context: ./
+      dockerfile: ./SatelliteActivitiesService/Dockerfile
+    volumes:
+      - ./SatelliteActivitiesService:/code
+    ports:
+      - 82:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
+  image-management:
+    container_name: image-management
+    build:
+      context: ./ 
+      dockerfile: ./ImageManagementService/Dockerfile
+    volumes:
+      - ./ImageManagementService:/code
+    ports:
+      - 83:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
+  gs-outbound:
+    container_name: gs-outbound
+    build:
+      context: ./
+      dockerfile: ./GroundStationOutboundService/Dockerfile
+    volumes:
+      - ./GroundStationOutboundService:/code
+    ports:
+      - 84:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - 5672:5672   # this is the actual rabbitmq communication port
+      - 15672:15672 # port for web interface for managing rabbitmq
+
+  postgres:
+    container_name: postgres
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: soso_db
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+  
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4:7
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: root@root.com
+      PGADMIN_DEFAULT_PASSWORD: root
+      PGADMIN_LISTEN_PORT: 80
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+    ports:
+      - 85:80
+    depends_on:
+      - postgres
+
+volumes:
+  postgres:
+  pgadmin:

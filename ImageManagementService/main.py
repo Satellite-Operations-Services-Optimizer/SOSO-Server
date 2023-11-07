@@ -1,15 +1,12 @@
-from dotenv import dotenv_values
-from Services.consumer import Consumer
+from rabbit_wrapper import Consumer
+from config.rabbit import rabbit, ServiceQueues
+from services.handler import handle_message
+import logging
 
-config = dotenv_values()
-
+logger = logging.getLogger(__name__)
 def startup_event():
-    print("Application Starting...")
-
-    queue_name = str(config["IMS_Consume_Queue_Name"])
-
-    consumer = Consumer()
-    consumer.consume_messages(queue=queue_name, callback=consumer.consume)
+    consumer = Consumer(rabbit, ServiceQueues.IMAGE_MANAGEMENT)
+    consumer.consume_messages(callback=handle_message) # replace handle_message with any function you want to call whenever a message is received.
 
 
 if __name__ == "__main__":
