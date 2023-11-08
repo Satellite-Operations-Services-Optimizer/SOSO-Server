@@ -42,3 +42,53 @@ To install all the required Python packages, follow these steps:
 2. Run the following command: pip install -r requirements.txt
 
 3. If one or more packages fail to install, you can attempt to install them individually with: pip install <package_name>
+
+# Running the microservices on docker
+To run the microservices, you have to run two commands.
+
+Run the following command to build the docker containers:
+```shell
+docker compose build
+```
+
+Run the following command to start running the docker containers:
+```shell
+docker compose up
+```
+
+If you want to build or start only particular services, you can specify the services you want to start by writing out their names. For example, the command below starts up the relay-api service, rabbitmq service, and postgres service all in one command:
+```shell
+docker compose up relay-api rabbitmq postgres
+```
+
+When you are starting up a service using `docker up`, it automatically starts following the logs - showing you all the activity happening in those services. If you do not want that, you can start the services up in detached mode using the `-d` flag as shown below:
+```shell
+docker compose up relay-api -d
+```
+
+
+# Logging
+The [docker logs documentation](https://docs.docker.com/engine/reference/commandline/logs/#usage) explains in detail how to view the logs coming from your docker container. However, here is a brief overview of some important commands for viewing your logs.
+
+If you want to display the logs for all docker containers at once, use:
+```shell
+docker compose logs
+```
+
+However, if you want to display the logs for a particular service, say the `relay-api` for example, you can use the following command
+```shell
+docker logs relay-api
+```
+
+## Docker Log flags
+There are specific flags you can use to enhance your experience in viewing logs. They are all detailed in the docker logs documentation linked above, but here are a few essential ones to get you started.
+
+If you want to display your logs live as they come in, use the `--follow` flag as shown below:
+```shell
+docker logs relay-api --follow
+```
+
+If you want to show the last 50 entries to the log, use the `--tail` flag as shown below:
+```shell
+docker logs relay-api --tail 50
+``` 
