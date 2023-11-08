@@ -24,6 +24,6 @@ class ActivityRequest(BaseModel):
     Window: Window
     Duration: str
     RepeatCycle: RepeatCycle
-    PayloadOutage: str
+    PayloadOutage: bool
     
 
