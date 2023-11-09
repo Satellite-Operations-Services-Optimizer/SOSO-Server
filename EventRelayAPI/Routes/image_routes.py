@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from helpers.RequestValidator import validate_request_schema
 from models.ImageRequestModel import ImageRequest
 from models.EventRelayData import EventRelayApiMessage
-from config.rabbit import rabbit, ServiceQueues
+from config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 
 import logging
@@ -22,7 +22,7 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
         )
     )
     logger.debug("received request")
-    publisher = Publisher(rabbit, ServiceQueues.IMAGE_MANAGEMENT)
+    publisher = Publisher(rabbit(), ServiceQueues.IMAGE_MANAGEMENT)
     logger.debug("publisher created")
     publisher.publish_message(message)
 

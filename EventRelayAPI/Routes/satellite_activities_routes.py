@@ -25,7 +25,7 @@ async def handle_request(maintenance_request: ActivityRequest = Depends(lambda r
         )
     )
 
-    publisher = Publisher(rabbit, ServiceQueues.SAT_ACTIVITIES)
+    publisher = Publisher(rabbit(), ServiceQueues.SAT_ACTIVITIES)
     publisher.publish_message(message)
 
     return message
