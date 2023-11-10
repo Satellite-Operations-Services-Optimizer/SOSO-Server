@@ -1,6 +1,6 @@
 from typing import Optional, Union
-from models.ImageRequestModel import ImageRequest
-from models.ActivityRequestModel import ActivityRequest
+from Models.ImageRequestModel import ImageRequest
+from Models.ActivityRequestModel import ActivityRequest
 from pydantic import BaseModel
 from datetime import datetime
 

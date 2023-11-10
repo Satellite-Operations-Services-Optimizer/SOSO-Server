@@ -1,8 +1,8 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-from routes.image_routes import router as image_router
-from routes.satellite_activities_routes import router as activity_router
-from helpers.RequestValidator import HttpErrorHandler
+from Routes.image_routes import router as image_router
+from Routes.satellite_activities_routes import router as activity_router
+from Helpers.RequestValidator import HttpErrorHandler
 
 def lifespan(app: FastAPI):
     print("ServerRequestHandlerAPI Starting...")

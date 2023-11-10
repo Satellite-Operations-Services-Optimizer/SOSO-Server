@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
-from helpers.RequestValidator import validate_request_schema
-from models.ImageRequestModel import ImageRequest
-from models.EventRelayData import EventRelayApiMessage
+from Helpers.RequestValidator import validate_request_schema
+from Models.ImageRequestModel import ImageRequest
+from Models.EventRelayData import EventRelayApiMessage
 from config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 
