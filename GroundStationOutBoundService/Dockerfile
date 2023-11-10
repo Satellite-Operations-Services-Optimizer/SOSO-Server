@@ -17,7 +17,7 @@ COPY ./requirements.txt base-requirements.txt
 RUN pip install -r base-requirements.txt
 
 # copy requirements file for the service if it exists, and install it
-COPY ./GroundStationOutboundService/requirement[s].txt requirements.txt
+COPY ./GroundStationOutBoundService/requirement[s].txt requirements.txt
 RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 # copy every content from the local file to the image
