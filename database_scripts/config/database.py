@@ -9,7 +9,7 @@ load_dotenv()
 driver = os.environ['DB_DRIVER']
 user = os.environ['DB_USER']
 password = os.environ['DB_PASS']
-host = os.environ['DB_HOST']
+host = 'localhost' #This is not inside a docker container, so it connects locally
 db_name = os.environ['DB_NAME']
 schema = os.environ['DB_SCHEMA']
 schema = schema if len(schema) > 0 else None

@@ -1,4 +1,4 @@
-CREATE SCHEMA "soso_schema";
+CREATE SCHEMA IF NOT EXISTS "soso_schema";
 
 CREATE TABLE "soso_schema"."ground_station" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -15,13 +15,11 @@ CREATE TABLE "soso_schema"."ground_station" (
 CREATE TABLE "soso_schema"."satellite" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	"tle" json,
-	"most_recent_lat" double precision,
-	"most_recent_long" double precision,
-	"storage_cap" double precision,
-	"is_illuminated" boolean,
+	"storage_capacity" double precision,
 	"power_capacity" double precision,
 	"fov_max" double precision,
 	"fov_min" double precision,
+	"is_illuminated" boolean,
 	"under_outage" boolean
 );
 

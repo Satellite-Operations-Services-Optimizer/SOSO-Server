@@ -45,6 +45,7 @@ services:
       - .env
     depends_on:
       - rabbitmq
+      - postgres
 
   image-management:
     container_name: image-management
@@ -59,6 +60,7 @@ services:
       - .env
     depends_on:
       - rabbitmq
+      - postgres
 
   gs-outbound:
     container_name: gs-outbound
@@ -73,6 +75,7 @@ services:
       - .env
     depends_on:
       - rabbitmq
+      - postgres
 
   rabbitmq:
     image: rabbitmq:3.12-management
