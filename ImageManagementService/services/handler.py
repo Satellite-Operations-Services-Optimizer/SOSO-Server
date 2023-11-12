@@ -1,20 +1,32 @@
 from helpers.postgres_helper import add_image_order
-
+import logging
 
 def handle_message(body):
-    '''
-    Responsible for interacting / processing with the received messages from queue
-    '''
-    print("Handler function called with body: ", body)
-    # Example usage of add_image_order function
-    new_order_data = {
-        'latitude': 34.0522,        # Replace with actual latitude
-        'longitude': -118.2437,     # Replace with actual longitude
-        'priority': 1,              # Set the priority level
-        'image_res': 1080,          # Set the image resolution
-        'image_height': 720,        # Set the image height
-        'image_width': 1280         # Set the image width
-    }
 
-    add_image_order(new_order_data)
+    print("Handler function called with body: ", body)
+    
+    request_data    = body.get('body')
+    request_details = body.get('details')
+    request_type    = request_details.get('requestType')
+
+    if request_type == 'image-order-request':
+        handle_image_orders(request_data)
+   
+
+def handle_image_orders(body):
+    
+    if body is None:
+        logging.error("No image order data found")
+        return
+
+    image_orders = [body] 
+
+    # Placeholder for FTP server interaction
+    # ftp_image_orders = fetch_image_orders_from_ftp()
+    # image_orders.extend(ftp_image_orders)  # Add FTP image orders if any
+
+    primary_keys = [add_image_order(image) for image in image_orders]
+    
+    logging.info(f"Added image orders with primary keys: {primary_keys}")
+    logging.info("Success")
     print("Success")

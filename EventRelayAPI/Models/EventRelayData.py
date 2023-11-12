@@ -6,7 +6,8 @@ from datetime import datetime
 
 class RequestDetails(BaseModel):
     requestTime: Optional[datetime] = datetime.utcnow()
-
+    requestType: str
+    
 class EventRelayApiMessage(BaseModel):
     body: Union[ImageRequest, ActivityRequest]
-    details: Optional[RequestDetails] = RequestDetails()
+    details: Optional[RequestDetails]
