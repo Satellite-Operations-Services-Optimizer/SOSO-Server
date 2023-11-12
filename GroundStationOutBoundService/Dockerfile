@@ -21,6 +21,6 @@ COPY ./GroundStationOutBoundService/requirement[s].txt requirements.txt
 RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 # copy every content from the local file to the image
-COPY ./GroundStationOutboundService/ .
+COPY ./GroundStationOutBoundService/ .
 
 CMD ["python", "main.py"] 
