@@ -1,4 +1,4 @@
-from RequestModel import ImageRequest, RequestDetails
+from .RequestModel import ImageRequest, RequestDetails
 from pydantic import BaseModel
 
 

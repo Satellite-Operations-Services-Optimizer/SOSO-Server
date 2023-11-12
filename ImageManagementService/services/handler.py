@@ -1,4 +1,6 @@
 from helpers.postgres_helper import add_image_order
+from helpers.rabbit_helper import publish_message_to_queue
+from config import ServiceQueues
 import logging
 
 def handle_message(body):
@@ -23,10 +25,16 @@ def handle_image_orders(body):
 
     # Placeholder for FTP server interaction
     # ftp_image_orders = fetch_image_orders_from_ftp()
-    # image_orders.extend(ftp_image_orders)  # Add FTP image orders if any
 
     primary_keys = [add_image_order(image) for image in image_orders]
     
     logging.info(f"Added image orders with primary keys: {primary_keys}")
     logging.info("Success")
-    print("Success")
+
+
+    # publish_message_to_queue(data=primary_keys,
+    #                 request_type='image-schedule',
+    #                 destination=ServiceQueues.IMAGE_MANAGEMENT
+    #                 )
+
+    

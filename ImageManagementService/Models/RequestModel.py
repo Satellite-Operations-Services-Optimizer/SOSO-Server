@@ -4,6 +4,7 @@ from typing import Optional
 
 class RequestDetails(BaseModel):
     requestTime: Optional[datetime] = None
+    requestType: str
     
 class ImageRequest(BaseModel):
     Latitude: float
