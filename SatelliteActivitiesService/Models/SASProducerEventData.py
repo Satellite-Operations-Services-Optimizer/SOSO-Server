@@ -1,5 +1,6 @@
 from Models.RequestModel import RequestDetails, ActivityRequest
-from Models.ResponseModel import ResponseDetails, satellite_maintenance_request
+from Models.ResponseModel import ResponseDetails
+from config.database import maintenance_order
 
 from pydantic import BaseModel
 
@@ -9,5 +10,5 @@ class SASProducerEventData(BaseModel):
     details: RequestDetails = None
     
 class SASProducerEventData2(BaseModel):
-    message: satellite_maintenance_request = None
+    message: maintenance_order = None
     details: ResponseDetails = None
