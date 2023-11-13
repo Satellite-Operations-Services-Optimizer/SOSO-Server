@@ -66,9 +66,9 @@ services:
     container_name: gs-outbound
     build:
       context: ./
-      dockerfile: ./GroundStationOutboundService/Dockerfile
+      dockerfile: ./GroundStationOutBoundService/Dockerfile
     volumes:
-      - ./GroundStationOutboundService:/code
+      - ./GroundStationOutBoundService:/code
     ports:
       - 84:5000
     env_file:
