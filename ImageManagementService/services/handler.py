@@ -14,6 +14,7 @@ def handle_message(body):
 
     if request_type == 'image-order-request':
         handle_image_orders(request_data)
+    
 
    
 
@@ -24,29 +25,23 @@ def handle_image_orders(body):
         return
 
 
-    # TO DO: Placeholder for FTP server interaction - This will output a list of image orders
-    # ftp_image_orders = fetch_image_orders_from_ftp() 
-    
-    image_orders = [body]  #  Append ftp result into image_orders
+    image_type = body.get('ImageType')
 
-    logging.info(f"Converting image orders to accepted schema: {image_orders}")
+    logging.info(f"Converting image orders to accepted schema: {body}")
 
-    processed_image_orders = [
-        apply_image_type_settings(order.get('ImageType'), transform_request_to_db_schema(order))
-        for order in image_orders 
-    ]
+    image_order = apply_image_type_settings(image_type, transform_request_to_db_schema(body))
 
-    logging.info(f"Saving orders into database: {processed_image_orders}")
+    logging.info(f"Saving orders into database: {image_order}")
 
-    primary_keys = [add_image_order(image) for image in processed_image_orders if image is not None]
-    
-    logging.info(f"Added image orders with primary keys: {primary_keys}")
+    primary_key = add_image_order(image_order)
+
+    logging.info(f"Added image orders with primary keys: {primary_key}")
     logging.info("Success")
 
 
-    publish_message_to_queue(data=primary_keys,
+    publish_message_to_queue(data=primary_key,
                     request_type='image-schedule',
-                    destination=ServiceQueues.IMAGE_MANAGEMENT
+                    destination=ServiceQueues.SCHEDULER
                     )
 
 

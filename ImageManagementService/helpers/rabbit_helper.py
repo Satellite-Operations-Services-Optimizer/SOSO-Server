@@ -14,5 +14,6 @@ def publish_message_to_queue(data, request_type, destination):
         )
     )
 
+    print("Reached!")
     publisher = Publisher(rabbit(), destination)
     publisher.publish_message(message)
