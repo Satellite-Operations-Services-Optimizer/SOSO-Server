@@ -2,7 +2,7 @@ CREATE SCHEMA IF NOT EXISTS "soso_schema";
 
 CREATE TABLE "soso_schema"."ground_station" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	"name" text UNIQUE
+	"name" text UNIQUE,
 	"latitude" double precision,
 	"longitude" double precision,
 	"elevation" double precision,
