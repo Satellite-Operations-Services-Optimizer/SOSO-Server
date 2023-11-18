@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 def startup_event():
-    consumer = Consumer(rabbit, ServiceQueues.SAT_ACTIVITIES)
+    consumer = Consumer(rabbit(), ServiceQueues.SAT_ACTIVITIES)
     consumer.consume_messages(callback=handle_message)
 
     # producer = Producer(rabbit, ServiceQueues.SCHEDULER)
