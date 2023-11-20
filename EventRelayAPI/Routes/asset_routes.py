@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Body, Depends
-#from fastapi.encoders import jsonable_encoder
-from EventRelayAPI.Models.GroundStationModel import GroundStation
-from EventRelayAPI.Models.SatelliteModel import Satellite
+from fastapi.encoders import jsonable_encoder
+from Models.GroundStationModel import GroundStation
+from Models.SatelliteModel import Satellite
 from Helpers.RequestValidator import validate_request_schema
-#from Helpers.postgres_helper import add_satellite, add_ground_station
-#from Models.EventRelayData import EventRelayApiMessage, RequestDetails
-#from config import rabbit, ServiceQueues
-#from rabbit_wrapper import Publisher
+from Helpers.postgres_helper import add_satellite, add_ground_station
+from Models.EventRelayData import EventRelayApiMessage, RequestDetails
+from config import rabbit, ServiceQueues
+from rabbit_wrapper import Publisher
 
 import logging
 
@@ -15,12 +15,12 @@ router = APIRouter()
 
 
 @router.post("/create_ground_station")
-async def add_ground_station(ground_station: GroundStation = Depends(lambda request_data=Body(...): validate_request_schema(request_data, GroundStation))):
+async def new_ground_station(ground_station: GroundStation = Depends(lambda request_data=Body(...): validate_request_schema(request_data, GroundStation))):
     new_ground_station_id = add_ground_station(**ground_station.model_dump())
     return new_ground_station_id
 
 @router.post("/create_satellite")
-async def add_satellite(satellite: Satellite = Depends(lambda request_data=Body(...): validate_request_schema(request_data, Satellite))):    
+async def new_satellite(satellite: Satellite = Depends(lambda request_data=Body(...): validate_request_schema(request_data, Satellite))):    
     return
 
 
