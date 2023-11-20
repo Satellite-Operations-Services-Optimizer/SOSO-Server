@@ -10,5 +10,6 @@ class HttpErrorHandler(HTTPException):
 def validate_request_schema(request_data: dict, model_type: Type[BaseModel]) -> BaseModel:
     try:
         return model_type(**request_data)
-    except ValidationError:
-        raise HttpErrorHandler(status_code=400, detail="Invalid Payload Schema")
+    except ValidationError as e:
+        error_details = e.errors()
+        raise HttpErrorHandler(status_code=400, detail=f"Invalid Payload Schema: {error_details}")
