@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from Routes.image_routes import router as image_router
 from Routes.satellite_activities_routes import router as activity_router
+from Routes.asset_routes import router as asset_router
 from Helpers.RequestValidator import HttpErrorHandler
 
 def lifespan(app: FastAPI):
@@ -20,3 +21,4 @@ async def http_error_handler(request: Request, exc: HttpErrorHandler):
 
 app.include_router(image_router, tags=["Image Operations"], prefix="/images")
 app.include_router(activity_router, tags=["Satellite Activities Operation"], prefix="/activities")
+app.include_router(asset_router, tags=["Asset Creation"], prefix="/assets")

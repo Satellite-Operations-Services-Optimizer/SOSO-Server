@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/add-ground-station")
+@router.post("/create_ground_station")
 async def add_ground_station(ground_station: GroundStation = Depends(lambda request_data=Body(...): validate_request_schema(request_data, GroundStation))):
     new_ground_station_id = add_ground_station(**ground_station.model_dump())
     return new_ground_station_id
 
-@router.post("/add-satellite")
+@router.post("/create_satellite")
 async def add_satellite(satellite: Satellite = Depends(lambda request_data=Body(...): validate_request_schema(request_data, Satellite))):    
     return
 
