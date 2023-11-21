@@ -1,5 +1,5 @@
 from config import db_session
-from models.satellite import Satellite, SatelliteStateGenerator
+from Models.Satellite import Satellite, SatelliteStateGenerator
 from datetime import datetime, timedelta
 def handle_message(body):
     satellite = db_session.query(Satellite).first()

@@ -2,11 +2,11 @@ CREATE SCHEMA IF NOT EXISTS "soso_schema";
 
 CREATE TABLE "soso_schema"."ground_station" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"name" text UNIQUE,
 	"latitude" double precision,
 	"longitude" double precision,
 	"elevation" double precision,
-	"station_mask_receive" double precision,
-	"station_mask_send" double precision,
+	"station_mask" double precision,
 	"uplink_rate" double precision,
 	"downlink_rate" double precision,
 	"under_outage" boolean
@@ -14,6 +14,7 @@ CREATE TABLE "soso_schema"."ground_station" (
 
 CREATE TABLE "soso_schema"."satellite" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	"name" text UNIQUE,
 	"tle" json,
 	"storage_capacity" double precision,
 	"power_capacity" double precision,
