@@ -23,15 +23,17 @@ class Request_status:
     scheduled_request: Union[maintenance_order, image_order, outage_order]
     repeat: list[single_activity]
 
-def get_image_status(image_id: int):
+# status of all repeats in an image order
+def get_image_order_status(image_id: int):
     activities = get_all_repeats_from_image_request(db_session, image_id)
     list_of_repeats = get_repeated_activities(activities)     
     
     request = get_image_request(db_session, image_id)
     request_status = Request_status(scheduled_request = request, repeat = list_of_repeats) 
     return request_status
-    
-def get_maintenance_status(maintenance_id: int):
+
+# status of all repeats in an maintenance order
+def get_maintenance_order_status(maintenance_id: int):
     activities = get_all_repeats_from_maintenance_request(db_session, maintenance_id)
     list_of_repeats = get_repeated_activities(activities)     
     
@@ -39,7 +41,8 @@ def get_maintenance_status(maintenance_id: int):
     request_status = Request_status(scheduled_request = request, repeat = list_of_repeats) 
     return request_status
 
-def get_outage_status(outage_id: int):
+# status of all repeats in an order order
+def get_outage_order_status(outage_id: int):
     
     outage_activity = get_scheduled_outage(db_session, outage_id)
       
@@ -47,7 +50,7 @@ def get_outage_status(outage_id: int):
     request_status = Request_status(scheduled_request = request, repeat = [outage_activity]) 
     return request_status
 
-
+# All individual activities from any order
 def get_repeated_activities(activities: list):
     
     list_of_repeats = []
@@ -56,3 +59,13 @@ def get_repeated_activities(activities: list):
         list_of_repeats.append(repeat_activity)
      
     return list_of_repeats
+
+
+## need to add repeat number and update
+def get_scheduled_maintenence_status(maintenence_id: int, repeat_number: int):
+    maintenence_activity = get_scheduled_maintenence(db_session, maintenence_id)
+    status = single_activity(maintenence_activity.repeat_number, maintenence_activity.status)
+    
+def get_scheduled_maintenence_status(maintenence_id: int, repeat_number: int):
+    maintenence_activity = get_scheduled_maintenence(db_session, maintenence_id)
+    status = single_activity()

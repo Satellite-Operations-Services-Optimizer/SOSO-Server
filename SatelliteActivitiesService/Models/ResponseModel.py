@@ -17,3 +17,8 @@ class satellite_maintenance_request(BaseModel):
     frequency_min_gap: timedelta
     frequency_max_gap: timedelta
     payload_flag: bool
+    
+class scheduling_options(BaseModel):
+    request_id: int
+    options: list[list[datetime]]
+    

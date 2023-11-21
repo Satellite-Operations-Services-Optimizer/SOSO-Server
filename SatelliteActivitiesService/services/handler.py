@@ -1,9 +1,14 @@
+
+from fastapi.encoders import jsonable_encoder
+from config import rabbit, ServiceQueues
+from rabbit_wrapper import Publisher
 from config.database import db_session
-from Services import process
+from Services import process, processcopy
 from config import logging
-from Models import SASConsumerEventData, SASProducerEventData
+from Models.SASConsumerEventData import SASConsumerEventData
+from Models.SASProducerEventData import SASProducerScheduleOptionsData
 from Models.RequestModel import ActivityRequest, OutageRequest
-from Database.db_curd import create_maintenence_request
+from Database.db_curd import create_maintenence_request, create_outage_request
 import json
 def handle_message(body):
     print("Handler function called!")
@@ -14,66 +19,62 @@ def handle_message(body):
 
     logging.info(f"Recieved {request_body}")
     
-    # SASConsumerEventData(
-    #     message=request_body,
-    #     details=request_details
-    # )
-    # message = jsonable_encoder(
-    #     SASConsumerEventData(
-    #         message=request_body,
-    #         details=request_details
-    #     )
-    # )
-    
-    
-    # try: {    
-    #     activity_request = ActivityRequest(**request_body)     
-    #     response_model = create_maintenence_request(db_session, activity_request)
-    # } catch Exception e {
-    #     print({e})
-    #     logging.info({e})
-    # }
+       
+       
+    try:
+        not_maintenence = None
+        not_outage = None
 
-    # try: {    
-    #     outage_request = OutageRequest(**request_body)     
-    #     response_model = create_outage_request(db_session, outage_request)
-    # } catch Exception e {
-    #     print({e})
-    #     logging.info({e})
-    # }
-    
-    activity_request = ActivityRequest(**request_body)     
-    response_model = create_maintenence_request(db_session, activity_request)
-    
-    print('\n from create: \n', response_model)
-    
-    preschedule = process.schedule_activity(request_body["Target"][5], response_model)
-    
-    print(preschedule)
-    # schedule_options = schedule_activity(1, response_model)
-    # for i in len(schedule_options):
-    #     print(schedule_options[i])
-    # # message = jsonable_encoder(
-    # #     SASProducerEventData(
-    # #         message=request_body,
-    # #         details=request_details
-    # #     )
-    # # )
-    
-    
-    # message2 = jsonable_encoder(
-    #     SASProducerEventData2(
-    #         message=response_model.__dict__,
-    #         details=request_details # same as consumer, should maybe change
-    #     )
-    # )
-    
-    # # TODO: Add your logic here.
-    # #publisher = Publisher("SchedulerServiceEventData")
-    # # Sends sample request to EventRelayAPI's response queue
-    # self.publisher.publish_message(message2)
+        try:
+            request = ActivityRequest(**request_body)
+            message_recieved = jsonable_encoder(
+                SASConsumerEventData(
+                    message=request,
+                    details=request_details
+                )
+            )     
+            saved_request = create_maintenence_request(db_session, request)
+        except Exception as e:
+            not_maintenence = e
+            
+            try:
+                request = OutageRequest(**request_body)     
+                saved_request = create_outage_request(db_session, request)
+                
+            except Exception as e:
+                not_outage = e
+                
 
-    # process.schedule_activity()
+        if not_outage and not_maintenence:
+           raise ValueError("Invalid Request")
+
+        else:
+            logging.info(f"Request Saved to Database")
+            
+            if(type(request) == ActivityRequest):
+                
+                preschedule = process.schedule_activity(request_body["Target"][5], saved_request)
+        
+                message = jsonable_encoder(
+                    SASProducerScheduleOptionsData(
+                        body=preschedule,
+                        details=request_details
+                    )
+                )
+            
+                producer = Publisher(rabbit(), ServiceQueues.SCHEDULER)
+                producer.publish_message(message)
+
+    except Exception as outer_exception:
+        
+        print("Exception thrown: ", outer_exception)
+
+    # if(saved_activity_request != None):
+    
+    #     preschedule = process.schedule_activity(request_body["Target"][5], saved_activity_request)
+    
+    #     logging.info(f"List of possible schedules: {preschedule.__dict__}")
+    
+    
+    
     pass
-
-# def prepare_message():

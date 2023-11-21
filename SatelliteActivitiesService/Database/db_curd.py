@@ -47,7 +47,6 @@ def create_outage_request(db: Session, request: RequestModel.OutageRequest) -> o
     
     db_request = outage_order(
         asset_name = request.Target,
-        description=request.Activity,
         start_time=datetime.fromisoformat(request.Window.Start),
         end_time=datetime.fromisoformat(request.Window.End),
     )
@@ -69,12 +68,13 @@ def get_image_request(db: Session, image_id: int):
 
 #individual activities
 
-def get_scheduled_maintenence(db: Session, id: int):
-    return db.query(scheduled_maintenance).filter(scheduled_maintenance.manintenace_id == id)
+def get_scheduled_maintenence(db: Session, id: int, repeat: int):
+    return db.query(scheduled_maintenance).filter(scheduled_maintenance.manintenace_id == id).filter(scheduled_maintenance.repeat_number == repeat)
 
 def get_scheduled_outage(db: Session, id: int):
     return db.query(scheduled_outages).filter(scheduled_outages.outage_id == id).first()
 
+## ************* needs repeat identifier ****************
 def get_scheduled_image(db: Session, id: int):
     return db.query(scheduled_images).filter(scheduled_images.image_id == id)  
 
@@ -88,8 +88,22 @@ def get_ground_station_request(db: Session, id: int):
 
 # all activities of an order request
 def get_all_repeats_from_maintenance_request(db: Session, id: int):
-    return db.queryquery(scheduled_maintenance).filter_by(maintenance_id=id).all()
+    return db.query(scheduled_maintenance).filter_by(scheduled_maintenance.maintenance_id==id).all()
 
+
+## there are no repeats as of now, unique field and repeat identifier should be updated
 def get_all_repeats_from_image_request(db: Session, id: int):
-    return db.queryquery(scheduled_images).filter_by(image_id=id).all()
+    return db.query(scheduled_images).filter_by(scheduled_images.image_id==id).all()
  
+def get_all_schedules_in_window(db: Session, satellite_id: int, start: datetime, end: datetime):
+    return db.query(schedule).filter(schedule.satellite_id == satellite_id).filter(schedule.start_time >= start).filter(schedule.end_time <= end).all()
+
+def get_all_scheduled_images_from_schedule(db: Session, schedule_id: int):
+    return db.query(scheduled_images).filter(scheduled_images.schedule_id == schedule_id).all()
+
+def get_all_scheduled_maintenence_from_schedule(db: Session, schedule_id: int):
+    return db.query(scheduled_maintenance).filter(scheduled_maintenance.schedule_id == schedule_id).all()
+
+def get_all_scheduled_outage_from_schedule(db: Session, schedule_id: int):
+    return db.query(scheduled_outages).filter(scheduled_outages.schedule_id == schedule_id).all()
+  
