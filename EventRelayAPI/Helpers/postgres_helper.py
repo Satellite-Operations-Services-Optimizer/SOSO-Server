@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from config.database import db_session, Base
 
 Satellite = Base.classes.satellite
@@ -13,9 +14,7 @@ def add_satellite(data) -> Satellite | None:
         new_satellite = Satellite(**data)
         db_session.add(new_satellite)
         db_session.commit()
-        db_session.refresh()
-        
-        print("New image order added successfully!")
+        db_session.refresh(new_satellite)
         return new_satellite.id  
     
     except Exception as e:
@@ -36,9 +35,7 @@ def add_ground_station(data) -> GroundStation | None:
         new_ground_station = GroundStation(**data)
         db_session.add(new_ground_station)
         db_session.commit()
-        db_session.refresh()
-        
-        print("New image order added successfully!")
+        db_session.refresh(new_ground_station)     
         return new_ground_station.id  
     
     except Exception as e:
@@ -48,3 +45,54 @@ def add_ground_station(data) -> GroundStation | None:
     
     finally:
         db_session.close()
+
+def get_all_ground_stations():
+    """
+    Queries ground_station table to select for all rows.
+    :return: a list of all rows in ground_station table
+    """
+    try:
+        all_ground_stations = db_session.query(GroundStation).all()
+        return all_ground_stations
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    finally: db_session.close()
+
+def get_ground_station_by_id(id):
+    """
+    Queries ground_station table to select for the row where param id is equivalent to ground_station.id.
+    :return: the row in ground_station table with the id of input
+    :exception: 404 not found if row with param id is not present
+    """
+    try:
+        ground_station = db_session.query(GroundStation).filter(GroundStation.id==id).first()
+
+        if not ground_station:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {id} not found")
+
+        return ground_station
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    finally: db_session.close()
+
+""" def modify_ground_station_by_name(name):
+
+    try:
+        ground_station_query = db_session.query(GroundStation).filter(GroundStation.name==name)
+        ground_station = ground_station_query.first()
+
+        if ground_station == None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {name} not found")
+        
+        ground_station_query.update(ground_station.name)
+
+        return 
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    finally: db_session.close() """
