@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 from Database import newmockschedule
+from config.database import db_session
 from Models.RequestModel import ActivityRequest
-from Database.db_curd import maintenance_order
+from Models.ResponseModel import scheduling_options
+from Database.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
 
 # class scheduled_activity:
 #     schedule_id: int
@@ -14,12 +16,18 @@ class scheduled_activity:
         self.start_time = start_time
         self.end_time = end_time    
 
-class scheduling_options:
-    def __init__(self, request_id: int, options: list[list[datetime]]):
-        self.request_id = request_id
-        self.options = options 
+# class scheduling_options:
+#     def __init__(self, request_id: int, options: list[list[datetime]]):
+#         self.request_id = request_id
+#         self.options = options 
 
 def schedule_activity(satellite_id: int , maintenence_request: maintenance_order):
+    time_step = maintenence_request.start_time
+    timeline = []
+    
+    while((time_step <= maintenence_request.end_time)):
+        timeline.append(time_step)
+        time_step += timedelta(minutes=10)
     
     print(maintenence_request.duration)
     duration = timedelta(hours =int(maintenence_request.duration.hour),
@@ -27,36 +35,46 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
                          seconds=int(maintenence_request.duration.second))
     min_frequencey = timedelta(seconds =maintenence_request.frequency_min)
     max_frequencey = timedelta(seconds=maintenence_request.frequency_max)
-    schedules = newmockschedule.get_schedule(satellite_id, maintenence_request.start_time, maintenence_request.end_time)
+    
+    # **********to be tested with realdata*********
+    schedules = get_all_schedules_in_window(db_session ,satellite_id, maintenence_request.start_time, maintenence_request.end_time)
+    
+    #temporary test schedule
+    #schedules = newmockschedule.get_schedule(satellite_id, maintenence_request.start_time, maintenence_request.end_time)
     
     schedule_options = []
     option = []
        
     list_of_activities = get_activities(schedules)
-    end_of_schedule = list_of_activities[len(list_of_activities)-1].end_time
-    last_activity = list_of_activities[0].start_time # when the last last_activity ended, whether it's this request or not
+    end_of_schedule = maintenence_request.end_time
+    last_activity = maintenence_request.start_time # when the last last_activity ended, whether it's this request or not
+    step = maintenence_request.start_time
     last_repetition = maintenence_request.end_time
-    nextactivity = list_of_activities[0].start_time
+    
+    if(list_of_activities):
+        nextactivity = list_of_activities[0].start_time
+    else:
+        nextactivity = maintenence_request.end_time
     with_in_frequency = True
     rep = 0
+    i = 0 # to iterate through scheduled activities
+    for t in range(len(timeline)): # time window divded into ten minute segments
     # each activity in schedule
-    for i in range(len(list_of_activities)):
-        
+               
+        if(last_activity > step):
+            step = last_activity
+        else:
+            step = timeline[t]
         
         #find out how long the gap is
         if(i < len(list_of_activities)-1):
             nextactivity =  list_of_activities[i].start_time            
-            freetime = nextactivity - last_activity # time between last activity and next one
-            
-            print(f"last activity ended at {last_activity}")
-            print(f"next activity starts at {nextactivity}")
-            print(f"free time number {i} is {freetime}")
-            
-            
+            freetime = nextactivity - step # time between last activity and next one
+                      
         else: 
-            freetime = end_of_schedule - last_activity # time until the schedule ends
-            print(f"Last free time number {i} is {freetime}")
-        # print(f"free time number {i} is {freetime}")  
+            freetime = end_of_schedule - step # time until the schedule ends
+            
+         
           
         # start time or start of window is before potential start
         # duration is long enough
@@ -64,71 +82,67 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
         # it can finsh before the window closes
         # *** need to check for freq_max_gap
         
-        print(f"maintenence_request.start_time is {maintenence_request.start_time}\n")
-        print(f"last activity ended at {last_activity}\n")
-        print(f"free time is  {freetime}\n")
-        print(f"duration is {duration}\n")
-        print(f"repetition - 1 is at {rep}\n")
-        print(f"maintenance endtime is {maintenence_request.end_time}\n")
            
-        if(maintenence_request.start_time <= last_activity and freetime >= duration
-        and rep < maintenence_request.repetition and (last_activity + duration) <= maintenence_request.end_time):
-            print("true")
+        if(maintenence_request.start_time <= step and freetime >= duration
+        and rep < maintenence_request.repetition and (step + duration) <= maintenence_request.end_time):
+            
             if(rep != 0 and len(option) >= rep): # need to check for min and max gap between the last repetition and this one
-                with_in_frequency = (last_activity > last_repetition + duration + min_frequencey
-                                     and last_activity < last_repetition + duration + max_frequencey)
-                print(f"within freq is {with_in_frequency}\n")
+                with_in_frequency = (step > last_repetition + duration + min_frequencey
+                                     and step < last_repetition + duration + max_frequencey)
+                
             
             if(with_in_frequency):
-                option.append(last_activity)
+                option.append(step)
                 print(f"option appended to {option}\n")
                 # last_repetition = option[rep-1] + duration # when the last rep ended
-                last_activity = last_activity + duration # can only schedule starting frome here
+                last_activity = step + duration # can only schedule starting frome here
                 last_repetition = last_activity
                 rep += 1
             else:
-                last_activity =  list_of_activities[i].end_time 
+                last_activity =  nextactivity
+                i += 1
         else:
-            print("false") 
-            last_activity =  list_of_activities[i].end_time  
-                
+            last_activity =  nextactivity  
+            i += 1
         if(rep == maintenence_request.repetition):
             schedule_options.append(option)
             rep = 0
             last_repetition = maintenence_request.end_time            
             print(f"options is {option}")
-            print(f"schedule_options is {schedule_options}")
             option = []
         
+        
 
-    # possible_schedules = scheduling_options(request_id = maintenence_request.id, options = schedule_options)
-    # print(possible_schedules)
-    # return possible_schedules
-    schedule_times = scheduling_options(request_id= maintenance_order.id, options= schedule_options)
+   
+    schedule_times = scheduling_options(request_id= int(maintenence_request.id), options= schedule_options)
+    
     print(schedule_options)
+    
     return schedule_times
  
 def get_activities(schedules: list): 
     list_of_activities = []
     
+    # **********to be tested with realdata*********   
+    
+    
     for j in range(len(schedules)):
         
-        # get all activities with that schedule_id from 3 tables from database
-        image_activities = newmockschedule.get_scheduled_image(schedules[j].id)
-        for i in range(len(image_activities)):
-            activity = scheduled_activity(schedule_id = schedules[j].id ,start_time = image_activities[i].downlink_start, end_time = image_activities[i].downlink_end)
-            list_of_activities.append(activity)
-    
-        maintenence_activities = newmockschedule.get_scheduled_maintenence(schedules[j].id)
-        for i in range(len(maintenence_activities)):
-            activity = scheduled_activity(schedule_id = schedules[j].id , start_time = maintenence_activities[i].maintenance_start, end_time = maintenence_activities[i].maintenance_end)
-            list_of_activities.append(activity)
-    
-            
-        outage_activities = newmockschedule.get_scheduled_outage(schedules[j].id)
-        for i in range(len(outage_activities)):
-            activity = scheduled_activity(schedule_id = schedules[j].id , start_time = outage_activities[i].outage_start, end_time = outage_activities[i].outage_end)
-            list_of_activities.append(activity)
+        # **************************************
+        
+        image_activities = get_all_scheduled_images_from_schedule(db_session, schedules[j].id)
+        list_of_activities.extend(image_activities)
+        
+        maintenence_activities = get_all_scheduled_maintenence_from_schedule(db_session, schedules[j].id)
+        list_of_activities.extend(maintenence_activities)
+        
+        outage_activities = get_all_scheduled_outage_from_schedule(db_session, schedules[j].id)
+        list_of_activities.extend(outage_activities)
+        
+        
+        # **************************************
+        
+        
             
     sorted_schedules = sorted(list_of_activities, key=lambda x: x.start_time)
     print(f"sorted activities are {sorted_schedules}")
@@ -137,4 +151,3 @@ def get_activities(schedules: list):
     for activity in sorted_schedules:
         print(activity.__dict__)
     return sorted_schedules 
-
