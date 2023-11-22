@@ -5,7 +5,7 @@ from Models.ImageRequestModel import ImageRequest
 from Models.EventRelayData import EventRelayApiMessage, RequestDetails
 from config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-
+from Helpers.ImageOrderFetch import get_Image_Orders
 import logging
 
 logger = logging.getLogger(__name__)
@@ -31,4 +31,15 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
     publisher.publish_message(message)
 
     return message
+
     
+@router.get("/image-orders")
+async def get_image_orders():
+    
+    imageOrders = get_Image_Orders();
+    
+    print("Image Orders Requested: ");
+    print(imageOrders);
+    
+    return imageOrders
+
