@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Json
-from typing import Optional
+from pydantic import BaseModel #,Json
 
-class Satellite(BaseModel):
+""" class Satellite(BaseModel):
     name: str
     tle: Json
     storage_capacity: float
@@ -9,7 +8,10 @@ class Satellite(BaseModel):
     fov_max: float
     fov_min: float
     is_illuminated: bool
-    under_outage: bool = False
+    under_outage: bool """
 
-
-   
+class SatelliteCreationRequest(BaseModel): 
+    storage_capacity: float
+    power_capacity: float
+    fov_max: float
+    fov_min: float

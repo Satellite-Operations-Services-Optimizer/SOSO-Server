@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Body, Depends, File, UploadFile
 import json
 from fastapi.encoders import jsonable_encoder
+from EventRelayAPI.Models.SatelliteModel import SatelliteCreationRequest
 from Models.GroundStationModel import GroundStation
-from Models.SatelliteModel import Satellite
+#from Models.SatelliteModel import Satellite
 from Helpers.postgres_helper import add_satellite, add_ground_station, get_all_ground_stations, get_ground_station_by_id #,modify_ground_station_by_name
 #from Models.EventRelayData import EventRelayApiMessage, RequestDetails
 #from config import rabbit, ServiceQueues
 #from rabbit_wrapper import Publisher
-
+from Helpers.utils import txt_to_json_converter
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,27 +36,13 @@ async def modify_ground_station(name):
 
 #satellite end points
 @router.post("/create_satellite")
-async def new_satellite(satellite_json: UploadFile = File(...)):    
+async def new_satellite(tle_file: UploadFile = File(...), 
+                        satellite_form_data = SatelliteCreationRequest):    
     
-    new_satellite = json.load(satellite_json.file)
-    new_satellite_id = add_satellite(new_satellite)
+    tle_json = tle_file
+    if tle_file.filename.endswith(".txt"):
+        txt_to_json_converter(tle_file, tle_json)
+
+    new_satellite = json.load(tle_json.file)
+    new_satellite_id = add_satellite(new_satellite, tle_json, satellite_form_data)
     return new_satellite_id
-
-
-"""     request = jsonable_encoder(ground_station)
-
-    request_details = RequestDetails(requestType="add-ground-station")
-
-    message = jsonable_encoder(
-        EventRelayApiMessage(
-            body=request,
-            details=request_details
-        )
-    )
-
-    logger.debug("received request")
-    publisher = Publisher(rabbit(), ServiceQueues.IMAGE_MANAGEMENT)
-    logger.debug("publisher created")
-    publisher.publish_message(message)
-
-    return message """
