@@ -4,14 +4,25 @@ from config.database import db_session, Base
 Satellite = Base.classes.satellite
 GroundStation = Base.classes.ground_station
 
-def add_satellite(data) -> Satellite | None:
+def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     """
     Adds a new satellite ssset to the 'satellite' table and returns the primary key of the added asset.
     :param data: A dictionary containing the data for the new asset.
     :return: The primary key of the newly added asset.
     """
+    new_satellite = Satellite(
+                name=tle_dict["name"],
+                tle=tle_json,
+                storage_capacity=form_data.storage_capacity,
+                power_capacity=form_data.power_capacity,
+                fov_max=form_data.fov_max,
+                fov_min=form_data.fov_min,
+                is_illuminated=False,
+                under_outage=False
+            )
+
     try:
-        new_satellite = Satellite(**data)
+        #new_satellite = Satellite(tle = data, table_data)
         db_session.add(new_satellite)
         db_session.commit()
         db_session.refresh(new_satellite)

@@ -1,4 +1,6 @@
 import json
+
+
 def txt_to_json_converter(input_file, output_file):
     with open(input_file, 'r') as txt_file:
         lines = txt_file.readlines()
