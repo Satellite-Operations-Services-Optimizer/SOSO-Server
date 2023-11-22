@@ -61,11 +61,12 @@ def get_repeated_activities(activities: list):
     return list_of_repeats
 
 
-## need to add repeat number and update
+
 def get_scheduled_maintenence_status(maintenence_id: int, repeat_number: int):
     maintenence_activity = get_scheduled_maintenence(db_session, maintenence_id)
     status = single_activity(maintenence_activity.repeat_number, maintenence_activity.status)
-    
-def get_scheduled_maintenence_status(maintenence_id: int, repeat_number: int):
-    maintenence_activity = get_scheduled_maintenence(db_session, maintenence_id)
+
+## need to add repeat number and update    
+def get_scheduled_Image_status(maintenence_id: int, repeat_number: int):
+    maintenence_activity = get_scheduled_image(db_session, image_id)
     status = single_activity()

@@ -12,11 +12,11 @@ request1 =  {
             "Start": "2023-11-05T00:07:00",
             "End": "2023-11-15T23:59:59"
         },
-        "Duration": "180",
+        "Duration": "100",
         "RepeatCycle": {
             "Frequency": {
-            "MinimumGap": "14000",
-            "MaximumGap": "606000"
+            "MinimumGap": "90000",
+            "MaximumGap": "91400"
             },
             "Repetition": "2"
         },

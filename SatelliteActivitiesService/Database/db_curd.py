@@ -106,4 +106,5 @@ def get_all_scheduled_maintenence_from_schedule(db: Session, schedule_id: int):
 
 def get_all_scheduled_outage_from_schedule(db: Session, schedule_id: int):
     return db.query(scheduled_outages).filter(scheduled_outages.schedule_id == schedule_id).all()
+
   

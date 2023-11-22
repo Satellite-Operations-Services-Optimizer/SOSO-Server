@@ -3,7 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from config.database import db_session
-from Services import process, processcopy
+from Services import process
 from config import logging
 from Models.SASConsumerEventData import SASConsumerEventData
 from Models.SASProducerEventData import SASProducerScheduleOptionsData
