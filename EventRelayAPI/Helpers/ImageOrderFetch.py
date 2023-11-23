@@ -5,10 +5,8 @@ ImageOrder = Base.classes.image_order
 
 def get_Image_Orders():
     try:
-        statement = select(ImageOrder);
-        result = db_session.execute(statement);
-        returnable = db_session.scalars(result).all();
-        return returnable;
+        images = db_session.query(ImageOrder).all();
+        return images;
         
     except Exception as e:
         print("Error Occured getting Image Orders");
