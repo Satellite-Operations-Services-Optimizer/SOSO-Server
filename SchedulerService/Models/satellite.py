@@ -6,6 +6,7 @@ from constants import EARTH_RADIUS, get_ephemeris
 from typing import Optional, Union
 from dataclasses import dataclass
 import numpy as np
+from math import atan, degrees
 
 # This class extends the database table 'satellite'
 Satellite = Base.classes.satellite
@@ -32,15 +33,15 @@ class SatelliteStateGenerator:
         altitude = np.linalg.norm(position) - EARTH_RADIUS # The constant comes from ./constants.py file
 
         # Calculate FOV
-        # fov = degrees(2 * atan(12742 / (2 * (altitude_current + EARTH_RADIUS)))) # maybe move constants like '12742' to the constants.py file for better formula readability
-        # No need to calculate FOV since it is given to us.
+        fov = degrees(2 * atan(12742 / (2 * (altitude + EARTH_RADIUS)))) # maybe move constants like '12742' to the constants.py file for better formula readability
+        
         is_sunlit = self._is_sunlit(time)
         return SatelliteState(
             time=time,
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
-            fov=0, # TODO: How do we get this value? is it needed?
+            fov=fov, # TODO: How do we get this value? is it needed?
             is_sunlit=is_sunlit
         )
 
@@ -101,3 +102,5 @@ class SatelliteState:
 
     def __str__(self):
         return f"{{time: {self.time}, latitude: {self.latitude}, longitude: {self.longitude}, altitude: {self.altitude}, is_sunlit: {self.is_sunlit}, fov: {self.fov}}}"
+
+# This class extends the database table 'ground station'
