@@ -28,5 +28,7 @@ SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
 inject==5.1.0 # for dependency injection
 
+fastapi_pagination==0.12.12
+
 # our custom rabbitmq wrapper
 rabbit_wrapper @ git+https://github.com/Satellite-Operations-Services-Optimizer/rabbit-wrapper@main # I specified the main branch. if you want to install another branch, change it here
