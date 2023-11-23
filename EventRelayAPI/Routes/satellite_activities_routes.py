@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from dotenv import dotenv_values
-from Helpers.RequestValidator import validate_request_schema
+from Helpers.request_validator import validate_request_schema
 from Models.ActivityRequestModel import ActivityRequest
 from Models.EventRelayData import EventRelayApiMessage
 from config.rabbit import rabbit, ServiceQueues
