@@ -7,6 +7,7 @@ from typing import Optional, Union
 from dataclasses import dataclass
 import numpy as np
 from math import atan, degrees
+from skyfield.api import Topos
 
 # This class extends the database table 'satellite'
 Satellite = Base.classes.satellite
@@ -104,3 +105,77 @@ class SatelliteState:
         return f"{{time: {self.time}, latitude: {self.latitude}, longitude: {self.longitude}, altitude: {self.altitude}, is_sunlit: {self.is_sunlit}, fov: {self.fov}}}"
 
 # This class extends the database table 'ground station'
+
+GroundStation = Base.classes.ground_station
+
+class GroundStationAccessesGenerator:
+    _ground_station_topos: Optional[Topos] = None
+
+    def __init__(self, db_ground_station: GroundStation):
+        self.db_ground_station = db_ground_station
+
+    def is_in_contact(self, satellite, time):
+        """
+        Check if the satellite is in contact with the ground station at the given time
+        """
+        ground_station_topos = self._get_ground_station_topos()
+        relative_position = (satellite - ground_station_topos).at(time)
+        elevation_angle = relative_position.altaz()[0]
+        return elevation_angle.degrees > self.db_ground_station.mask
+
+    def generate_accesses(self, satellite, start_time, end_time):
+        """
+        Generate accesses for the satellite at the ground station between start_time and end_time
+        """
+        ts = self._get_timescale()
+        current_time = start_time
+        accesses = {"Access Timestamp Start": [], "Access Timestamp End": []}
+
+        while current_time < end_time:
+            current_time_skyfield = ts.utc(
+                current_time.year,
+                current_time.month,
+                current_time.day,
+                current_time.hour,
+                current_time.minute,
+                current_time.second,
+            )
+
+            if self.is_in_contact(satellite, current_time_skyfield):
+                accesses["Access Timestamp Start"].append(
+                    current_time.strftime("%Y-%m-%d %H:%M:%S")
+                )
+
+                while current_time < end_time:
+                    current_time += timedelta(minutes=1)
+                    current_time_skyfield = ts.utc(
+                        current_time.year,
+                        current_time.month,
+                        current_time.day,
+                        current_time.hour,
+                        current_time.minute,
+                        current_time.second,
+                    )
+
+                    if not self.is_in_contact(satellite, current_time_skyfield):
+                        break
+
+                accesses["Access Timestamp End"].append(
+                    current_time.strftime("%Y-%m-%d %H:%M:%S")
+                )
+            else:
+                current_time += timedelta(minutes=1)
+
+        return accesses
+
+    def _get_ground_station_topos(self):
+        if self._ground_station_topos is not None:
+            return self._ground_station_topos
+
+        latitude = self.db_ground_station.latitude
+        longitude = self.db_ground_station.longitude
+        self._ground_station_topos = Topos(latitude, longitude)
+        return self._ground_station_topos
+
+    def _get_timescale(self):
+        return load.timescale()
