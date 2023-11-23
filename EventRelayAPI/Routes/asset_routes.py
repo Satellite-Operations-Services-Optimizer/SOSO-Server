@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Body, Depends, File, UploadFile
 import json
 from fastapi.encoders import jsonable_encoder
-from EventRelayAPI.Models.SatelliteModel import SatelliteCreationRequest
+from Models.SatelliteModel import SatelliteCreationRequest
 from Models.GroundStationModel import GroundStation
 #from Models.SatelliteModel import Satellite
-from Helpers.postgres_helper import add_satellite, add_ground_station, get_all_ground_stations, get_ground_station_by_id #,modify_ground_station_by_name
+from Helpers.asset_helper import add_satellite, add_ground_station, get_all_ground_stations, get_ground_station_by_id #,modify_ground_station_by_name
 #from Models.EventRelayData import EventRelayApiMessage, RequestDetails
 #from config import rabbit, ServiceQueues
 #from rabbit_wrapper import Publisher
