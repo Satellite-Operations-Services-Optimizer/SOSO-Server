@@ -23,3 +23,5 @@ with db_engine.connect() as conn:
 # Populate Satellite table with satellite data
 logger.info("Populating `satellite` table...")
 populate_satellites_from_sample_tles()
+
+# ..

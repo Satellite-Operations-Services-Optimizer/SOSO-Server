@@ -1,14 +1,23 @@
-from rabbit_wrapper import Consumer
+from rabbit_wrapper import Consumer, TopicConsumer
 from config import rabbit, ServiceQueues
-from services.handler import handle_message
+from config.celery import celery_app
+from tasks.stream import SatelliteStateStreamManager
 import logging
 
+def startup_state_streaming_events():
+    consumer = TopicConsumer(rabbit(blocking=False), "satellite.state.listener.create")
+    consumer.consume_messages(lambda message: SatelliteStateStreamManager().create_listener(message["id"], message["satellite_id"]))
+
+    consumer = TopicConsumer(rabbit(blocking=False), "satellite.state.listener.destroy")
+    consumer.consume_messages(lambda message: SatelliteStateStreamManager().destroy_listener(message["id"]))
 
 logger = logging.getLogger(__name__)
 def startup_event():
-    logger.debug("hello")
+    celery_app.start()
+    startup_state_streaming_events()
     consumer = Consumer(rabbit(), ServiceQueues.SCHEDULER)
-    consumer.consume_messages(callback=handle_message) # replace handle_message with whatever function you want to call whenever a message is received.
+    consumer.consume_messages(lambda message: logger.info(f"Received message: {message}"))
+
 
 
 if __name__ == "__main__":

@@ -151,7 +151,7 @@ CREATE INDEX "schedule_images_end" ON "soso_schema"."scheduled_images" (
 
 CREATE TABLE "soso_schema"."scheduled_maintenance" (
 	"schedule_id" integer UNIQUE NOT NULL,
-	"maintenance_id" integer UNIQUE NOT NULL,
+	"order_id" integer UNIQUE NOT NULL,
 	"maintenance_start" timestamp,
 	"maintenance_end" timestamp,
 	"repetition_number" integer,
@@ -172,12 +172,12 @@ CREATE INDEX "schedule_maintenance_end" ON "soso_schema"."scheduled_maintenance"
 );
 
 CREATE TABLE "soso_schema"."scheduled_outages" (
+	"id"
 	"schedule_id" integer UNIQUE NOT NULL,
-	"outage_id" integer UNIQUE NOT NULL,
+	"order_id" integer UNIQUE NOT NULL,
 	"outage_start" timestamp,
 	"outage_end" timestamp,
 	"status" text,
-	PRIMARY KEY ("schedule_id", "outage_id"),
 	CONSTRAINT "fk_schedule_id" FOREIGN KEY ("schedule_id") REFERENCES "soso_schema"."schedule" ("id"),
 	CONSTRAINT "fk_outage_id" FOREIGN KEY ("outage_id") REFERENCES "soso_schema"."outage_order" ("id") 
 );
