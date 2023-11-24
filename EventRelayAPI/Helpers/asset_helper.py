@@ -36,6 +36,20 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     finally:
         db_session.close()
 
+def get_all_satellites():
+    """
+    Queries ground_station table to select for all rows.
+    :return: a list of all rows in ground_station table
+    """
+    try:
+        all_satellites = db_session.query(Satellite).all()
+        return all_satellites
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    finally: db_session.close()
+
 def add_ground_station(data) -> GroundStation | None:
     """
     Adds a new ground station assset to the 'ground_station' table and returns the primary key of the added asset.
