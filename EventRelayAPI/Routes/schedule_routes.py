@@ -11,7 +11,7 @@ router = APIRouter()
 async def get_basic_schedules(): 
     return get_all_basic_schedules()
 
-@router.get("/id{id}")
+@router.get("/id={id}")
 async def get_schedule_by_id(id):
     return get_basic_schedule_by_id(id)
 
