@@ -4,7 +4,7 @@ Follow these instructions to either a local database for SOSO prototype of a con
 
 A. Local Database Steps
 
-    1. Download PostgreSQL version 16 from: <https://www.enterprisedb.com/downloads/postgres-postgresql-downloads>.
+    1. Download PostgreSQL version 16 from:[https://www.enterprisedb.com/downloads/postgres-postgresql-downloads](https://www.enterprisedb.com/downloads/postgres-postgresql-downloads).
     2. Use the default installer for your OS of choice and install all opetions:
         i.   postgres server
         ii.  pgAdmin4
@@ -17,7 +17,7 @@ A. Local Database Steps
 
 B. Containerized Database Steps:
 
-    1. Download and install docker along with docker desktop with default settings from: <https://docs.docker.com/engine/install/>.
+    1. Download and install docker along with docker desktop with default settings from:[https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/).
     2. Restart the computer and navigate to the database directory and open a terminal here.
     3. Execute command "docker-compose config" to check if file is correct.
     4. Execute command "docker-compose up --build to build and run the container.
@@ -26,5 +26,5 @@ B. Containerized Database Steps:
         i.   In the terminal execute command "docker inspect ps" to find ID of container. Retrieve the first 4 characters of this ID.
         ii.  In the terminal execute command "docker-compose {4 chars of ID from above}
         iii. Retrieve the IP Address and save it.
-    7. Access the pgAdmins4 continer instance with this ip address.
+    7. Access the pgAdmin4 continer instance with this ip address.
     8. Follow A.4-6
