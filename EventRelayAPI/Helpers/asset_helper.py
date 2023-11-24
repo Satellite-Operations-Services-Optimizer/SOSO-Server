@@ -81,7 +81,7 @@ def get_ground_station_by_id(id):
         ground_station = db_session.query(GroundStation).filter(GroundStation.id==id).first()
 
         if not ground_station:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {id} not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ground station with id {id} not found")
 
         return ground_station
     
