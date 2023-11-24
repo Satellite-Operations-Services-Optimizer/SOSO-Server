@@ -156,7 +156,11 @@ def get_all_joined_schedules():
             for schedule_id, satellite_id, ground_station_id, start_time, end_time, status, image_id, maintenance_id, outage_id, *rest_of_values in all_joined_schedules
         ]
 
-        return result_json
+        return {
+            "status_text": "OK",
+            "status_response": 201,
+            "data": result_json
+        }
     
     except Exception as e:
         print(f"An error occurred: {e}")
