@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi_pagination import add_pagination
 from Routes.image_routes import router as image_router
@@ -20,6 +21,14 @@ async def http_error_handler(request: Request, exc: HttpErrorHandler):
         status_code=exc.status_code,
         content={"message": exc.detail, "status_code": exc.status_code},
     )
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Replace with the correct frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Or restrict to ["GET", "POST"], etc.
+    allow_headers=["*"],
+)
 
 add_pagination(app)
 
