@@ -8,6 +8,7 @@ from Routes.asset_routes import router as asset_router
 from Routes.schedule_routes import router as schedule_router
 from Routes.maintenance_router import router as maintenance_router
 from Helpers.request_validator import HttpErrorHandler
+from fastapi_utils.tasks import repeat_every
 
 def lifespan(app: FastAPI):
     print("ServerRequestHandlerAPI Starting...")
@@ -38,3 +39,8 @@ app.include_router(activity_router, tags=["Satellite Activities Operation"], pre
 app.include_router(asset_router, tags=["Asset Creation"], prefix="/assets")
 app.include_router(schedule_router, tags=["Schedule Retrieval"], prefix="/schedules")
 app.include_router(maintenance_router, tags=["Maintenence Activities"], prefix="/maintenance")
+
+@app.on_event("startup")
+@repeat_every(seconds=60)
+def pullFromFTP():
+    console.log("Scheduled Task is pulling from FTP Server");
