@@ -3,5 +3,5 @@ from config import rabbit
 
 celery_app = Celery(
     'tasks',
-    broker=rabbit().as_uri(),
+    broker='amqp://guest:guest@rabbit:5672/'#rabbit().as_uri(),
 )

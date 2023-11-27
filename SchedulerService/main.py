@@ -13,11 +13,12 @@ def startup_state_streaming_events():
 
 logger = logging.getLogger(__name__)
 def startup_event():
-    celery_app.start()
+    celery_app.start(["worker"])
     startup_state_streaming_events()
     consumer = Consumer(rabbit(), ServiceQueues.SCHEDULER)
     consumer.consume_messages(lambda message: logger.info(f"Received message: {message}"))
 
+    rabbit().channel.start_consuming()
 
 
 if __name__ == "__main__":
