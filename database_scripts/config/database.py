@@ -15,7 +15,8 @@ schema = os.environ['DB_SCHEMA']
 schema = schema if len(schema) > 0 else None
 
 # Create database endine
-db_url = f"{driver}://{user}:{password}@{host}/{db_name}"
+db_url = f"{driver}://{user}:{password}@{host}:5001/{db_name}"
+print("YOOOOOOOOO LOOK HERE: " + db_url)
 db_engine = create_engine(db_url)
 
 # Automap to reflect all tables in database

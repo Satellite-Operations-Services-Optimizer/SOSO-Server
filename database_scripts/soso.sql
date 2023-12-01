@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."satellite" (
 	"fov_max" double precision,
 	"fov_min" double precision,
 	"is_illuminated" boolean,
-	"under_outage" boolean,
+	"under_outage" boolean
 );
 
 CREATE TABLE IF NOT EXISTS "soso_schema"."schedule" (

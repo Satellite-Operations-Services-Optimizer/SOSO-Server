@@ -6,6 +6,7 @@ FROM python:3.11-alpine
 
 # install git on container
 RUN apk update
+RUN apk upgrade
 RUN apk add git
 
 RUN pip install --upgrade pip

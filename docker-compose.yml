@@ -50,7 +50,7 @@ services:
   image-management:
     container_name: image-management
     build:
-      context: ./ 
+      context: ./
       dockerfile: ./ImageManagementService/Dockerfile
     volumes:
       - ./ImageManagementService:/code
@@ -82,7 +82,7 @@ services:
     container_name: rabbitmq
     hostname: rabbitmq
     ports:
-      - 5672:5672   # this is the actual rabbitmq communication port
+      - 5672:5672 # this is the actual rabbitmq communication port
       - 15672:15672 # port for web interface for managing rabbitmq
 
   postgres:
@@ -96,8 +96,8 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
-      - 5432:5432
-  
+      - 5001:5432
+
   pgadmin:
     container_name: pgadmin
     image: dpage/pgadmin4:7

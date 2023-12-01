@@ -5,14 +5,15 @@ from pathlib import Path
 from config.database import db_session, Base
 from datetime import datetime, timedelta
 
-Satellite = Base.classes.satellite
-GroundStation = Base.classes.ground_station
-ImageOrder = Base.classes.image_order
-Schedule = Base.classes.schedule
-MaintenanceOrder = Base.classes.maintenance_order
-OutageOrder = Base.classes.outage_order
+# GroundStation = Base.classes.ground_station
+# ImageOrder = Base.classes.image_order
+# Schedule = Base.classes.schedule
+# MaintenanceOrder = Base.classes.maintenance_order
+# OutageOrder = Base.classes.outage_order
 
 def populate_satellites_from_sample_tles():
+    
+    Satellite = Base.classes.satellite
     path = Path(__file__).parent / 'schedule_sample_tles'
     tles = _get_tles_from_text_files(str(path))
     tles.extend(_get_tles_from_json_files(str(path)))
