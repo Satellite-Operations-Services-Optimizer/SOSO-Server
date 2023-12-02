@@ -8,4 +8,4 @@ class ScheduleModel(BaseModel):
     asset_type: int
     start_time: datetime
     end_time: datetime
-
+    status: str

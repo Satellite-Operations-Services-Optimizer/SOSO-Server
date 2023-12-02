@@ -29,13 +29,13 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
     logger.debug("received request")
     publisher = Publisher(rabbit(), ServiceQueues.IMAGE_MANAGEMENT)
     logger.debug("publisher created")
-    publisher.publish_message(message)
+    publisher.publish_message(body=message)
 
     return message
 
     
 @router.get("/image-orders")
-async def get_image_orders():
+async def get_all_image_orders():
     
     imageOrders = get_image_orders();    
     return imageOrders

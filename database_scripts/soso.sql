@@ -55,10 +55,9 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."image_order" (
 	"start_time" timestamp with time zone,
 	"end_time" timestamp with time zone,
 	"delivery_deadline" timestamp with time zone,
-	"revisit" boolean,
 	"num_of_revisits" integer,
-	"revisit_frequence" integer,
-	"revisit_frequence_units" text
+	"revisit_frequency" integer,
+	"revisit_frequency_units" text
 	/*"retake_count" integer,
 	"retake_freq_min" integer,
 	"retake_freq_max" integer*/
@@ -141,7 +140,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."scheduled_images" (
 	"repeat_iteration" integer,
 	"schedule_type" integer,
 	"status" text,
-	--PRIMARY KEY("schedule_id", "image_order_id")
+	--PRIMARY KEY("schedule_id", "image_order_id"),
 	CONSTRAINT "fk_schedule_id" FOREIGN KEY ("schedule_id") REFERENCES "soso_schema"."schedule" ("id"),
 	CONSTRAINT "fk_image_order_id" FOREIGN KEY ("image_order_id") REFERENCES "soso_schema"."image_order" ("id"),
 	CONSTRAINT "fk_gs_request_id" FOREIGN KEY ("gs_request_id") REFERENCES "soso_schema"."ground_station_request" ("id")
@@ -165,7 +164,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."scheduled_maintenance" (
 	"description" text,
 	"priority" integer,
 	"status" text,
-	--PRIMARY KEY("schedule_id", "maintenance_order_id")
+	--PRIMARY KEY("schedule_id", "maintenance_order_id"),
 	CONSTRAINT "fk_schedule_id" FOREIGN KEY ("schedule_id") REFERENCES "soso_schema"."schedule" ("id"),
 	CONSTRAINT "fk_maintenance_order_id" FOREIGN KEY ("maintenance_order_id") REFERENCES "soso_schema"."maintenance_order" ("id")
 );
@@ -185,7 +184,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."scheduled_outages" (
 	"outage_start" timestamp with time zone,
 	"outage_end" timestamp with time zone,
 	"status" text,
-	--PRIMARY KEY ("schedule_id", "outage_order_id")
+	--PRIMARY KEY ("schedule_id", "outage_order_id"),
 	CONSTRAINT "fk_schedule_id" FOREIGN KEY ("schedule_id") REFERENCES "soso_schema"."schedule" ("id"),
 	CONSTRAINT "fk_outage_order_id" FOREIGN KEY ("outage_order_id") REFERENCES "soso_schema"."outage_order" ("id") 
 );

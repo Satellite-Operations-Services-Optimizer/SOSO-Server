@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from Models.SatelliteModel import SatelliteCreationRequest
 from Models.GroundStationModel import GroundStation
 #from Models.SatelliteModel import Satellite
-from Helpers.asset_helper import add_satellite, add_ground_station, get_all_ground_stations, get_ground_station_by_id #,modify_ground_station_by_name
+from Helpers.asset_helper import add_satellite, add_ground_station, get_all_ground_stations, get_all_satellites, get_ground_station_by_id #,modify_ground_station_by_name
 #from Models.EventRelayData import EventRelayApiMessage, RequestDetails
 #from config import rabbit, ServiceQueues
 #from rabbit_wrapper import Publisher
@@ -46,3 +46,7 @@ async def new_satellite(tle_file: UploadFile = File(...),
     new_satellite = json.load(tle_json.file)
     new_satellite_id = add_satellite(new_satellite, tle_json, satellite_form_data)
     return new_satellite_id
+
+@router.get("/satellites")
+async def get_satellites():
+    return get_all_satellites()

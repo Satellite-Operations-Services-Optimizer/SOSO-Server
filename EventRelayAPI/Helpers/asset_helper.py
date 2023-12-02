@@ -36,6 +36,20 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     finally:
         db_session.close()
 
+def get_all_satellites():
+    """
+    Queries ground_station table to select for all rows.
+    :return: a list of all rows in ground_station table
+    """
+    try:
+        all_satellites = db_session.query(Satellite).all()
+        return all_satellites
+    
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    
+    finally: db_session.close()
+
 def add_ground_station(data) -> GroundStation | None:
     """
     Adds a new ground station assset to the 'ground_station' table and returns the primary key of the added asset.
@@ -81,7 +95,7 @@ def get_ground_station_by_id(id):
         ground_station = db_session.query(GroundStation).filter(GroundStation.id==id).first()
 
         if not ground_station:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Post with id {id} not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ground station with id {id} not found")
 
         return ground_station
     
