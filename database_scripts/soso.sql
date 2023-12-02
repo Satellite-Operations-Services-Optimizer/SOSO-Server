@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."satellite" (
 	"fov_max" double precision,
 	"fov_min" double precision,
 	"is_illuminated" boolean,
-	"under_outage" boolean,
+	"under_outage" boolean
 );
 
 CREATE TABLE IF NOT EXISTS "soso_schema"."schedule" (
@@ -122,11 +122,11 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."ground_station_request" (
 );
 
 CREATE INDEX IF NOT EXISTS "ground_station_request_signal_acquisition_index" ON "soso_schema"."ground_station_request" (
-	"signal_acquisition"
+	"signal_acquisition_time"
 );
 
 CREATE INDEX IF NOT EXISTS "ground_station_request_signal_loss_index" ON "soso_schema"."ground_station_request" (
-	"signal_loss"
+	"signal_loss_time"
 );
 
 CREATE TABLE IF NOT EXISTS "soso_schema"."scheduled_images" (
@@ -157,7 +157,7 @@ CREATE INDEX IF NOT EXISTS "schedule_images_end" ON "soso_schema"."scheduled_ima
 CREATE TABLE IF NOT EXISTS "soso_schema"."scheduled_maintenance" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	"schedule_id" integer,
-	"maintenace_order_id" integer,
+	"maintenance_order_id" integer,
 	"maintenance_start" timestamp with time zone,
 	"maintenance_end" timestamp with time zone,
 	"repetition_number" integer,

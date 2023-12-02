@@ -1,6 +1,7 @@
 import uuid
 import json
 import random
+import pytz
 from pathlib import Path
 from config.database import db_session, Base
 from datetime import datetime, timedelta
@@ -34,13 +35,20 @@ def populate_satellites_from_sample_tles():
     db_session.commit()
 
 # Ground Stations
-def generate_random_ground_station():
+def generate_random_ground_station(used_names=set()):
+
+    while True:
+        name = f"GroundStation{random.randint(1, 10)}"
+        if name not in used_names:
+            used_names.add(name)
+            break
+
     return {
-        "name": f"GroundStation{random.randint(1, 10)}",
+        "name": name,
         "latitude": random.uniform(-90, 90),
         "longitude": random.uniform(-180, 180),
         "elevation": random.randint(0, 5000),
-        "station_mask": random.choice(["Yes", "No"]),
+        "station_mask": random.randint(100,1000),
         "uplink_rate": random.randint(100, 10000),
         "downlink_rate": random.randint(100, 10000),
         "under_outage": random.choice([True, False]),
@@ -73,15 +81,15 @@ def generate_random_image_order():
         "latitude": random.uniform(-90, 90),
         "longitude": random.uniform(-180, 180),
         "priority": random.randint(1, 5),
-        "image_res": random.choice(["High", "Medium", "Low"]),
+        "image_type": random.choice(["High", "Medium", "Low"]),
         "image_height": random.randint(100, 1000),
         "image_width": random.randint(100, 1000),
         "start_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "end_time": (datetime.now() + timedelta(days=random.randint(1, 30))).strftime("%Y-%m-%d %H:%M:%S"),
         "delivery_deadline": (datetime.now() + timedelta(days=random.randint(30, 60))).strftime("%Y-%m-%d %H:%M:%S"),
-        "retake_count": random.randint(0, 5),
-        "retake_freq_min": random.randint(1, 10),
-        "retake_freq_max": random.randint(5, 15),
+        "num_of_revisits": random.randint(0, 5),
+        "revisit_frequency": random.randint(1, 10),
+        "revisit_frequency_units": random.choice(["Days","Hours","Minutes","Month"]),
     }
 
 def populate_image_orders(num_orders=10):
@@ -94,15 +102,15 @@ def populate_image_orders(num_orders=10):
                 latitude=data["latitude"],
                 longitude=data["longitude"],
                 priority=data["priority"],
-                image_res=data["image_res"],
+                image_type=data["image_type"],
                 image_height=data["image_height"],
                 image_width=data["image_width"],
                 start_time=data["start_time"],
                 end_time=data["end_time"],
                 delivery_deadline=data["delivery_deadline"],
-                retake_count=data["retake_count"],
-                retake_freq_min=data["retake_freq_min"],
-                retake_freq_max=data["retake_freq_max"],
+                num_of_revisits=data["num_of_revisits"],
+                revisit_frequency=data["revisit_frequency"],
+                revisit_frequency_units=data["revisit_frequency_units"],
             )
         )
 
@@ -111,17 +119,13 @@ def populate_image_orders(num_orders=10):
 
 # Schedules
 def generate_random_schedule():
-    asset_types = ["Satellite1", "Satellite2", "Satellite3","Satellite4","Satellite5"]
-    
-    # Generate a random start time within the next 30 days
+
     start_time = datetime.now() + timedelta(days=random.randint(1, 30))
-    # Generate a random duration for the schedule (1 to 6 hours)
     duration = timedelta(hours=random.randint(1, 6))
-    # Calculate the end time based on the start time and duration
     end_time = start_time + duration
 
     return {
-        "asset_type": random.choice(asset_types),
+        "asset_type": random.randint(1,10),
         "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
         "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
         "status": random.choice(["Active", "Inactive"])
@@ -129,11 +133,17 @@ def generate_random_schedule():
 
 def populate_schedule(num_schedules=10):
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
+    satellite_ids = [satellite.id for satellite in db_session.query(Satellite).all()]
+    ground_station_ids = [station.id for station in db_session.query(GroundStation).all()]   
 
     schedules = []
     for data in schedules_data:
+        satellite_id = random.choice(satellite_ids) if satellite_ids else None
+        ground_station_id = random.choice(ground_station_ids) if ground_station_ids else None
         schedules.append(
             Schedule(
+                satellite_id = satellite_id,
+                ground_station_id = ground_station_id,
                 asset_type=data["asset_type"],
                 start_time=data["start_time"],
                 end_time=data["end_time"],
@@ -146,21 +156,28 @@ def populate_schedule(num_schedules=10):
 
 # Maintenance Orders
 def generate_random_maintenance_order():
-    asset_names = ["Satellite1", "Satellite2", "Satellite3","Satellite4","Satellite5"]
     
-    # Generate a random start time within the next 30 days
-    start_time = datetime.now() + timedelta(days=random.randint(1, 30))
-    # Generate a random duration for the maintenance (1 to 6 hours)
-    duration = timedelta(hours=random.randint(1, 6))
-    # Calculate the end time based on the start time and duration
-    end_time = start_time + duration
+    asset_names = ["Satellite1", "Satellite2", "Satellite3","Satellite4","Satellite5"]
+    start_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    end_time_str = (datetime.now() + timedelta(days=random.randint(1, 30))).strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Convert string to datetime objects
+    start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
+    end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
+
+    # Calculate duration as timedelta  
+    # string in the "HH:MM:SS" format without days
+    duration_timedelta = end_time - start_time
+    hours, remainder = divmod(duration_timedelta.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    duration_time_format = "{:02}:{:02}:{:02}".format(hours, minutes, seconds)
 
     return {
         "asset_name": random.choice(asset_names),
-        "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S"),
-        "duration": duration.total_seconds(),
-        "repetition": random.choice(["Daily", "Weekly", "Monthly"]),
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration": duration_time_format,
+        "repetition": random.randint(1,5),
         "frequency_max": random.randint(1, 10),
         "frequency_min": random.randint(1, 5),
         "operations_flag": random.choice([True, False]),
@@ -191,13 +208,12 @@ def populate_maintenance_orders(num_orders=10):
 
 # Outage Orders
 def generate_random_outage_order():
+    
     asset_names = ["Satellite1", "Satellite2", "Satellite3", "Satellite4","Satellite5"]
-    # Generate a random start time within the next 30 days
     start_time = datetime.now() + timedelta(days=random.randint(1, 30))
-    # Generate a random duration for the outage (1 to 6 hours)
     outage_duration = timedelta(hours=random.randint(1, 6))
-    # Calculate the end time based on the start time and duration
     end_time = start_time + outage_duration
+
     return {
         "asset_name": random.choice(asset_names),
         "start_time": start_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -271,6 +287,15 @@ def _get_tles_from_json_files(path: str):
             })
     return tles
 
+def format_datetime_with_timezone(dt, timezone):
+    tz = pytz.timezone(timezone)
+    formatted_dt = dt.astimezone(tz)
+    return f"{formatted_dt.strftime('%Y-%m-%d %H:%M:%S')} {formatted_dt.strftime('%Z')}"
+
+def format_timedelta(timedelta_obj):
+    hours, remainder = divmod(timedelta_obj.seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}"
 
 def _generate_satellite_name():
     return f"unnamed_sat_{uuid.uuid4()}"
