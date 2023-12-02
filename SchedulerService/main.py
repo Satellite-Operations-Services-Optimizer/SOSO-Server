@@ -5,10 +5,10 @@ from tasks.satellite_state.stream import SatelliteStateStreamManager
 import logging
 
 def startup_state_streaming_events():
-    consumer = TopicConsumer(rabbit(blocking=False), "satellite.state.listener.create")
+    consumer = TopicConsumer(rabbit(), "satellite.state.listener.create")
     consumer.consume_messages(lambda message: SatelliteStateStreamManager().create_listener(message["id"], message["satellite_id"]))
 
-    consumer = TopicConsumer(rabbit(blocking=False), "satellite.state.listener.destroy")
+    consumer = TopicConsumer(rabbit(), "satellite.state.listener.destroy")
     consumer.consume_messages(lambda message: SatelliteStateStreamManager().destroy_listener(message["id"]))
 
 logger = logging.getLogger(__name__)
