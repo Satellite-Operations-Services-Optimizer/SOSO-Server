@@ -1,6 +1,6 @@
 from celery import shared_task
 from config import db_session
-from utils.satellite import Satellite, SatelliteStateGenerator
+from state_generator import Satellite, SatelliteStateGenerator
 from celery.contrib.abortable import AbortableTask
 from config import rabbit
 from rabbit_wrapper import TopicPublisher

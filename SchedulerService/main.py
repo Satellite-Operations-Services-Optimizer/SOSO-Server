@@ -1,7 +1,7 @@
 from rabbit_wrapper import Consumer, TopicConsumer
 from config import rabbit, ServiceQueues
 from config.celery import celery_app
-from tasks.stream import SatelliteStateStreamManager
+from tasks.satellite_state.stream import SatelliteStateStreamManager
 import logging
 
 def startup_state_streaming_events():
