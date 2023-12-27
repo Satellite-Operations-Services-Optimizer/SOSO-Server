@@ -8,7 +8,7 @@ from config import logging
 from Models.SASConsumerEventData import SASConsumerEventData
 from Models.SASProducerEventData import SASProducerScheduleOptionsData
 from Models.RequestModel import ActivityRequest, OutageRequest
-from Database.db_curd import create_maintenence_request, create_outage_request
+from Helpers.db_curd import create_maintenence_request, create_outage_request, get_satellite_from_name
 import json
 def handle_message(body):
     print("Handler function called!")
@@ -53,7 +53,9 @@ def handle_message(body):
             
             if(type(request) == ActivityRequest):
                 
-                preschedule = process.schedule_activity(request_body["Target"][5], saved_request)
+                #get the satellite id from db
+                satellite_id = get_satellite_from_name(db_session, request_body["Target"]).id
+                preschedule = process.schedule_activity(satellite_id, saved_request)
         
                 message = jsonable_encoder(
                     SASProducerScheduleOptionsData(

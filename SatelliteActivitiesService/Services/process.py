@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
-from Database import newmockschedule
 from config.database import db_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
-from Database.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
+from Helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
 
 # class scheduled_activity:
 #     schedule_id: int

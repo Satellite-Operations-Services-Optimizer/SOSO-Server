@@ -22,7 +22,7 @@ def get_maintenence_request(db: Session, maintenence_id: int):
     
     return db.query(maintenance_order).filter(maintenance_order.id == maintenence_id).first()
 
-def create_maintenence_request(db: Session, request: ActivityRequest) -> maintenance_order:
+def create_maintenence_request(db: Session, request: ActivityRequest):
     db_request = maintenance_order(
         asset_name = request.Target,
         description=request.Activity,
@@ -43,7 +43,7 @@ def create_maintenence_request(db: Session, request: ActivityRequest) -> mainten
     return db_request
 
 
-def create_outage_request(db: Session, request: RequestModel.OutageRequest) -> outage_order:
+def create_outage_request(db: Session, request: RequestModel.OutageRequest):
     
     db_request = outage_order(
         asset_name = request.Target,
@@ -106,5 +106,8 @@ def get_all_scheduled_maintenence_from_schedule(db: Session, schedule_id: int):
 
 def get_all_scheduled_outage_from_schedule(db: Session, schedule_id: int):
     return db.query(scheduled_outages).filter(scheduled_outages.schedule_id == schedule_id).all()
+
+def get_satellite_from_name(db: Session, satellite_name: str):
+    return db.query(satellite).filter(satellite.name == satellite_name).first()
 
   

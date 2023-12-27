@@ -1,6 +1,6 @@
 from Models.RequestModel import RequestDetails, ActivityRequest
 from Models.ResponseModel import ResponseDetails, scheduling_options
-from Database.db_curd import maintenance_order
+from Helpers.db_curd import maintenance_order
 
 from pydantic import BaseModel
 

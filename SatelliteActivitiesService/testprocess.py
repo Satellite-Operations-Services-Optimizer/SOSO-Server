@@ -1,6 +1,5 @@
 from config.database import  db_session
 from Models.RequestModel import ActivityRequest
-from Database.db_curd import create_maintenence_request, maintenance_order
 from Services import process, handler
 
 request1 =  { 
