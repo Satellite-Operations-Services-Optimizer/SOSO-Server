@@ -2,7 +2,6 @@ from pathlib import Path
 from sqlalchemy import text
 from config.database import db_engine, Base
 from config import logging
-from populate.populate import *
 logger = logging.getLogger(__name__)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 
@@ -18,6 +17,9 @@ with db_engine.connect() as conn:
         sql_text = file.read()
         conn.execute(text(sql_text))
         conn.commit()
+
+
+from populate.populate import *
 
 # Populate Satellite table with satellite data
 logger.info("Populating `satellite` table...")
