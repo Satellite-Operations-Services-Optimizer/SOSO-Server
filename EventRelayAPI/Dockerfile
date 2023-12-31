@@ -23,4 +23,4 @@ RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 # copy every content from the local file to the image
 COPY ./EventRelayAPI/ .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"] 
+CMD ["python", "main.py"] 

@@ -1,35 +1,13 @@
-PyYAML==6.0.1
-annotated-types==0.6.0
-anyio==3.7.1
-click==8.1.7
-colorama==0.4.6
-exceptiongroup==1.1.3
-fastapi==0.104.0
-guid==0.2.1
-h11==0.14.0
-httptools==0.6.1
-idna==3.4
-msgpack==1.0.7
-path==16.7.1
-pika==1.3.2
+fastapi[all]
+fastapi_pagination==0.12.12
+
 pydantic==2.4.2
 python-dotenv==1.0.0
-setuptools==68.2.0
-sniffio==1.3.0
-starlette==0.27.0
-typing-extensions==4.8.0
-uvicorn==0.23.2
-watchfiles==0.21.0
-websockets==11.0.3
-wheel==0.41.2
-
 
 SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
-inject==5.1.0 # for dependency injection
 
-celery # for task management
-fastapi_pagination==0.12.12
+celery==5.3.6 # for task management
 
 # our custom rabbitmq wrapper
-rabbit_wrapper @ git+https://github.com/Satellite-Operations-Services-Optimizer/rabbit-wrapper@dev # I specified the main branch. if you want to install another branch, change it here
+rabbit_wrapper @ git+https://github.com/Satellite-Operations-Services-Optimizer/rabbit-wrapper@main # I specified the main branch. if you want to install another branch, change it here
