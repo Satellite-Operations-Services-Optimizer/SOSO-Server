@@ -83,7 +83,7 @@ services:
     build: 
       context: ./
       dockerfile: ./SchedulerService/Dockerfile
-    command: celery -A config.celery worker --loglevel=${LOG_LEVEL}
+    command: celery -A config.celery_app worker --loglevel=${LOG_LEVEL}
     volumes:
       - ./SchedulerService:/code
     env_file:

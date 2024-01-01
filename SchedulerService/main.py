@@ -1,6 +1,6 @@
 from rabbit_wrapper import Consumer
 from config import rabbit, ServiceQueues
-from tasks.satellite_state.stream import setup_state_streaming_event_listeners
+from satellite_state.stream import setup_state_streaming_event_listeners
 import logging
 
 logger = logging.getLogger(__name__)
