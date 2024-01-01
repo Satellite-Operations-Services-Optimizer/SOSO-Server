@@ -1,14 +1,15 @@
 from rabbit_wrapper import Consumer
 from config import rabbit, ServiceQueues
-from services.handler import handle_message
+from tasks.satellite_state.stream import setup_state_streaming_event_listeners
 import logging
-
 
 logger = logging.getLogger(__name__)
 def startup_event():
-    logger.debug("hello")
+    setup_state_streaming_event_listeners()
     consumer = Consumer(rabbit(), ServiceQueues.SCHEDULER)
-    consumer.consume_messages(callback=handle_message) # replace handle_message with whatever function you want to call whenever a message is received.
+    consumer.register_callback(lambda message: logger.info(f"Received message: {message}"))
+
+    rabbit().start_consuming()
 
 
 if __name__ == "__main__":

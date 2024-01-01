@@ -31,6 +31,7 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - scheduler-worker
 
   satellite-activities:
     container_name: satellite-activities
@@ -76,6 +77,17 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+    
+  scheduler-worker:
+    container_name: scheduler-worker
+    build: 
+      context: ./
+      dockerfile: ./SchedulerService/Dockerfile
+    command: celery -A config.celery worker --loglevel=${LOG_LEVEL}
+    volumes:
+      - ./SchedulerService:/code
+    env_file:
+      - .env
 
   rabbitmq:
     image: rabbitmq:3.12-management
