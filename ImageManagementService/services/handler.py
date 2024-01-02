@@ -14,9 +14,7 @@ def handle_message(body):
 
     if request_type == 'image-order-request':
         handle_image_orders(request_data)
-    
 
-   
 
 def handle_image_orders(body):
     
