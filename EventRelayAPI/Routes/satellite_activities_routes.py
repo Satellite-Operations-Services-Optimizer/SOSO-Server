@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Body, Depends
-from fastapi.encoders import jsonable_encoder
+from fastapi import APIRouter
 from dotenv import dotenv_values
-from Helpers.request_validator import validate_request_schema
-from Models.ActivityRequestModel import ActivityRequest
-from Models.EventRelayData import EventRelayApiMessage
-from config.rabbit import rabbit, ServiceQueues
-from rabbit_wrapper import Publisher
+from config.rabbit import rabbit
+from rabbit_wrapper import TopicPublisher, TopicConsumer
+from fastapi import APIRouter
+from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
+from config import rabbit
+from rabbit_wrapper import TopicPublisher, TopicConsumer
 
 import logging
 
@@ -13,20 +13,26 @@ config = dotenv_values()
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+@router.websocket("/{satellite_id}/state")
+async def stream_satellite_state(websocket: WebSocket, satellite_id: int):
+    await websocket.accept()
 
-@router.post("/maintenance-activity-requests")
-async def handle_request(maintenance_request: ActivityRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ActivityRequest))):
-    
-    request = jsonable_encoder(maintenance_request)
+    # tell the server you are interested in listening to satellite (so it can know to start publishing information about the satellite's state)
+    publisher = TopicPublisher(rabbit(), "satellite.state.listener.create")
+    publisher.publish_message({"satellite_id": satellite_id})
 
-    message = jsonable_encoder(
-        EventRelayApiMessage(
-            body=request
-        )
-    )
+    # start listening to messages about the satellite's state
+    consumer = TopicConsumer(rabbit(), f"satellite.state.{satellite_id}")
 
-    publisher = Publisher(rabbit(), ServiceQueues.SAT_ACTIVITIES)
-    publisher.publish_message(message)
+    await websocket.send_text("ping")
 
-    return message
-    
+    try:
+        while True:
+            if satellite_state := consumer.get_message() is not None:
+                await websocket.send_json(satellite_state)
+            else:
+                await websocket.send_text("ping") # i really can't find a way to avoid this, but it's necessary to detect when the connection is closed, cuz otherwise the WebSocketDisconnect error will never be thrown
+    except WebSocketDisconnect:
+        # tell server to distroy listener so it doesn't keep trying to send messages about the satellite when noone is listeneing
+        publisher = TopicPublisher(rabbit(), "satellite.state.listener.destroy")
+        publisher.publish_message({"satellite_id": satellite_id})

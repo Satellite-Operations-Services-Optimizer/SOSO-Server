@@ -13,8 +13,8 @@ def startup_event():
     
     scheduler.start()
     consumer = Consumer(rabbit(), ServiceQueues.IMAGE_MANAGEMENT)
-    consumer.consume_messages(callback=handle_message) # replace handle_message with whatever function you want to call whenever a message is received.
-    
+    consumer.register_callback(callback=handle_message) # replace handle_message with whatever function you want to call whenever a message is received.
+    rabbit().start_consuming()
 
 @scheduler.scheduled_job('interval', seconds=10)
 def timed_job():

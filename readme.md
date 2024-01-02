@@ -92,3 +92,12 @@ If you want to show the last 50 entries to the log, use the `--tail` flag as sho
 ```shell
 docker logs relay-api --tail 50
 ``` 
+
+## Fixes
+If you are having problems with experiencing bugs that are supposed to be fixed, or your changes not being reflected in docker, maybe docker is caching something, instead of using the lastest version. To fix, do this:
+
+```shell
+docker compose down
+docker system prune -a
+```
+CAREFUL!!! this deletes all your images and containers, not only the ones associated with this project. If you don't want that to happen, delete the images/containers manually from the docker app, and run docker compose build --no-cache`

@@ -43,6 +43,12 @@ class SatelliteStateGenerator:
             fov=0, # TODO: How do we get this value? is it needed?
             is_sunlit=is_sunlit
         )
+    
+    def stream(self):
+        ts = self._get_timescale()
+        while True:
+            yield self.state_at(datetime.now())
+
 
     def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta):
         """
@@ -92,7 +98,7 @@ class SatelliteStateGenerator:
 
 @dataclass
 class SatelliteState:
-    time: Time
+    time: datetime
     latitude: float
     longitude: float
     altitude: float
@@ -100,4 +106,4 @@ class SatelliteState:
     fov: float
 
     def __str__(self):
-        return f"{{time: {self.time}, latitude: {self.latitude}, longitude: {self.longitude}, altitude: {self.altitude}, is_sunlit: {self.is_sunlit}, fov: {self.fov}}}"
+        return f"{{time: {self.time.strftime('%Y:%m:%d %H:%M')}, latitude: {self.latitude}, longitude: {self.longitude}, altitude: {self.altitude}, is_sunlit: {self.is_sunlit}, fov: {self.fov}}}"
