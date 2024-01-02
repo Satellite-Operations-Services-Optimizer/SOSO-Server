@@ -4,4 +4,4 @@ __pycache__/
 # ignore compiled byte codes
 *.pyc
 
-MockFTPService/node_modules
+/MockFTPService/node_modules/
