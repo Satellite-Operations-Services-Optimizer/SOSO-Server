@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends
 import logging
 from Helpers.activity_helper import get_all_memory_scrubs, get_all_orbit_maneuvers, get_all_orbit_parameter_updates, get_all_payload_diagnostics
 from Models.ActivityRequestModel import ActivityRequest
-from Helpers.request_validator import validate_request_schema
+from Helpers.request_validation_helper import validate_request_schema
 from config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 

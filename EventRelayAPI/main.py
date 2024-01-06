@@ -7,7 +7,7 @@ from Routes.satellite_activities_routes import router as activity_router
 from Routes.asset_routes import router as asset_router
 from Routes.schedule_routes import router as schedule_router
 from Routes.maintenance_router import router as maintenance_router
-from Helpers.request_validator import HttpErrorHandler
+from Helpers.request_validation_helper import HttpErrorHandler
 import uvicorn
 
 def lifespan(app: FastAPI):
