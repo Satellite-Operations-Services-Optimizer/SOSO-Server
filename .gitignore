@@ -6,3 +6,4 @@ __pycache__/
 
 /MockFTPService/node_modules/
 ImageManagementService/sample.json
+MockFTPService/Sample Image Orders/.DS_Store
