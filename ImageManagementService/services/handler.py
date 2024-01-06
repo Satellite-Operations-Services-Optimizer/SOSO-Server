@@ -60,6 +60,12 @@ def transform_request_to_db_schema(request_body):
         for req_key, db_key in db_column_mapping.items() if req_key in request_body
     }
     
+    recurrence = request_body["Recurrence"]
+    # if recurrence["Revisit"] == "True":
+    #     transformed_order["retake_count"] = 
+    #     transformed_order["retake_freq_min"] = 
+    #     transformed_order["retake_freq_max"] = 
+    
     return transformed_order
 
 def apply_image_type_settings(image_type, image_order):
