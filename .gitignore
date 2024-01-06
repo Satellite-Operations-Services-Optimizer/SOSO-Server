@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 
 /MockFTPService/node_modules/
+ImageManagementService/sample.json
