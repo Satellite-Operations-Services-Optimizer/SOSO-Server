@@ -4,3 +4,5 @@ __pycache__/
 # ignore compiled byte codes
 *.pyc
 
+.idea
+.vscode
