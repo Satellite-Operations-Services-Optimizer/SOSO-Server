@@ -1,5 +1,5 @@
-from helpers.postgres_helper import add_image_order
-from helpers.rabbit_helper import publish_message_to_queue
+from Helpers.postgres_helper import add_image_order
+from Helpers.rabbit_helper import publish_message_to_queue
 from datetime import datetime
 from config import ServiceQueues
 import logging
