@@ -9,36 +9,40 @@ from dotenv import load_dotenv, find_dotenv
 from typing import List
 from config.database import db_session, Base
 from rabbit_wrapper import Publisher, TopicPublisher, rabbit
+from services.handler import handle_image_orders
+import logging 
 
-def sendMessagesToScheduler(imageOrderIDs: List[int]):
-    for id in imageOrderIDs:
-        publisher = TopicPublisher(rabbit(), "order.image.created")
-        publisher.publish_message({"id" : id})
-    print('[FTP] Sent all notifications to rabbitMQ')
+def handOverToIMGManagement(imageRequests: List[ImageRequest]):
+    for imgReq in imageRequests:
+        print('[FTP] ')
+        logging.info(f"[FTP | HandOverToImgManagement] Sent {imgReq} to image handler")
+        handle_image_orders(imgReq)
+    
+    
 
-def addImgReqsToDB(imageOrders: List[ImageRequest]) -> List[int]:
-    imageOrderIDs = []
-    if imageOrders != None and len(imageOrders) > 0:
-        for imgOrder in imageOrders:
-            try: 
-                db_session.add(imgOrder)
-                db_session.commit()
-                imgOrder = db_session.refresh(imgOrder)
-                imageOrderIDs.append(imgOrder.id);
-                print("[FTP] Added image order " + imgOrder.id + " to the db.")
-            except Exception as err:
-                print("[FTP] Failed to insert into database." + str(err))
-    return imageOrderIDs    
+# def addImgReqsToDB(imageOrders: List[ImageRequest]) -> List[int]:
+#     imageOrderIDs = []
+#     if imageOrders != None and len(imageOrders) > 0:
+#         for imgOrder in imageOrders:
+#             try: 
+#                 db_session.add(imgOrder)
+#                 db_session.commit()
+#                 imgOrder = db_session.refresh(imgOrder)
+#                 imageOrderIDs.append(imgOrder.id);
+#                 print("[FTP] Added image order " + imgOrder.id + " to the db.")
+#             except Exception as err:
+#                 print("[FTP] Failed to insert into database." + str(err))
+#     return imageOrderIDs    
 
 def verifyImgReqSchema(imgReq):
     try:
         currModel = ImageRequest.model_validate_json(imgReq)
         return True
     except Exception as err:
-        # print("[verifyImgReqSchema: EXCEPTION] " + err.json())
+        print("[verifyImgReqSchema: EXCEPTION] " + err.json())
         return False 
 
-def getJSONsFromFTP() -> List[ImageRequest]:
+def getJSONsFromFTP() -> List[str]:
     
     ftpFiles = []
     imageRequests = []
@@ -76,21 +80,22 @@ def getJSONsFromFTP() -> List[ImageRequest]:
                 
                 if currJSON != None and verifyImgReqSchema(currJSON):
                     
-                    currImgReq = ImageRequest.model_validate_json(currJSON);
-                    ftpFiles.append(currImgReq)
-                    print("[FTP: ADD] Added " + file + " as a potential image order")
+                    # currImgReq = ImageRequest.model_validate_json(currJSON);
+                    ftpFiles.append(currJSON)
+                    logging.info("[FTP: ADD] Added " + file + " as a potential image order")
                     currFile = None
                     currJSON = None
-                    
-                ftp.delete(file)
-                print("[FTP: DELETE] Deleting from server" + file)
+                else:
+                    logging.info("[FTP: IGNORE] file " + file + " did not pass the schema check.");    
+                # ftp.delete(file)
+                # print("[FTP: DELETE] Deleting from server" + file)
                 
             except Exception as error:
-                print("[FTP: IGNORE] file " + file + " is not included in the image order queue. ")
+                logging.error("[FTP: IGNORE] file " + file + " is not included in the image order queue. ")
             
         
         ftp.close();
     except Exception as error:
-        print("[FTP] Exception Occurred During FTP pull: " + str(error))
+        logging.error("[FTP] Exception Occurred During FTP pull: " + str(error))
         
     return ftpFiles;
