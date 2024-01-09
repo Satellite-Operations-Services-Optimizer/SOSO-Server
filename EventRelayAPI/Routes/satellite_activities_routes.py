@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+import asyncio
 from dotenv import dotenv_values
 from config.rabbit import rabbit
 from rabbit_wrapper import TopicPublisher, TopicConsumer
@@ -24,15 +25,11 @@ async def stream_satellite_state(websocket: WebSocket, satellite_id: int):
     # start listening to messages about the satellite's state
     consumer = TopicConsumer(rabbit(), f"satellite.state.{satellite_id}")
 
-    await websocket.send_text("ping")
-
     try:
         while True:
-            if satellite_state := consumer.get_message() is not None:
-                await websocket.send_json(satellite_state)
-            else:
-                await websocket.send_text("ping") # i really can't find a way to avoid this, but it's necessary to detect when the connection is closed, cuz otherwise the WebSocketDisconnect error will never be thrown
-    except WebSocketDisconnect:
+            satellite_state = consumer.get_message()
+            await websocket.send_json(satellite_state or {})
+    finally:
         # tell server to distroy listener so it doesn't keep trying to send messages about the satellite when noone is listeneing
         publisher = TopicPublisher(rabbit(), "satellite.state.listener.destroy")
         publisher.publish_message({"satellite_id": satellite_id})

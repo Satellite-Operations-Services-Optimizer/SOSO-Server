@@ -3,7 +3,8 @@ from config import rabbit
 import os
 
 celery_app = Celery(
-    'tasks',
+    'scheduler-celery-worker',
     broker=os.environ.get("CELERY_BROKER_URL", rabbit().as_uri()),
-    backend=os.environ.get("CELERY_RESULT_BACKEND", None)
+    backend=os.environ.get("CELERY_RESULT_BACKEND", "rpc://"),
+    imports=['satellite_state.tasks']
 )
