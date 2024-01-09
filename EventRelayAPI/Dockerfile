@@ -22,6 +22,6 @@ RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 # copy every content from the local file to the image
 COPY ./EventRelayAPI/ .
-COPY ./app_config ./config
+COPY ./app_config ./app_config
 
 CMD ["python", "main.py"] 
