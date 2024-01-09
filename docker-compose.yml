@@ -99,7 +99,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:16
+    image: postgres
     restart: always
     environment:
       POSTGRES_USER: root
@@ -112,7 +112,7 @@ services:
   
   pgadmin:
     container_name: pgadmin
-    image: dpage/pgadmin4:7
+    image: dpage/pgadmin4:8
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: root@root.com

@@ -1,50 +1,35 @@
-import uuid
-import json
+from datetime import datetime, timedelta
+from config.database import get_session
+from config import logging
+from populate_orders import populate_sample_image_orders
+from populate_assets import populate_sample_satellites
+
+logger = logging.getLogger(__name__)
+
+def populate_database():
+    populate_sample_satellites()
+    populate_sample_image_orders()
+
+    logger.info("Populating `ground_station` table with random data...")
+    populate_ground_stations()
+    logger.info("Populating `image_orders` table with random data...")
+    populate_image_orders()
+    logger.info("Populating `schedule` table with random data...")
+    populate_schedule()
+    logger.info("Populating `maintenance_order` table with random data...")
+    populate_maintenance_orders()
+    logger.info("Populating `outage_order` table with random data...")
+    populate_outage_orders()
+
+
 import random
 import pytz
-from pathlib import Path
-from config.database import db_session, Base
-from datetime import datetime, timedelta
-
-Satellite = Base.classes.satellite
-GroundStation = Base.classes.ground_station
-ImageOrder = Base.classes.image_order
-Schedule = Base.classes.schedule
-MaintenanceOrder = Base.classes.maintenance_order
-OutageOrder = Base.classes.outage_order
-
-def populate_satellites_from_sample_tles():
-    Satellite = Base.classes.satellite
-    path = Path(__file__).parent / 'satellite_sample_tles'
-    tles = _get_tles_from_text_files(str(path))
-    tles.extend(_get_tles_from_json_files(str(path)))
-
-    satellites = []
-    for tle in tles:
-        name = tle.pop('name', _generate_satellite_name())
-        satellites.append(
-            Satellite(
-                name=name,
-                tle=tle,
-                storage_capacity=1,
-                power_capacity=1,
-                fov_max=1,
-                fov_min=1,
-                is_illuminated=True,
-                under_outage=False,
-            )
-        )
-    db_session.add_all(satellites)
-    db_session.commit()
-
+import uuid
+from config.database import *
 # Ground Stations
-def generate_random_ground_station(used_names=set()):
+def generate_random_ground_station():
 
-    while True:
-        name = f"GroundStation{random.randint(1, 10)}"
-        if name not in used_names:
-            used_names.add(name)
-            break
+    name = f"GroundStation_{uuid.uuid4()}"
 
     return {
         "name": name,
@@ -75,6 +60,7 @@ def populate_ground_stations(num_ground_stations=10):
             )
         )
 
+    db_session = get_session()
     db_session.add_all(ground_stations)
     db_session.commit()
 
@@ -117,6 +103,7 @@ def populate_image_orders(num_orders=10):
             )
         )
 
+    db_session = get_session()
     db_session.add_all(image_orders)
     db_session.commit()
 
@@ -154,6 +141,7 @@ def populate_schedule(num_schedules=10):
             )
         )
 
+    db_session = get_session()
     db_session.add_all(schedules)
     db_session.commit()
 
@@ -206,6 +194,7 @@ def populate_maintenance_orders(num_orders=10):
             )
         )
 
+    db_session = get_session()
     db_session.add_all(maintenance_orders)
     db_session.commit()
 
@@ -236,53 +225,12 @@ def populate_outage_orders(num_orders=10):
             )
         )
 
+    db_session = get_session()
     db_session.add_all(outage_orders)
     db_session.commit()
 
 
-def _get_data_from_json_files(path: str, expected_keys=None):
-    jsons = []
-    pathlist = Path(path).glob("*.json")
-    for path in pathlist:
-        with path.open('r') as file:
-            data = json.load(file)
-            if expected_keys is not None:
-                if any(key not in data for key in expected_keys):
-                    raise Exception(f"Invalid JSON file at {str(path)}")
-            jsons.append(data)
-    return jsons
 
-def _get_tles_from_text_files(path: str):
-    tles = []
-    pathlist = Path(path).glob("*.txt")
-    for path in pathlist:
-        with path.open('r') as file:
-            lines = file.readlines()
-            if len(lines)==3:
-                tles.append({
-                    "name": lines[0],
-                    "line1": lines[1],
-                    "line2": lines[2]
-                })
-            elif len(lines)==2:
-                tles.append({
-                    "line1": lines[0],
-                    "line2": lines[1]
-                })
-            else:
-                raise Exception(f"Invalid two-line element file at {str(path)}")
-    return tles
-
-def _get_tles_from_json_files(path: str):
-    tles = []
-    pathlist = Path(path).glob("*.json")
-    for path in pathlist:
-        with path.open('r') as file:
-            data = json.load(file)
-            if 'line1' not in data or 'line2' not in data:
-                raise Exception(f"Invalid two-line element file at {str(path)}")
-            tles.append(data)
-    return tles
 
 def format_datetime_with_timezone(dt, timezone):
     tz = pytz.timezone(timezone)
@@ -294,5 +242,6 @@ def format_timedelta(timedelta_obj):
     minutes, _ = divmod(remainder, 60)
     return f"{hours:02d}:{minutes:02d}"
 
-def _generate_satellite_name():
-    return f"unnamed_sat_{uuid.uuid4()}"
+
+if __name__ == '__main__':
+    populate_database()

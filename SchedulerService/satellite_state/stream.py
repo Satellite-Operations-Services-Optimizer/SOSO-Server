@@ -2,6 +2,7 @@ from config import rabbit
 from rabbit_wrapper import TopicConsumer
 from config import logging
 from .tasks import state_stream_task
+# from celery.app.control import revoke
 
 logger = logging.getLogger(__name__)
 
@@ -44,4 +45,5 @@ class SatelliteStateStreamManager:
     def _abort_task(self, task_id: str):
         task = state_stream_task.AsyncResult(task_id)
         task.abort()
+        # revoke(task_id, terminate=True)
         logger.info(f"Requested abortion of state streaming task with id={task_id}")

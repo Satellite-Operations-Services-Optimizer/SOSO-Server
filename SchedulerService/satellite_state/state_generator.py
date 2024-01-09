@@ -8,7 +8,6 @@ from dataclasses import dataclass, InitVar
 import numpy as np
 
 # This class extends the database table 'satellite'
-Satellite = Base.classes.satellite
 class SatelliteStateGenerator:
     _skyfield_satellite: Optional[EarthSatellite] = None
     _timescale: Optional[Timescale] = None
