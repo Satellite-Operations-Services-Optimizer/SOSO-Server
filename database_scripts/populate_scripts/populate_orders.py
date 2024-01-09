@@ -1,8 +1,9 @@
 from utils import get_data_from_json_files
 from pathlib import Path
 from datetime import datetime
-from config.database import ImageOrder, get_session
+from config.database import get_session, Base
 from config import logging
+
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ def populate_sample_image_orders():
 
 
 def image_order_from_json(image_order_json):
+    ImageOrder = Base.classes.image_order
     return ImageOrder(
         latitude=image_order_json["Latitude"],
         longitude=image_order_json["Longitude"],

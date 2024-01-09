@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS image_order (
 	latitude double precision,
 	longitude double precision,
 	priority integer,
-	resolution text,
+	image_type text,
 	image_height integer,
 	image_width integer,
 	start_time timestamp with time zone,
@@ -100,58 +100,58 @@ CREATE TABLE IF NOT EXISTS ground_station_request (
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_acquisition_index ON ground_station_request (signal_acquisition_time);
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_loss_index ON ground_station_request (signal_loss_time);
 
-CREATE TABLE IF NOT EXISTS scheduled_images (
-	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	schedule_id integer,
-	order_id integer,
-	gs_request_id integer,
-	start_time timestamp with time zone,
-	end_time timestamp with time zone,
-	data_size double precision,
-	repeat_iteration integer,
-	schedule_type integer,
-	status text,
-	--PRIMARY KEY("schedule_id", "order_id"),
-	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
-	CONSTRAINT fk_image_order_id FOREIGN KEY (order_id) REFERENCES image_order (id),
-	CONSTRAINT fk_gs_request_id FOREIGN KEY (gs_request_id) REFERENCES ground_station_request (id)
-);
+-- CREATE TABLE IF NOT EXISTS scheduled_images (
+-- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+-- 	schedule_id integer,
+-- 	order_id integer,
+-- 	gs_request_id integer,
+-- 	start_time timestamp with time zone,
+-- 	end_time timestamp with time zone,
+-- 	data_size double precision,
+-- 	repeat_iteration integer,
+-- 	schedule_type integer,
+-- 	status text,
+-- 	--PRIMARY KEY("schedule_id", "order_id"),
+-- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
+-- 	CONSTRAINT fk_image_order_id FOREIGN KEY (order_id) REFERENCES image_order (id),
+-- 	CONSTRAINT fk_gs_request_id FOREIGN KEY (gs_request_id) REFERENCES ground_station_request (id)
+-- );
 
-CREATE INDEX IF NOT EXISTS schedule_images_start ON scheduled_images (start_time);
-CREATE INDEX IF NOT EXISTS schedule_images_end ON scheduled_images (end_time);
+-- CREATE INDEX IF NOT EXISTS schedule_images_start ON scheduled_images (start_time);
+-- CREATE INDEX IF NOT EXISTS schedule_images_end ON scheduled_images (end_time);
 
-CREATE TABLE IF NOT EXISTS scheduled_maintenance (
-	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	schedule_id integer,
-	order_id integer,
-	start_time timestamp with time zone,
-	end_time timestamp with time zone,
-	repetition_number integer,
-	description text,
-	priority integer,
-	status text,
-	--PRIMARY KEY("schedule_id", "maintenance_order_id"),
-	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
-	CONSTRAINT fk_maintenance_order_id FOREIGN KEY (order_id) REFERENCES maintenance_order (id)
-);
+-- CREATE TABLE IF NOT EXISTS scheduled_maintenance (
+-- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+-- 	schedule_id integer,
+-- 	order_id integer,
+-- 	start_time timestamp with time zone,
+-- 	end_time timestamp with time zone,
+-- 	repetition_number integer,
+-- 	description text,
+-- 	priority integer,
+-- 	status text,
+-- 	--PRIMARY KEY("schedule_id", "maintenance_order_id"),
+-- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
+-- 	CONSTRAINT fk_maintenance_order_id FOREIGN KEY (order_id) REFERENCES maintenance_order (id)
+-- );
 
-CREATE INDEX IF NOT EXISTS schedule_maintenance_start ON scheduled_maintenance (start_time);
-CREATE INDEX IF NOT EXISTS schedule_maintenance_end ON scheduled_maintenance (end_time);
+-- CREATE INDEX IF NOT EXISTS schedule_maintenance_start ON scheduled_maintenance (start_time);
+-- CREATE INDEX IF NOT EXISTS schedule_maintenance_end ON scheduled_maintenance (end_time);
 
-CREATE TABLE IF NOT EXISTS scheduled_outages (
-	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	schedule_id integer,
-	order_id integer,
-	start_time timestamp with time zone,
-	end_time timestamp with time zone,
-	status text,
-	--PRIMARY KEY ("schedule_id", "outage_order_id"),
-	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
-	CONSTRAINT fk_outage_order_id FOREIGN KEY (order_id) REFERENCES outage_order (id) 
-);
+-- CREATE TABLE IF NOT EXISTS scheduled_outages (
+-- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+-- 	schedule_id integer,
+-- 	order_id integer,
+-- 	start_time timestamp with time zone,
+-- 	end_time timestamp with time zone,
+-- 	status text,
+-- 	--PRIMARY KEY ("schedule_id", "outage_order_id"),
+-- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
+-- 	CONSTRAINT fk_outage_order_id FOREIGN KEY (order_id) REFERENCES outage_order (id) 
+-- );
 
-CREATE INDEX IF NOT EXISTS schedule_outage_start ON scheduled_outages (start_time);
-CREATE INDEX IF NOT EXISTS schedule_outage_end ON scheduled_outages (end_time);
+-- CREATE INDEX IF NOT EXISTS schedule_outage_start ON scheduled_outages (start_time);
+-- CREATE INDEX IF NOT EXISTS schedule_outage_end ON scheduled_outages (end_time);
 
 
 
@@ -179,47 +179,51 @@ CREATE TABLE IF NOT EXISTS schedule_event (
 );
 
 
-CREATE TABLE IF NOT EXISTS imaging_event (
+CREATE TABLE IF NOT EXISTS scheduled_imaging (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	event_type event_type DEFAULT 'imaging'::event_type NOT NULL CHECK (event_type = 'imaging'),
 	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'), -- imaging events are only for satellites
-	FOREIGN KEY (asset_id) REFERENCES satellite ("id")
+	FOREIGN KEY (asset_id) REFERENCES satellite ("id"),
+	data_size double precision
 ) INHERITS (schedule_event);
 
-CREATE TABLE IF NOT EXISTS maintenance_event (
+CREATE INDEX IF NOT EXISTS scheduled_imaging_start_time_index ON scheduled_imaging (start_time);
+CREATE INDEX IF NOT EXISTS scheduled_imaging_end_time_index ON scheduled_imaging (end_time);
+CREATE INDEX IF NOT EXISTS scheduled_imaging_asset_index ON scheduled_imaging (asset_id);
+
+CREATE TABLE IF NOT EXISTS scheduled_maintenance (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	event_type event_type DEFAULT 'imaging'::event_type NOT NULL CHECK (event_type = 'imaging'),
 	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'), -- maintenance events are only for satellites
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id")
 ) INHERITS (schedule_event);
 
-CREATE TABLE IF NOT EXISTS outage_event (
+CREATE INDEX IF NOT EXISTS scheduled_maintenance_start_time_index ON scheduled_maintenance (start_time);
+CREATE INDEX IF NOT EXISTS scheduled_maintenance_end_time_index ON scheduled_maintenance (end_time);
+CREATE INDEX IF NOT EXISTS scheduled_maintenance_asset_index ON scheduled_maintenance (asset_id);
+
+CREATE TABLE IF NOT EXISTS scheduled_outage (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	event_type event_type DEFAULT 'outage'::event_type NOT NULL CHECK (event_type = 'outage'),
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id"), -- either a satellite or a groundstation can have an outage
 	FOREIGN KEY (asset_id) REFERENCES ground_station ("id")
 ) INHERITS (schedule_event);
 
-CREATE TABLE IF NOT EXISTS contact_event (
+CREATE INDEX IF NOT EXISTS scheduled_outage_start_time_index ON scheduled_outage (start_time);
+CREATE INDEX IF NOT EXISTS scheduled_outage_end_time_index ON scheduled_outage (end_time);
+CREATE INDEX IF NOT EXISTS scheduled_outage_asset_index ON scheduled_outage (asset_id);
+
+CREATE TABLE IF NOT EXISTS scheduled_contact (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	event_type event_type DEFAULT 'contact'::event_type NOT NULL CHECK (event_type = 'contact'),
 	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'), -- imaging events are only for satellites
 	groundstation_id integer,
+	uplink_items integer[],
+	downlink_items integer[],
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id"),
 	FOREIGN KEY (groundstation_id) REFERENCES ground_station ("id") -- either a satellite or a groundstation can have an outage
 ) INHERITS (schedule_event);
 
-CREATE INDEX IF NOT EXISTS imaging_event_start_time_index ON imaging_event (start_time);
-CREATE INDEX IF NOT EXISTS maintenance_event_start_time_index ON maintenance_event (start_time);
-CREATE INDEX IF NOT EXISTS outage_event_start_time_index ON outage_event (start_time);
-CREATE INDEX IF NOT EXISTS contact_event_start_time_index ON contact_event (start_time);
-
-CREATE INDEX IF NOT EXISTS imaging_event_end_time_index ON imaging_event (end_time);
-CREATE INDEX IF NOT EXISTS maintenance_event_end_time_index ON maintenance_event (end_time);
-CREATE INDEX IF NOT EXISTS outage_event_end_time_index ON outage_event (end_time);
-CREATE INDEX IF NOT EXISTS contact_event_end_time_index ON contact_event (end_time);
-
-CREATE INDEX IF NOT EXISTS imaging_event_asset_index ON imaging_event (asset_id);
-CREATE INDEX IF NOT EXISTS maintenance_event_asset_index ON maintenance_event (asset_id);
-CREATE INDEX IF NOT EXISTS outage_event_asset_index ON outage_event (asset_id);
-CREATE INDEX IF NOT EXISTS contact_event_asset_index ON contact_event (asset_id);
+CREATE INDEX IF NOT EXISTS scheduled_contact_start_time_index ON scheduled_contact (start_time);
+CREATE INDEX IF NOT EXISTS scheduled_contact_end_time_index ON scheduled_contact (end_time);
+CREATE INDEX IF NOT EXISTS scheduled_contact_asset_index ON scheduled_contact (asset_id);

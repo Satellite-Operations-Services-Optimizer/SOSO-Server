@@ -7,17 +7,14 @@ import os
 
 db_engine = None
 Base = None
-
-Satellite = None
-GroundStation = None
-ImageOrder = None
-Schedule = None
-MaintenanceOrder = None
-OutageOrder = None
+_db_session = None
 
 load_dotenv()
 def setup_database():
-    global db_engine, db_session, Base
+    global db_engine, Base, _db_session
+
+    if _db_session is not None:
+        _db_session.close()
 
     driver = os.environ['DB_DRIVER']
     user = os.environ['DB_USER']
@@ -37,9 +34,6 @@ def setup_database():
     Base = automap_base(metadata=metadata)
     Base.prepare(autoload_with=db_engine)
 
-
-
-_db_session = None
 def get_session():
     global _db_session
     if _db_session is None or _db_session.is_active is False:
@@ -48,9 +42,16 @@ def get_session():
         _db_session = DatabaseSession()
     return _db_session
 
+
+Satellite = None
+GroundStation = None
+ImageOrder = None
+Schedule = None
+MaintenanceOrder = None
+OutageOrder = None
+
 def assign_database_tables():
-    global Base
-    global Satellite, GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder
+    global Base, Satellite, GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder
 
     Satellite = Base.classes.satellite
     GroundStation = Base.classes.ground_station
@@ -58,7 +59,6 @@ def assign_database_tables():
     Schedule = Base.classes.schedule
     MaintenanceOrder = Base.classes.maintenance_order
     OutageOrder = Base.classes.outage_order
-    ScheduleEvent = Base.classes.schedule_event
 
 
 setup_database()

@@ -1,7 +1,9 @@
 from config import logging
-from config.database import Satellite, get_session
+from config.database import get_session, Base
 from pathlib import Path
+import json
 import uuid
+
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +13,7 @@ def populate_sample_satellites():
     tles = _get_tles_from_text_files(str(path))
     tles.extend(_get_tles_from_json_files(str(path)))
 
+    Satellite = Base.classes.satellite
     satellites = []
     for tle in tles:
         name = tle.pop('name', _generate_satellite_name())

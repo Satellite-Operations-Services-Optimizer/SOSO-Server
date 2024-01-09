@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from config.database import get_session
+from config.database import get_session, Base
 from config import logging
-from populate_orders import populate_sample_image_orders
-from populate_assets import populate_sample_satellites
+from .populate_orders import populate_sample_image_orders
+from .populate_assets import populate_sample_satellites
 
 logger = logging.getLogger(__name__)
+
 
 def populate_database():
     populate_sample_satellites()
@@ -45,6 +46,8 @@ def generate_random_ground_station():
 def populate_ground_stations(num_ground_stations=10):
     ground_stations_data = [generate_random_ground_station() for _ in range(num_ground_stations)]
 
+    GroundStation = Base.classes.ground_station
+
     ground_stations = []
     for data in ground_stations_data:
         ground_stations.append(
@@ -84,6 +87,8 @@ def generate_random_image_order():
 def populate_image_orders(num_orders=10):
     image_orders_data = [generate_random_image_order() for _ in range(num_orders)]
 
+    ImageOrder = Base.classes.image_order
+
     image_orders = []
     for data in image_orders_data:
         image_orders.append(
@@ -122,10 +127,15 @@ def generate_random_schedule():
     }
 
 def populate_schedule(num_schedules=10):
+    db_session = get_session()
+    Satellite = Base.classes.satellite
+    GroundStation = Base.classes.ground_station
+
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
     satellite_ids = [satellite.id for satellite in db_session.query(Satellite).all()]
     ground_station_ids = [station.id for station in db_session.query(GroundStation).all()]   
 
+    Schedule = Base.classes.schedule
     schedules = []
     for data in schedules_data:
         satellite_id = random.choice(satellite_ids) if satellite_ids else None
@@ -178,6 +188,8 @@ def generate_random_maintenance_order():
 def populate_maintenance_orders(num_orders=10):
     maintenance_orders_data = [generate_random_maintenance_order() for _ in range(num_orders)]
 
+    MaintenanceOrder = Base.classes.maintenance_order
+
     maintenance_orders = []
     for data in maintenance_orders_data:
         maintenance_orders.append(
@@ -214,6 +226,8 @@ def generate_random_outage_order():
 
 def populate_outage_orders(num_orders=10):
     outage_orders_data = [generate_random_outage_order() for _ in range(num_orders)]
+
+    OutageOrder = Base.classes.outage_order
 
     outage_orders = []
     for data in outage_orders_data:
