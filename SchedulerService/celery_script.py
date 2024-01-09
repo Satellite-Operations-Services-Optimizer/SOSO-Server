@@ -1,5 +1,4 @@
 from config import celery_app
-import subprocess
 import os
 
 if __name__ == '__main__':

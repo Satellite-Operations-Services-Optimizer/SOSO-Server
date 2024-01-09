@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from config.database import db_session
+from app_config.database import db_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
 from Helpers.util import get_activities

@@ -1,4 +1,4 @@
-from config import rabbit
+from app_config import rabbit
 from rabbit_wrapper import Publisher
 from fastapi.encoders import jsonable_encoder
 from Models.RequestModel import RequestDetails

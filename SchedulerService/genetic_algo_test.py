@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from sqlalchemy.sql.expression import func
-from config import db_session
+from app_config import get_session
 from abc import ABC, abstractmethod
 
 @dataclass
@@ -10,10 +10,12 @@ class ScheduleHorizon:
     endHorizon: datetime
 
     def calc_makespan(self):
-        db_session.query(func.max())
+        session = get_session()
+        session.query(func.max())
     
     def calc_tardiness(self):
-        db_session.query()
+        session = get_session()
+        session.query()
 
 class PerformanceMetric(ABC):
     def __init__(self, weight: int):
@@ -41,8 +43,7 @@ class Tardiness(PerformanceMetric):
     def calc_satisfaction_grade(self, schedule_horizon):
         pass
 
-# create table in the database called activity_stream
 
 
 if __name__ == '__main__':
-    
+    print("hi")

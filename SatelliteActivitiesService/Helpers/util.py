@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from config.database import db_session
+from app_config.database import db_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
 from Helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 

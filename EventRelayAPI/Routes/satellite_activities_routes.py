@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 import asyncio
 from dotenv import dotenv_values
-from config.rabbit import rabbit
+from app_config.rabbit import rabbit
 from rabbit_wrapper import TopicPublisher, TopicConsumer
 from fastapi import APIRouter
 from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
-from config import rabbit
+from app_config import rabbit
 from rabbit_wrapper import TopicPublisher, TopicConsumer
 
 import logging

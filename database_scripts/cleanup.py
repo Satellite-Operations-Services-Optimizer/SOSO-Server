@@ -1,8 +1,9 @@
 from pathlib import Path
 from sqlalchemy import text
-from config.database import db_engine, get_session, Base
-from config import logging
-from config.database import setup_database, assign_database_tables
+from app_config.database import db_engine, get_session
+from app_config import logging
+from app_config.database import setup_database
+from app_config.db_tables import assign_database_table_classes
 from populate_scripts.populate import populate_database
 import os
 
@@ -30,7 +31,7 @@ def rebuild_database(sql_path: str):
             conn.execute(text(sql_text))
             conn.commit()
     setup_database()
-    assign_database_tables()
+    assign_database_table_classes()
     print("hi")
     
 if __name__ == "__main__":

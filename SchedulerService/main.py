@@ -1,5 +1,5 @@
 from rabbit_wrapper import Consumer
-from config import rabbit, ServiceQueues
+from app_config import rabbit, ServiceQueues
 from satellite_state.stream import setup_state_streaming_event_listeners
 import logging
 

@@ -1,6 +1,6 @@
-from config import rabbit
+from app_config import rabbit
 from rabbit_wrapper import TopicConsumer
-from config import logging
+from app_config import logging
 from .tasks import state_stream_task
 # from celery.app.control import revoke
 

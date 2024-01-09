@@ -1,4 +1,4 @@
-from config.database import db_session, Base
+from app_config.database import db_session, Base
 
 ImageOrder = Base.classes.image_order
 

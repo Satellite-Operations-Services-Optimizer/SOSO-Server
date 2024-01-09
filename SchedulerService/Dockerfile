@@ -16,11 +16,12 @@ WORKDIR /code
 COPY ./requirements.txt base-requirements.txt
 RUN pip install -r base-requirements.txt
 
-# copy requirements file for the service if it exists, and install it
+# copy requirements file for the service if it exists, and install it (the [s] is a hack to make it do nothing if the file doesn't exist)
 COPY ./SchedulerService/requirement[s].txt requirements.txt
 RUN if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
 # copy every content from the local file to the image
-COPY ./SchedulerService/ .
+COPY ./SchedulerService .
+COPY ./app_config ./config
 
 CMD ["python", "main.py"] 

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from config.database import db_session, Base
+from app_config.database import db_session, Base
 
 Satellite = Base.classes.satellite
 GroundStation = Base.classes.ground_station

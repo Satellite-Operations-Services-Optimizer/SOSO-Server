@@ -1,10 +1,10 @@
 
 from fastapi.encoders import jsonable_encoder
-from config import rabbit, ServiceQueues
+from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from config.database import db_session
+from app_config.database import db_session
 from Services import process
-from config import logging
+from app_config import logging
 from Models.SASConsumerEventData import SASConsumerEventData
 from Models.SASProducerEventData import SASProducerScheduleOptionsData
 from Models.RequestModel import ActivityRequest, OutageRequest
