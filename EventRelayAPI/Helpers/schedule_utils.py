@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from app_config import get_db_session, Base
+from app_config.database import get_db_session, Base
 
 Schedule = Base.classes.schedule
 ScheduledImages = Base.classes.scheduled_images

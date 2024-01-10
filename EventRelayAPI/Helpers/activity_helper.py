@@ -1,4 +1,4 @@
-from app_config import get_db_session, Base
+from app_config.database import get_db_session, Base
 
 MaintenanceOrder = Base.classes.maintenance_order
 
