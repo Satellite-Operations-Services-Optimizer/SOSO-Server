@@ -1,7 +1,7 @@
 from utils import get_data_from_json_files
 from pathlib import Path
 from datetime import datetime
-from app_config.database import get_session
+from app_config import get_db_session
 from app_config.db_tables import ImageOrder
 from app_config import logging
 
@@ -14,7 +14,7 @@ def populate_sample_image_orders():
     orders = []
     for order in image_order_jsons:
         orders.append(image_order_from_json(order))
-    session = get_session()
+    session = get_db_session()
     session.add_all(orders)
     session.commit()
 

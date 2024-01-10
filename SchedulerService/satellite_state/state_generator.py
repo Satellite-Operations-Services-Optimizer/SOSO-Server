@@ -1,4 +1,4 @@
-from app_config.database import Base
+from app_config.db_tables import Satellite
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from datetime import datetime, timedelta

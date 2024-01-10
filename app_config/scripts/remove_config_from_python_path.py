@@ -1,7 +1,7 @@
 import site
 import re
 from pathlib import Path
-from add_config_to_path import customize_script_path, script_header, script_footer
+from app_config.scripts.add_config_to_python_path import customize_script_path, script_header, script_footer
 
 # see https://python-forum.io/thread-32255.html for explanation
 

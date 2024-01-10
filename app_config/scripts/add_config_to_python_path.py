@@ -28,9 +28,14 @@ if path not in sys.path:
 {script_footer}
 """
 
+def get_usercustomize_file_contents():
+    if Path(customize_script_path).exists():
+        with open(customize_script_path, 'r') as f:
+            return f.read()
+    return ''
+
 if __name__ == '__main__':
-    with open(customize_script_path, 'r') as f:
-        usercustomize_file_contents = f.read()
+    usercustomize_file_contents = get_usercustomize_file_contents()
 
     if script not in usercustomize_file_contents:
         with open(customize_script_path, 'a+') as f:

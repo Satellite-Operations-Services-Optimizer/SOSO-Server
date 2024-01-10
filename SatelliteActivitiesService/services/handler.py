@@ -2,7 +2,7 @@
 from fastapi.encoders import jsonable_encoder
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from app_config.database import db_session
+from app_config.database import get_db_session
 from Services import process
 from app_config import logging
 from Models.SASConsumerEventData import SASConsumerEventData
@@ -20,7 +20,7 @@ def handle_message(body):
     logging.info(f"Recieved {request_body}")
     
        
-       
+    session = get_db_session()
     try:
         not_maintenence = None
         not_outage = None
@@ -33,13 +33,13 @@ def handle_message(body):
                     details=request_details
                 )
             )     
-            saved_request = create_maintenence_request(db_session, request)
+            saved_request = create_maintenence_request(session, request)
         except Exception as e:
             not_maintenence = e
             
             try:
                 request = OutageRequest(**request_body)     
-                saved_request = create_outage_request(db_session, request)
+                saved_request = create_outage_request(session, request)
                 
             except Exception as e:
                 not_outage = e
@@ -54,7 +54,7 @@ def handle_message(body):
             if(type(request) == ActivityRequest):
                 
                 #get the satellite id from db
-                satellite_id = get_satellite_from_name(db_session, request_body["Target"]).id
+                satellite_id = get_satellite_from_name(session, request_body["Target"]).id
                 preschedule = process.schedule_activity(satellite_id, saved_request)
         
                 message = jsonable_encoder(

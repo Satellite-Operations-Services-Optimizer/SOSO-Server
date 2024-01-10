@@ -1,6 +1,6 @@
 from pathlib import Path
 from sqlalchemy import text
-from app_config.database import db_engine, get_session
+from app_config import db_engine, get_db_session
 from app_config import logging
 from app_config.database import setup_database
 from app_config.db_tables import assign_database_table_classes
@@ -13,7 +13,7 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
 def drop_database_schema():
     logger.info("Deleting database...")
 
-    session = get_session()
+    session = get_db_session()
     schema = os.getenv("DB_SCHEMA")
     session.execute(text(f'DROP SCHEMA IF EXISTS {schema} CASCADE;'))
     session.execute(text(f'CREATE SCHEMA {schema}'))

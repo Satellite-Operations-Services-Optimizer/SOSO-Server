@@ -1,5 +1,5 @@
 from app_config import logging
-from app_config.database import get_session
+from app_config import get_db_session
 from app_config.db_tables import Satellite
 from pathlib import Path
 import json
@@ -30,7 +30,7 @@ def populate_sample_satellites():
             )
         )
     
-    session = get_session()
+    session = get_db_session()
     session.add_all(satellites)
     session.commit()
 

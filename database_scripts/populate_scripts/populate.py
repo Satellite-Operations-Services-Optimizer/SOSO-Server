@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app_config.database import get_session
+from app_config import get_db_session
 from app_config import logging
 from .populate_orders import populate_sample_image_orders
 from .populate_assets import populate_sample_satellites
@@ -62,7 +62,7 @@ def populate_ground_stations(num_ground_stations=10):
             )
         )
 
-    db_session = get_session()
+    db_session = get_db_session()
     db_session.add_all(ground_stations)
     db_session.commit()
 
@@ -105,7 +105,7 @@ def populate_image_orders(num_orders=10):
             )
         )
 
-    db_session = get_session()
+    db_session = get_db_session()
     db_session.add_all(image_orders)
     db_session.commit()
 
@@ -124,7 +124,7 @@ def generate_random_schedule():
     }
 
 def populate_schedule(num_schedules=10):
-    db_session = get_session()
+    db_session = get_db_session()
 
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
     satellite_ids = [satellite.id for satellite in db_session.query(Satellite).all()]
@@ -145,7 +145,7 @@ def populate_schedule(num_schedules=10):
             )
         )
 
-    db_session = get_session()
+    db_session = get_db_session()
     db_session.add_all(schedules)
     db_session.commit()
 
@@ -198,7 +198,7 @@ def populate_maintenance_orders(num_orders=10):
             )
         )
 
-    db_session = get_session()
+    db_session = get_db_session()
     db_session.add_all(maintenance_orders)
     db_session.commit()
 
@@ -229,7 +229,7 @@ def populate_outage_orders(num_orders=10):
             )
         )
 
-    db_session = get_session()
+    db_session = get_db_session()
     db_session.add_all(outage_orders)
     db_session.commit()
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from sqlalchemy.sql.expression import func
-from app_config import get_session
+from app_config import get_db_session
 from abc import ABC, abstractmethod
 
 @dataclass
@@ -10,11 +10,11 @@ class ScheduleHorizon:
     endHorizon: datetime
 
     def calc_makespan(self):
-        session = get_session()
+        session = get_db_session()
         session.query(func.max())
     
     def calc_tardiness(self):
-        session = get_session()
+        session = get_db_session()
         session.query()
 
 class PerformanceMetric(ABC):

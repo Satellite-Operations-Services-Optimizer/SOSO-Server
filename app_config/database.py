@@ -14,7 +14,7 @@ load_dotenv()
 def setup_database():
     global db_engine, Base, _db_url
 
-    session = get_session()
+    session = get_db_session()
     if session is not None:
         session.close()
 
@@ -39,7 +39,7 @@ def setup_database():
 
 
 _db_session = None
-def get_session():
+def get_db_session():
     """
     Getter method for managing a single database session throughout lifetime of application (to avoid memory leaks)
     """

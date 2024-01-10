@@ -1,11 +1,11 @@
-from app_config.database import db_session, Base
+from app_config import get_db_session, Base
 
 ImageOrder = Base.classes.image_order
 
 def get_image_orders():
-    
+    session = get_db_session()
     try:
-        images_orders = db_session.query(ImageOrder).all();
+        images_orders = session.query(ImageOrder).all()
         return {
             "status_text": "OK",
             "status_response": 201,
@@ -17,6 +17,6 @@ def get_image_orders():
         return None
     
     finally:
-        db_session.close();
+        session.close();
         
      

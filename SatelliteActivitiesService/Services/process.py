@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app_config.database import db_session
+from app_config.database import get_db_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
 from Helpers.util import get_activities
@@ -21,7 +21,8 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
     max_frequencey = timedelta(seconds=maintenence_request.frequency_max)
     
     # **********to be tested with realdata*********
-    schedules = get_all_schedules_in_window(db_session ,satellite_id, maintenence_request.start_time, maintenence_request.end_time)
+    session = get_db_session()
+    schedules = get_all_schedules_in_window(session ,satellite_id, maintenence_request.start_time, maintenence_request.end_time)
     
     schedule_options = []
     option = []
