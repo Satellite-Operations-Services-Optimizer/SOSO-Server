@@ -21,7 +21,6 @@ RUN pip install -r ./code/base-requirements.txt
 COPY ./${SERVICE_NAME}/requirement[s].txt ./code/requirements.txt
 RUN if [ -f ./code/requirements.txt ]; then pip install -r ./code/requirements.txt; fi
 
-
 # setup app configuration code
 COPY ./app_config ./code/app_config
 RUN python /code/app_config/scripts/add_config_to_python_path.py
@@ -31,7 +30,3 @@ COPY ./${SERVICE_NAME} ./code/${SERVICE_NAME}
 
 WORKDIR /code/${SERVICE_NAME}
 CMD ["python", "main.py"]
-
-
-
-
