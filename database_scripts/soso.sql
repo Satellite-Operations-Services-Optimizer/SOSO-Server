@@ -100,62 +100,6 @@ CREATE TABLE IF NOT EXISTS ground_station_request (
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_acquisition_index ON ground_station_request (signal_acquisition_time);
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_loss_index ON ground_station_request (signal_loss_time);
 
--- CREATE TABLE IF NOT EXISTS scheduled_images (
--- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
--- 	schedule_id integer,
--- 	order_id integer,
--- 	gs_request_id integer,
--- 	start_time timestamp with time zone,
--- 	end_time timestamp with time zone,
--- 	data_size double precision,
--- 	repeat_iteration integer,
--- 	schedule_type integer,
--- 	status text,
--- 	--PRIMARY KEY("schedule_id", "order_id"),
--- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
--- 	CONSTRAINT fk_image_order_id FOREIGN KEY (order_id) REFERENCES image_order (id),
--- 	CONSTRAINT fk_gs_request_id FOREIGN KEY (gs_request_id) REFERENCES ground_station_request (id)
--- );
-
--- CREATE INDEX IF NOT EXISTS schedule_images_start ON scheduled_images (start_time);
--- CREATE INDEX IF NOT EXISTS schedule_images_end ON scheduled_images (end_time);
-
--- CREATE TABLE IF NOT EXISTS scheduled_maintenance (
--- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
--- 	schedule_id integer,
--- 	order_id integer,
--- 	start_time timestamp with time zone,
--- 	end_time timestamp with time zone,
--- 	repetition_number integer,
--- 	description text,
--- 	priority integer,
--- 	status text,
--- 	--PRIMARY KEY("schedule_id", "maintenance_order_id"),
--- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
--- 	CONSTRAINT fk_maintenance_order_id FOREIGN KEY (order_id) REFERENCES maintenance_order (id)
--- );
-
--- CREATE INDEX IF NOT EXISTS schedule_maintenance_start ON scheduled_maintenance (start_time);
--- CREATE INDEX IF NOT EXISTS schedule_maintenance_end ON scheduled_maintenance (end_time);
-
--- CREATE TABLE IF NOT EXISTS scheduled_outages (
--- 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
--- 	schedule_id integer,
--- 	order_id integer,
--- 	start_time timestamp with time zone,
--- 	end_time timestamp with time zone,
--- 	status text,
--- 	--PRIMARY KEY ("schedule_id", "outage_order_id"),
--- 	CONSTRAINT fk_schedule_id FOREIGN KEY (schedule_id) REFERENCES schedule (id),
--- 	CONSTRAINT fk_outage_order_id FOREIGN KEY (order_id) REFERENCES outage_order (id) 
--- );
-
--- CREATE INDEX IF NOT EXISTS schedule_outage_start ON scheduled_outages (start_time);
--- CREATE INDEX IF NOT EXISTS schedule_outage_end ON scheduled_outages (end_time);
-
-
-
-
 -- EXPERIMENTATION FOR SCHEDULING ALGORITHM
 CREATE TABLE IF NOT EXISTS schedule_blueprint (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -258,71 +202,21 @@ CREATE INDEX IF NOT EXISTS satellite_outage_start_time_index ON satellite_outage
 CREATE INDEX IF NOT EXISTS satellite_outage_end_time_index ON satellite_outage (end_time);
 CREATE INDEX IF NOT EXISTS satellite_outage_asset_index ON satellite_outage (asset_id);
 
--- todo update
-CREATE OR REPLACE VIEW data_transfer AS
-SELECT contact.schedule_id as schedule_id,
-	contact.id as contact_event_id,
-	contact.asset_id as satellite_id
-	contact.groundstation_id as groundstation_id
-	array_agg(
-		(uplinkable_event.event_type, uplinkable_event.id)::event_identifier
-	) AS uplink_items,
-	array_agg(
-		(downlinkable_event.event_type, downlinkable_event.id)::event_identifier
-	) AS downlink_items,
-	sum(uplinkable_event.uplink_data_size) as uplink_data_size,
-	sum(downlinkable_event.downlink_data_size) as downlink_data_size
-FROM uplinkable_event, downlinkable_event, scheduled_contact as contact
-WHERE uplinkable_event.asset_type = 'satellite' -- outage could be ground_station outage, so we have to specify asset_type as satellite. This is a bit hacky, TODO: figure out a better way. maybe separate tables for groundstation and satellite outage, and only satellite one is uplinkable?
-	AND uplinkable_event.uplink_contact_id=contact.id
-	AND downlinkable_event.downlink_contact_id=contact.id
-	AND uplinkable_event.schedule_id=contact.schedule_id -- events must belong to the same schedule
-	AND downlinkable_event.schedule_id=contact.schedule_id
-GROUP BY contact.id
 
-
-CREATE OR REPLACE VIEW satellite_load AS
-SELECT scheduled_contact.schedule_id as schedule_id,
-	scheduled_contact.asset_id as satellite_id, --we will also include a timestamp representing the snapshot time of the satellite load - when it changed
-	scheduled_contact.start_time as snapshot_time
-	LAG(snapshot_time)
-	LAG(snapshot_time) OVER (PARTITION BY schedule_id, satellite_id ORDER BY snapshot_time) as previous_snapshot_time,
-	--- sum... as load -- we sum up the load (all uplinks minus all downlinks) up to the snapshot time
-	sum(data_transfer.uplink_data_size) - sum(data_transfer.downlink_data_size) as load
-FROM data_transfer, scheduled_contact, downlinkable_event
-WHERE data_transfer.contact_event_id=scheduled_contact.id
-	downlinkable_event.asset_type='satellite' -- just making sure, this should always be the case
-GROUP BY schedule_id, satellite_id
-
-CREATE OR REPLACE RECURSIVE VIEW satellite_status (
-	schedule_id, satellite_id, snapshot_time, storage_delta, workload_delta
-) AS
--- base case (set load to 0 for the snapshot time right before the time of the first scheduled satellite event/contact - i.e. snapshot_time will be just before the event/contact with the min(start_time))
-SELECT DISTINCT ON (schedule_id, satellite_id)
-	schedule_id
-	asset_id as satellite_id
-	start_time-interval '1 microsecond' as snapshot_time -- subtracted to prevent snapshot_time overlapping with an event starting at the same time in the recursive case
-	0 as storage_utilization
-FROM (
-	SELECT id, event_type, schedule_id, asset_id, start_time FROM satellite_event
-	UNION
-	SELECT id, event_type, schedule_id, asset_id, start_time FROM scheduled_contact
-)
-GROUP BY schedule_id, satellite_id
-ORDER BY snapshot_time, 'tiebreaker_'||event_type||id -- we add a tie breaker to break ties if there are multiple events/contacts that start at the min(snapshot_time)
--- recursive cases start here
-UNION
+CREATE OR REPLACE MATERIALIZED VIEW satellite_state_change AS
 SELECT schedule_id, 
 	satellite_id, 
 	snapshot_time, 
-	prev_storage_utilization + sum(storage_utilization_offset) as load -- sum accounts for case where multiple events are scheduled for the same time that have effect on the load
+	sum(storage_delta) as storage_delta, -- sum accounts for case where multiple events are scheduled for the same time that have effect on the load
+	sum(workload_delta) as workload_delta
 FROM (
-	-- (non-recursive) calculate all the offsets to the satellite's load across time
+	-- Three cases where the satellite's state changes. (calculate your state_delta in it's respective case, and leave it as 0)
 	-- CASE 1: when we are uplinking the command (e.g. command to take image is uplinked)
 	SELECT satellite_event.schedule_id,
 		satellite_event.asset_id as satellite_id,
-		contact.start_time as snapshot_time, -- load changes at point of contact (when uplink is actually done)
-		satellite_event.uplink_data_size as load_offset
+		contact.start_time as snapshot_time, -- state changes at point of contact (when uplink actually occurs)
+		satellite_event.uplink_data_size as storage_delta,
+		0 as workload_delta
 	FROM satellite_event, scheduled_contact as contact
 	WHERE satellite_event.schedule_id=contact.schedule_id
 		AND satellite_event.asset_id=contact.asset_id
@@ -331,16 +225,25 @@ FROM (
 	-- CASE 2: when the command is executed (e.g. image is taken)
 	SELECT sastellite_event.schedule_id,
 		satellite_event.asset_id as satellite_id,
-		satellite_event.start_time as snapshot_time, -- load changes at point of execution (when the event is actually scheduled to happen on the satellite)
-		satellite_event.downlink_data_size as load_offset
+		satellite_event.start_time as snapshot_time, -- state changes at point of execution (when the event is actually scheduled to happen on the satellite)
+		satellite_event.downlink_data_size - satellite_event.uplink_data_size as storage_delta, -- the command data that was uplinked can be deleted now as the command has been executed. The result of the command now takes up space.
+		satellite_event.workload as workload_delta
 	FROM satellite_event
 	WHERE satellite_event.downlink_contact_id IS NOT NULL
 	UNION ALL
 	-- CASE 3: when the result of the command is being downlinked (e.g. image is being downlinked)
-	SELECT schedule_id
-), (
-	-- (recursive) get the previous load value
+	SELECT satellite_event.schedule_id,
+		satellite_event.asset_id as satellite_id,
+		contact.start_time as snapshot_time, -- state changes at point of contact (when downlink actually occurs. we arbitrarily chose downlink_start_time instead of downlink_end_time. which is better to use is debatable, i can't think of a strong enough reason as to why one way and not the other)
+		(-1)*satellite_event.downlink_data_size as storage_delta,
+		0 as workload_delta
+	FROM satellite_event, scheduled_contact as contact
+	WHERE satellite_event.schedule_id=contact.schedule_id
+		AND satellite_event.asset_id=contact.asset_id
+		AND satellite_event.downlink_contact_id=contact.id
 )
-WHERE load_offset <> 0 -- ignore cases where no change to the load
+WHERE storage_delta <> 0.0 OR workload_delta <> 0-- ignore cases where no change to the state
 GROUP BY snapshot_time -- aggregate changes to the load made at the same time into one change
-	
+
+CREATE UNIQUE INDEX snapshot_time_index ON satellite_state_change (snapshot_time)
+CREATE UNIQUE INDEX satellite_schedule_index ON satellite_state_change (schedule_id, satellite_id)
