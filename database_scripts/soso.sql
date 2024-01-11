@@ -108,10 +108,6 @@ CREATE TABLE IF NOT EXISTS schedule_blueprint (
 
 CREATE TYPE asset_type AS ENUM ('satellite', 'groundstation');
 CREATE TYPE event_type AS ENUM ('imaging', 'maintenance', 'outage', 'contact');
-CREATE TYPE event_identifier AS (
-	type event_type,
-	key integer
-);
 
 -- inheritance allows us to easily perform complex queries on all events at once
 -- most constraints (including primary key constraints) aren't passed down onto the children tho, so we handle those in the children
@@ -120,7 +116,7 @@ CREATE TABLE IF NOT EXISTS scheduled_event (
 	event_type event_type,
 	event_group text UNIQUE DEFAULT NULL, -- this is the group of events that are related to each other. e.g. a repeatable imaging event. event_group_id=image_order.id in this case because they are repeats of the same order
 	schedule_id integer, -- this is the schedule we are in the process of constructing
-	satellite_id integer, -- this is the resource we are scheduling to.
+	asset_id integer, -- this is the resource we are scheduling to.
 	asset_type asset_type,
 	start_time timestamptz,
 	end_time timestamptz,
@@ -145,7 +141,7 @@ CREATE TABLE IF NOT EXISTS groundstation_outage (
 	id integer PRIMARY KEY,
 	FOREIGN KEY (asset_id) REFERENCES ground_station ("id"),
 	FOREIGN KEY (schedule_id) REFERENCES schedule_blueprint ("id")
-) INHERITS (scheduled_event)
+) INHERITS (scheduled_event);
 
 CREATE INDEX IF NOT EXISTS groundstation_outage_start_time_index ON groundstation_outage (start_time);
 CREATE INDEX IF NOT EXISTS groundstation_outage_end_time_index ON groundstation_outage (end_time);
@@ -158,8 +154,9 @@ CREATE TABLE IF NOT EXISTS satellite_event (
 	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'), -- can only uplink to satellites
 	uplink_contact_id integer NOT NULL, -- all events have to be uplinked to the satellite for it to know it needs to execute it
 	downlink_contact_id integer DEFAULT NULL, -- not all events have data they have to transmit back to groundstation
-	uplink_data_size double precision DEFAULT 0.0 NOT NULL CHECK uplink_data_size>0.0,
-	downlink_data_size double precision DEFAULT 0.0 NOT NULL CHECK uplink_data_size>0.0
+	uplink_data_size double precision DEFAULT 0.0 NOT NULL CHECK (uplink_data_size>=0.0),
+	downlink_data_size double precision DEFAULT 0.0 NOT NULL CHECK (downlink_data_size>=0.0),
+	event_weight integer DEFAULT 1 NOT NULL CHECK (event_weight>=0) -- used to calculate throughput
 ) INHERITS (scheduled_event);
 
 CREATE TABLE IF NOT EXISTS scheduled_imaging (
@@ -192,6 +189,7 @@ CREATE INDEX IF NOT EXISTS scheduled_maintenance_asset_index ON scheduled_mainte
 CREATE TABLE IF NOT EXISTS satellite_outage (
 	event_type event_type DEFAULT 'outage'::event_type NOT NULL CHECK (event_type = 'outage'),
 	id integer PRIMARY KEY,
+	workload integer DEFAULT 0,
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id"),
 	FOREIGN KEY (schedule_id) REFERENCES schedule_blueprint ("id"),
 	FOREIGN KEY (uplink_contact_id) REFERENCES scheduled_contact ("id"),
@@ -203,12 +201,12 @@ CREATE INDEX IF NOT EXISTS satellite_outage_end_time_index ON satellite_outage (
 CREATE INDEX IF NOT EXISTS satellite_outage_asset_index ON satellite_outage (asset_id);
 
 
-CREATE OR REPLACE MATERIALIZED VIEW satellite_state_change AS
+CREATE MATERIALIZED VIEW satellite_state_change AS
 SELECT schedule_id, 
 	satellite_id, 
 	snapshot_time, 
 	sum(storage_delta) as storage_delta, -- sum accounts for case where multiple events are scheduled for the same time that have effect on the load
-	sum(workload_delta) as workload_delta
+	sum(throughput_delta) as throughput_delta
 FROM (
 	-- Three cases where the satellite's state changes. (calculate your state_delta in it's respective case, and leave it as 0)
 	-- CASE 1: when we are uplinking the command (e.g. command to take image is uplinked)
@@ -216,18 +214,18 @@ FROM (
 		satellite_event.asset_id as satellite_id,
 		contact.start_time as snapshot_time, -- state changes at point of contact (when uplink actually occurs)
 		satellite_event.uplink_data_size as storage_delta,
-		0 as workload_delta
+		0 as throughput_delta
 	FROM satellite_event, scheduled_contact as contact
 	WHERE satellite_event.schedule_id=contact.schedule_id
 		AND satellite_event.asset_id=contact.asset_id
 		AND satellite_event.uplink_contact_id=contact.id
 	UNION ALL
 	-- CASE 2: when the command is executed (e.g. image is taken)
-	SELECT sastellite_event.schedule_id,
+	SELECT satellite_event.schedule_id,
 		satellite_event.asset_id as satellite_id,
 		satellite_event.start_time as snapshot_time, -- state changes at point of execution (when the event is actually scheduled to happen on the satellite)
 		satellite_event.downlink_data_size - satellite_event.uplink_data_size as storage_delta, -- the command data that was uplinked can be deleted now as the command has been executed. The result of the command now takes up space.
-		satellite_event.workload as workload_delta
+		satellite_event.event_weight as throughput_delta
 	FROM satellite_event
 	WHERE satellite_event.downlink_contact_id IS NOT NULL
 	UNION ALL
@@ -235,15 +233,16 @@ FROM (
 	SELECT satellite_event.schedule_id,
 		satellite_event.asset_id as satellite_id,
 		contact.start_time as snapshot_time, -- state changes at point of contact (when downlink actually occurs. we arbitrarily chose downlink_start_time instead of downlink_end_time. which is better to use is debatable, i can't think of a strong enough reason as to why one way and not the other)
-		(-1)*satellite_event.downlink_data_size as storage_delta,
-		0 as workload_delta
+		(-1.0)*satellite_event.downlink_data_size as storage_delta,
+		0 as throughput_delta
 	FROM satellite_event, scheduled_contact as contact
 	WHERE satellite_event.schedule_id=contact.schedule_id
 		AND satellite_event.asset_id=contact.asset_id
 		AND satellite_event.downlink_contact_id=contact.id
 )
-WHERE storage_delta <> 0.0 OR workload_delta <> 0-- ignore cases where no change to the state
-GROUP BY snapshot_time -- aggregate changes to the load made at the same time into one change
+WHERE storage_delta <> 0.0 OR throughput_delta <> 0-- ignore cases where no change to the state
+GROUP BY snapshot_time, schedule_id, satellite_id; -- aggregate changes to the load made at the same time into one change
 
-CREATE UNIQUE INDEX snapshot_time_index ON satellite_state_change (snapshot_time)
-CREATE UNIQUE INDEX satellite_schedule_index ON satellite_state_change (schedule_id, satellite_id)
+CREATE UNIQUE INDEX snapshot_time_index ON satellite_state_change (snapshot_time);
+CREATE UNIQUE INDEX satellite_schedule_index ON satellite_state_change (schedule_id, satellite_id);
+CREATE UNIQUE INDEX schedule_index ON satellite_state_change (schedule_id); -- useful when calculating average satellite utilization for example - you want events for all satellites within the same schedule

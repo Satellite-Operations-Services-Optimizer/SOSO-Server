@@ -1,6 +1,6 @@
 from app_config import logging
 from app_config import get_db_session
-from app_config.db_tables import Satellite
+from app_config.db_classes import Satellite
 from pathlib import Path
 import json
 import uuid

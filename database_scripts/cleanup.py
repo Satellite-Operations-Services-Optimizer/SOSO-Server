@@ -3,7 +3,7 @@ from sqlalchemy import text
 from app_config import db_engine, get_db_session
 from app_config import logging
 from app_config.database import setup_database
-from app_config.db_tables import assign_database_table_classes
+from app_config.db_classes import assign_database_table_classes
 from populate_scripts.populate import populate_database
 import os
 

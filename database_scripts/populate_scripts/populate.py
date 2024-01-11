@@ -3,7 +3,7 @@ from app_config import get_db_session
 from app_config import logging
 from .populate_orders import populate_sample_image_orders
 from .populate_assets import populate_sample_satellites
-from app_config.db_tables import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
+from app_config.db_classes import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
 
 logger = logging.getLogger(__name__)
 
