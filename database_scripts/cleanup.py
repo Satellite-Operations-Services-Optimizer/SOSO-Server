@@ -30,12 +30,13 @@ def rebuild_database(sql_path: str):
             sql_text = file.read()
             conn.execute(text(sql_text))
             conn.commit()
-    setup_database()
+    setup_database(use_localhost=True)
     assign_database_table_classes()
     print("hi")
     
 if __name__ == "__main__":
     drop_database_schema()
+    exit()
     
     sql_path = Path(__file__).with_name("soso.sql")
     rebuild_database(sql_path)

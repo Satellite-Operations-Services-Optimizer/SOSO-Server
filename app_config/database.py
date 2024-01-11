@@ -11,7 +11,7 @@ Base = None
 _db_url = None
 
 load_dotenv()
-def setup_database():
+def setup_database(use_localhost=False):
     global db_engine, Base, _db_url
 
     session = get_db_session()
@@ -21,8 +21,7 @@ def setup_database():
     driver = os.environ['DB_DRIVER']
     user = os.environ['DB_USER']
     password = os.environ['DB_PASS']
-    # host = 'localhost' #This is not inside a docker container, so it connects locally
-    host = os.environ['DB_HOST']
+    host = os.environ['DB_HOST'] if use_localhost is False else 'localhost'
     db_name = os.environ['DB_NAME']
     schema = os.environ['DB_SCHEMA']
     schema = schema if len(schema) > 0 else None
