@@ -151,7 +151,7 @@ CREATE INDEX IF NOT EXISTS groundstation_outage_asset_index ON groundstation_out
 
 -- abstract tables for inheritance
 CREATE TABLE IF NOT EXISTS satellite_event (
-	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'), -- can only uplink to satellites
+	asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'),
 	uplink_contact_id integer NOT NULL, -- all events have to be uplinked to the satellite for it to know it needs to execute it
 	downlink_contact_id integer DEFAULT NULL, -- not all events have data they have to transmit back to groundstation
 	uplink_data_size double precision DEFAULT 0.0 NOT NULL CHECK (uplink_data_size>=0.0),
@@ -173,7 +173,7 @@ CREATE INDEX IF NOT EXISTS scheduled_imaging_end_time_index ON scheduled_imaging
 CREATE INDEX IF NOT EXISTS scheduled_imaging_asset_index ON scheduled_imaging (asset_id);
 
 CREATE TABLE IF NOT EXISTS scheduled_maintenance (
-	event_type event_type DEFAULT 'imaging'::event_type NOT NULL CHECK (event_type = 'imaging'),
+	event_type event_type DEFAULT 'maintenance'::event_type NOT NULL CHECK (event_type = 'maintenance'),
 	id integer PRIMARY KEY,
 	priority integer,
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id"),
@@ -189,7 +189,7 @@ CREATE INDEX IF NOT EXISTS scheduled_maintenance_asset_index ON scheduled_mainte
 CREATE TABLE IF NOT EXISTS satellite_outage (
 	event_type event_type DEFAULT 'outage'::event_type NOT NULL CHECK (event_type = 'outage'),
 	id integer PRIMARY KEY,
-	workload integer DEFAULT 0,
+	event_weight integer DEFAULT 0,
 	FOREIGN KEY (asset_id) REFERENCES satellite ("id"),
 	FOREIGN KEY (schedule_id) REFERENCES schedule_blueprint ("id"),
 	FOREIGN KEY (uplink_contact_id) REFERENCES scheduled_contact ("id"),
@@ -199,7 +199,6 @@ CREATE TABLE IF NOT EXISTS satellite_outage (
 CREATE INDEX IF NOT EXISTS satellite_outage_start_time_index ON satellite_outage (start_time);
 CREATE INDEX IF NOT EXISTS satellite_outage_end_time_index ON satellite_outage (end_time);
 CREATE INDEX IF NOT EXISTS satellite_outage_asset_index ON satellite_outage (asset_id);
-
 
 CREATE MATERIALIZED VIEW satellite_state_change AS
 SELECT schedule_id, 
