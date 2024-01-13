@@ -10,29 +10,7 @@ from typing import List
 from config.database import db_session, Base
 from rabbit_wrapper import Publisher, TopicPublisher, rabbit
 from services.handler import handle_image_orders
-import logging 
-
-def handOverToIMGManagement(imageRequests: List[ImageRequest]):
-    for imgReq in imageRequests:
-        print('[FTP] ')
-        logging.info(f"[FTP | HandOverToImgManagement] Sent {imgReq} to image handler")
-        handle_image_orders(imgReq)
-    
-    
-
-# def addImgReqsToDB(imageOrders: List[ImageRequest]) -> List[int]:
-#     imageOrderIDs = []
-#     if imageOrders != None and len(imageOrders) > 0:
-#         for imgOrder in imageOrders:
-#             try: 
-#                 db_session.add(imgOrder)
-#                 db_session.commit()
-#                 imgOrder = db_session.refresh(imgOrder)
-#                 imageOrderIDs.append(imgOrder.id);
-#                 print("[FTP] Added image order " + imgOrder.id + " to the db.")
-#             except Exception as err:
-#                 print("[FTP] Failed to insert into database." + str(err))
-#     return imageOrderIDs    
+import logging     
 
 def verifyImgReqSchema(imgReq):
     try:
@@ -42,7 +20,7 @@ def verifyImgReqSchema(imgReq):
         print("[verifyImgReqSchema: EXCEPTION] " + err.json())
         return False 
 
-def getJSONsFromFTP() -> List[str]:
+def getJSONsFromFTP() -> List[ImageRequest]:
     
     ftpFiles = []
     imageRequests = []
@@ -80,15 +58,17 @@ def getJSONsFromFTP() -> List[str]:
                 
                 if currJSON != None and verifyImgReqSchema(currJSON):
                     
-                    # currImgReq = ImageRequest.model_validate_json(currJSON);
-                    ftpFiles.append(currJSON)
+                    currImgReq = ImageRequest.model_validate_json(currJSON);
+                    ftpFiles.append(currImgReq)
+                    
                     logging.info("[FTP: ADD] Added " + file + " as a potential image order")
+                    
                     currFile = None
                     currJSON = None
                 else:
                     logging.info("[FTP: IGNORE] file " + file + " did not pass the schema check.");    
-                # ftp.delete(file)
-                # print("[FTP: DELETE] Deleting from server" + file)
+                ftp.delete(file)
+                logging.info("[FTP: DELETE] Deleting from server" + file)
                 
             except Exception as error:
                 logging.error("[FTP: IGNORE] file " + file + " is not included in the image order queue. ")
