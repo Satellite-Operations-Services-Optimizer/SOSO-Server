@@ -33,7 +33,7 @@ class ImageOrder(BaseModel):
     start_time: datetime
     end_time: datetime
     delivery_deadline: datetime
-    retake_count: int
-    retake_freq_min: int
-    retake_freq_max:int
+    num_of_revisits: int
+    revisit_frequency: int
+    revisit_frequency_units: str
     
