@@ -61,11 +61,15 @@ def transform_request_to_db_schema(request_body):
     }
     
     recurrence = request_body["Recurrence"]
-    # if recurrence["Revisit"] == "True":
-    #     transformed_order["retake_count"] = 
-    #     transformed_order["retake_freq_min"] = 
-    #     transformed_order["retake_freq_max"] = 
-    
+    if recurrence["Revisit"] == "True":
+        transformed_order["num_of_revisits"] = recurrence["NumberOfRevisits"]
+        transformed_order["revisit_frequency"] = recurrence["RevisitFrequency"]
+        transformed_order["revisit_frequency_units"] = recurrence["RevisitFrequencyUnits"]
+    else:
+        transformed_order["num_of_revisits"] = 0
+        transformed_order["revisit_frequency"] = 0
+        transformed_order["revisit_frequency_units"] = ""
+        
     return transformed_order
 
 def apply_image_type_settings(image_type, image_order):
