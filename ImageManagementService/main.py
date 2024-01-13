@@ -18,19 +18,18 @@ def startup_event():
 
 @scheduler.scheduled_job('interval', seconds=5)
 def timed_job():
-    print('[FTP] Running')
-    imageOrders = getJSONsFromFTP()
+    logging.info('[FTP] Running')
+    imageRequests = getJSONsFromFTP()
     
-    print("[FTP: FINAL] Files To Be Considered")
-    for file in imageOrders:
-        print(file)
-        print("***")
+    logging.info("[FTP: FINAL] Files To Be Considered")
+    for imgReq in imageRequests:
+        logging.info(str(imgReq))
+        logging.info("***")
     
-    # imageOrderIDs = addImgReqsToDB(imageOrders)
-    # sendMessagesToScheduler(imageOrderIDs)
-    # for id in imageOrderIDs:
-    #     print(id)
-    #     print("***")
+    for imgReq in imageRequests:
+        logging.info(f"[FTP] Sent {str(imgReq)} to image handler")
+        handle_image_orders(imgReq) 
+    
 
 if __name__ == "__main__":
     startup_event()
