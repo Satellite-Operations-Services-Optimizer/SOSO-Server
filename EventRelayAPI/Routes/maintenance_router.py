@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Body, Depends
 import logging
 from Helpers.activity_helper import get_all_memory_scrubs, get_all_orbit_maneuvers, get_all_orbit_parameter_updates, get_all_payload_diagnostics
-from Models.ActivityRequestModel import ActivityRequest
+from EventRelayAPI.Models.activity_request import ActivityRequest
 from Helpers.request_validator import validate_request_schema
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher

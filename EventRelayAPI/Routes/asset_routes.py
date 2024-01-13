@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, File, UploadFile
 import json
 from fastapi.encoders import jsonable_encoder
 from Models.SatelliteModel import SatelliteCreationRequest
-from Models.GroundStationModel import GroundStation
+from EventRelayAPI.Models.asset_creation import GroundStationCreate
 #from Models.SatelliteModel import Satellite
 from Helpers.asset_helper import add_satellite, add_ground_station, get_all_ground_stations, get_all_satellites, get_ground_station_by_id #,modify_ground_station_by_name
 #from Models.EventRelayData import EventRelayApiMessage, RequestDetails
@@ -19,12 +19,12 @@ router = APIRouter()
 async def get_ground_stations(): 
     return get_all_ground_stations()
 
-@router.get("/ground_stations/{id}", response_model=GroundStation)
+@router.get("/ground_stations/{id}", response_model=GroundStationCreate)
 async def get_ground_station(id):
     return get_ground_station_by_id(id)
 
 @router.post("/create_ground_station")
-async def new_ground_station(ground_station: GroundStation):
+async def new_ground_station(ground_station: GroundStationCreate):
     new_ground_station = ground_station.model_dump()
     new_ground_station_id = add_ground_station(new_ground_station)
     return new_ground_station_id

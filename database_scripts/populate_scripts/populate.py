@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config import logging
 from .populate_orders import populate_sample_image_orders
-from .populate_assets import populate_sample_satellites
+from .populate_satellites import populate_sample_satellites
+from .populate_groundstations import populate_sample_groundstations
+from .populate_scheduled_events import populate_scheduled_events
 from app_config.db_classes import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
 
 logger = logging.getLogger(__name__)
@@ -10,18 +12,20 @@ logger = logging.getLogger(__name__)
 
 def populate_database():
     populate_sample_satellites()
+    populate_sample_groundstations()
     populate_sample_image_orders()
+    populate_scheduled_events()
 
     logger.info("Populating `ground_station` table with random data...")
-    populate_ground_stations()
+    populate_random_ground_stations()
     logger.info("Populating `image_orders` table with random data...")
-    populate_image_orders()
+    populate_random_image_orders()
     logger.info("Populating `schedule` table with random data...")
-    populate_schedule()
+    populate_random_schedule()
     logger.info("Populating `maintenance_order` table with random data...")
-    populate_maintenance_orders()
+    populate_random_maintenance_orders()
     logger.info("Populating `outage_order` table with random data...")
-    populate_outage_orders()
+    populate_random_outage_orders()
 
 
 import random
@@ -44,7 +48,7 @@ def generate_random_ground_station():
         "under_outage": random.choice([True, False]),
     }
 
-def populate_ground_stations(num_ground_stations=10):
+def populate_random_ground_stations(num_ground_stations=10):
     ground_stations_data = [generate_random_ground_station() for _ in range(num_ground_stations)]
 
     ground_stations = []
@@ -83,7 +87,7 @@ def generate_random_image_order():
         "revisit_frequency_units": random.choice(["Days","Hours","Minutes","Month"]),
     }
 
-def populate_image_orders(num_orders=10):
+def populate_random_image_orders(num_orders=10):
     image_orders_data = [generate_random_image_order() for _ in range(num_orders)]
 
     image_orders = []
@@ -123,7 +127,7 @@ def generate_random_schedule():
         "status": random.choice(["Active", "Inactive"])
     }
 
-def populate_schedule(num_schedules=10):
+def populate_random_schedule(num_schedules=10):
     db_session = get_db_session()
 
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
@@ -179,7 +183,7 @@ def generate_random_maintenance_order():
         "description": f"Random maintenance for {random.choice(asset_names)}"
     }
 
-def populate_maintenance_orders(num_orders=10):
+def populate_random_maintenance_orders(num_orders=10):
     maintenance_orders_data = [generate_random_maintenance_order() for _ in range(num_orders)]
 
     maintenance_orders = []
@@ -216,7 +220,7 @@ def generate_random_outage_order():
         "end_time": end_time.strftime("%Y-%m-%d %H:%M:%S")
     }
 
-def populate_outage_orders(num_orders=10):
+def populate_random_outage_orders(num_orders=10):
     outage_orders_data = [generate_random_outage_order() for _ in range(num_orders)]
 
     outage_orders = []
