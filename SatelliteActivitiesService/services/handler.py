@@ -2,7 +2,7 @@
 from fastapi.encoders import jsonable_encoder
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from app_config.database import get_db_session
+from app_config.database.setup import get_session
 from Services import process
 from app_config import logging
 from Models.SASConsumerEventData import SASConsumerEventData
@@ -20,7 +20,7 @@ def handle_message(body):
     logging.info(f"Recieved {request_body}")
     
        
-    session = get_db_session()
+    session = get_session()
     try:
         not_maintenence = None
         not_outage = None

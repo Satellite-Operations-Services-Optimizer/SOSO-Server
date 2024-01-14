@@ -2,7 +2,7 @@ from utils import get_data_from_json_files
 from pathlib import Path
 from datetime import datetime
 from app_config import get_db_session
-from app_config.db_classes import ImageOrder
+from app_config.database.mapping import ImageOrder
 from app_config import logging
 
 

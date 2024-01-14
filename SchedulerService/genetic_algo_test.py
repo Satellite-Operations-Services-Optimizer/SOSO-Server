@@ -9,7 +9,7 @@ from sqlalchemy.sql import BinaryExpression, ClauseElement, Window
 from sqlalchemy.sql.expression import func, BinaryExpression
 
 from app_config import get_db_session
-from app_config.db_classes import SatelliteStateChange, ScheduleBlueprint
+from app_config.database.mapping import SatelliteStateChange, ScheduleBlueprint
 
 @dataclass
 class TimeHorizon:

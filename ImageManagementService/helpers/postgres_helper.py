@@ -1,4 +1,4 @@
-from app_config.database import get_db_session, Base
+from app_config.database.setup import get_session, Base
 
 ImageOrder = Base.classes.image_order
 
@@ -8,7 +8,7 @@ def add_image_order(data):
     :param data: A dictionary containing the data for the new image order.
     :return: The primary key of the newly added image order.
     """
-    session = get_db_session()
+    session = get_session()
     try:
         new_order = ImageOrder(**data)
         session.add(new_order)

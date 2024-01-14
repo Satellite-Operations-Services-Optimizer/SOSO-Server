@@ -1,4 +1,4 @@
-from app_config.database import  get_db_session
+from app_config.database.setup import  get_session
 from Models.RequestModel import ActivityRequest
 from Services import process, handler
 

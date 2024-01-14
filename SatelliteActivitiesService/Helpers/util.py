@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from app_config.database import get_db_session
+from app_config.database.setup import get_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
 from Helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
@@ -16,7 +16,7 @@ def get_activities(schedules: list):
     # **********to be tested with realdata*********   
     
     
-    session = get_db_session()
+    session = get_session()
     for j in range(len(schedules)):
         
         # **************************************

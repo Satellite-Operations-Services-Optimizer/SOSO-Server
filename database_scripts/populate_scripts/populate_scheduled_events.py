@@ -1,5 +1,5 @@
 from app_config import get_db_session
-from app_config.db_classes import Satellite, GroundStation, ScheduleBlueprint, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
+from app_config.database.mapping import Satellite, GroundStation, ScheduleBlueprint, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
 
 
@@ -19,17 +19,25 @@ def create_single_satellite_valid_schedule(start_time: datetime):
     elif not gs_1:
         raise Exception("No ground stations in database. Need at least one ground station to create a schedule.")
 
+
     event_duration = timedelta(minutes=10)
 
-    downlink_contact = ScheduledContact(asset_id=sat_1.id, groundstation_id=gs_1.id, start_time=None, duration=timedelta(minutes=10)) # we will calculate the start_time at the end
-
-    imaging = schedule_image_order(ImageOrder(
+    image_order_end_time = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
+    delivery_deadline = image_order_end_time + timedelta(days=1) # downlink the photo you took by this time
+    image_order = ImageOrder(
         schedule_id=schedule.id,
         latitude=0.0,
         longitude=0.0,
         image_type='low_res',
+        start_time=start_time,
+        end_time=image_order_end_time,
+        duration=event_duration,
+        delivery_deadline=delivery_deadline,
         repeat_frequency=timedelta(days=1)
-    ))
+    )
+
+    schedule_image_order(image_order, schedule, sat_1, gs_1)
+    session.commit()
 
 
 def schedule_image_order(order: ImageOrder, schedule: ScheduleBlueprint, satellite: Satellite, groundstation: GroundStation):
@@ -49,7 +57,7 @@ def schedule_image_order(order: ImageOrder, schedule: ScheduleBlueprint, satelli
                 duration=imaging_duration(order.image_type),
                 delivery_deadline=window_end+timedelta(days=1), # it must be delivered max one day after the image's window end
                 uplink_data_size=100.0,
-                downlink_data_size=image_storage(order.image_type)
+                downlink_data_size=image_storage(order.image_type),
                 priority=order.priority
             )
         )
@@ -69,13 +77,12 @@ def schedule_image_order(order: ImageOrder, schedule: ScheduleBlueprint, satelli
         start_time=requests[0].start_time - contact_duration,
         duration=timedelta(minutes=20)
     )
+    session.add(first_contact)
 
     # partition requests into three separate arrays, evenly based on index
     num_of_partitions = 3
     previous_contact = first_contact
     while len(requests)>0:
-
-        uplink_contact = previous_contact
 
         scheduled_imaging_partition = []
         for i in len(requests)/num_of_partitions:
@@ -83,46 +90,38 @@ def schedule_image_order(order: ImageOrder, schedule: ScheduleBlueprint, satelli
             if not request:
                 break
 
+            event_start_time = (request.window_end - request.duration)
+            uplink_contact = previous_contact
             scheduled_imaging_partition.append(
                 ScheduledImaging(
                     schedule_id=request.schedule_id,
                     request_id=request.id,
-                    start_time=
+                    start_time=event_start_time,
+                    duration=request.duration,
+                    window_start=request.window_start,
+                    window_end=request.window_end,
                     uplink_contact_id=uplink_contact.id,
                     uplink_data_size=request.uplink_data_size,
-                    downlink_contact_id=None # we are soon going to create this
+                    downlink_contact_id=None, # we are soon going to create this
                     downlink_data_size=request.downlink_data_size,
                     priority=request.priority
                 )
             )
-        
+
+        session.add_all(scheduled_imaging_partition)
         # create a downlink contact and add it as downlink_contact_id for every request in the partition
         downlink_contact = ScheduledContact(
             schedule_id=schedule.id,
             asset_id=satellite.id,
             groundstation_id=groundstation.id,
-            start_time=scheduled_imaging_partition[-1].end_time
+            start_time=scheduled_imaging_partition[-1].end_time,
             duration=timedelta(minutes=20)
         )
+        session.add(downlink_contact)
         for scheduled_imaging in scheduled_imaging_partition:
             scheduled_imaging.downlink_contact_id = downlink_contact.id
         previous_contact = downlink_contact
         
-
-
-        
-
-
-    uplink_contact = ScheduledContact(
-        asset_id=satellite_id,
-        groundstation_id=groundstation_id,
-        start_time=order.start_time - timedelta(minutes=10),
-        end_time=
-        duration=event_duration
-    )
-    image_order = ImageOrder()
-    return ScheduledImaging()
-
 def imaging_duration(image_type: str):
     if image_type=='low_res': return timedelta(minutes=1)
     elif image_type=='medium_res': return timedelta(minutes=3)

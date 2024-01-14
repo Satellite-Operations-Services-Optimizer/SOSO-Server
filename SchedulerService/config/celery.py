@@ -1,6 +1,6 @@
 from celery import Celery
 from app_config import rabbit
-from app_config.database import _db_url
+from app_config.database.setup import _db_url
 import os
 
 celery_app = Celery(

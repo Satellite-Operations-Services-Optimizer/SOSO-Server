@@ -1,0 +1,7 @@
+{
+    "name": "SOSO-3",
+    "storage_capacity": 700.0,
+    "power_capacity": 1200.0,
+    "fov_max": 55.0,
+    "fov_min": -55.0
+}

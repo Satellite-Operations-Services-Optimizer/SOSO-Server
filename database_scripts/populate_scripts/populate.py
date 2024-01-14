@@ -5,7 +5,7 @@ from .populate_orders import populate_sample_image_orders
 from .populate_satellites import populate_sample_satellites
 from .populate_groundstations import populate_sample_groundstations
 from .populate_scheduled_events import populate_scheduled_events
-from app_config.db_classes import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
+from app_config.database.mapping import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def populate_database():
 import random
 import pytz
 import uuid
-from app_config.database import *
+from app_config.database.setup import *
 # Ground Stations
 def generate_random_ground_station():
 
@@ -66,7 +66,7 @@ def populate_random_ground_stations(num_ground_stations=10):
             )
         )
 
-    db_session = get_db_session()
+    db_session = get_session()
     db_session.add_all(ground_stations)
     db_session.commit()
 
@@ -109,7 +109,7 @@ def populate_random_image_orders(num_orders=10):
             )
         )
 
-    db_session = get_db_session()
+    db_session = get_session()
     db_session.add_all(image_orders)
     db_session.commit()
 
@@ -128,7 +128,7 @@ def generate_random_schedule():
     }
 
 def populate_random_schedule(num_schedules=10):
-    db_session = get_db_session()
+    db_session = get_session()
 
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
     satellite_ids = [satellite.id for satellite in db_session.query(Satellite).all()]
@@ -149,7 +149,7 @@ def populate_random_schedule(num_schedules=10):
             )
         )
 
-    db_session = get_db_session()
+    db_session = get_session()
     db_session.add_all(schedules)
     db_session.commit()
 
@@ -202,7 +202,7 @@ def populate_random_maintenance_orders(num_orders=10):
             )
         )
 
-    db_session = get_db_session()
+    db_session = get_session()
     db_session.add_all(maintenance_orders)
     db_session.commit()
 
@@ -233,7 +233,7 @@ def populate_random_outage_orders(num_orders=10):
             )
         )
 
-    db_session = get_db_session()
+    db_session = get_session()
     db_session.add_all(outage_orders)
     db_session.commit()
 

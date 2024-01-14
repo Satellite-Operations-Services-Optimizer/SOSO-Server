@@ -1,9 +1,9 @@
-from app_config.database import get_db_session, Base
+from app_config.database.setup import get_session, Base
 
 MaintenanceOrder = Base.classes.maintenance_order
 
 def get_all_memory_scrubs():
-    session = get_db_session()
+    session = get_session()
     try:
         memory_scrubs = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "MemoryScrub").all()
@@ -20,7 +20,7 @@ def get_all_memory_scrubs():
     finally: session.close()
 
 def get_all_orbit_maneuvers():
-    session = get_db_session()
+    session = get_session()
     try:
         orbit_maneuvers = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "OrbitManeuver").all()
@@ -37,7 +37,7 @@ def get_all_orbit_maneuvers():
     finally: session.close()
 
 def get_all_orbit_parameter_updates():
-    session = get_db_session()
+    session = get_session()
     try:
         orbit_parameter_update = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "OrbitParameterUpdate").all()
@@ -54,7 +54,7 @@ def get_all_orbit_parameter_updates():
     finally: session.close()
 
 def get_all_payload_diagnostics():
-    session = get_db_session()
+    session = get_session()
     try:
         payload_diagnostic_activities = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "PayloadDiagnosticActivity").all()

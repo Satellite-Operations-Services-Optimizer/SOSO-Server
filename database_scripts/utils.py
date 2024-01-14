@@ -16,7 +16,7 @@ def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], file
                 if len(missing_keys) > 0:
                     raise Exception(f"Invalid JSON file at {str(path)}. Expected keys not found: {missing_keys}")
             
-            if include_path:
+            if include_path_key:
                 data['file_path'] = str(path)
             jsons.append(data)
     return jsons

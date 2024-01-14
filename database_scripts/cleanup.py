@@ -2,9 +2,7 @@ from pathlib import Path
 from sqlalchemy import text
 from app_config import db_engine, get_db_session
 from app_config import logging
-from app_config.database import setup_database
-from app_config.db_classes import assign_database_table_classes
-from populate_scripts.populate import populate_database
+from app_config.database.setup import setup_database
 import os
 
 logger = logging.getLogger(__name__)
@@ -31,13 +29,15 @@ def rebuild_database(sql_path: str):
             conn.execute(text(sql_text))
             conn.commit()
     setup_database(use_localhost=True)
-    assign_database_table_classes()
-    print("hi")
     
 if __name__ == "__main__":
     drop_database_schema()
-    exit()
+    # exit() # uncomment this line to only drop the database, and not rebuild it
     
     sql_path = Path(__file__).with_name("soso.sql")
     rebuild_database(sql_path)
+    exit() # uncomment this line to only rebuild the database, and not populate it
+    
+    # we have to import it here, because the database tables might not be setup yet, and the populate scripts import the tables
+    from populate_scripts.populate import populate_database
     populate_database()

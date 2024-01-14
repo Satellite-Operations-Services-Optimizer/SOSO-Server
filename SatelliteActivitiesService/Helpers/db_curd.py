@@ -5,7 +5,7 @@ from Models import RequestModel
 from datetime import timedelta, datetime
 from Models.RequestModel import ActivityRequest
 
-from app_config.database import Base
+from app_config.database.setup import Base
 
 outage_order = Base.classes.outage_order
 maintenance_order = Base.classes.maintenance_order

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from app_config.database import get_db_session, Base
+from app_config.database.setup import get_session, Base
 
 Schedule = Base.classes.schedule
 ScheduledImages = Base.classes.scheduled_images
@@ -7,7 +7,7 @@ ScheduledMaintenance = Base.classes.scheduled_maintenance
 ScheduledOutages = Base.classes.scheduled_outages
 
 def get_all_basic_schedules():
-    session = get_db_session()
+    session = get_session()
     try:
         all_schedules = session.query(Schedule).all()
         return all_schedules
@@ -18,7 +18,7 @@ def get_all_basic_schedules():
     finally: session.close()
 
 def get_basic_schedule_by_id(id):
-    session = get_db_session()
+    session = get_session()
     try:
         schedule = session.query(Schedule).filter(Schedule.id==id).first()
 
@@ -88,7 +88,7 @@ ScheduledMaintenance.to_dict = scheduled_maintenance_to_dict
 ScheduledOutages.to_dict = scheduled_outages_to_dict
 
 def get_all_brute_force_joined_schedules():
-    session = get_db_session()
+    session = get_session()
     try:
         all_joined_schedules = session.query(Schedule, ScheduledImages, ScheduledMaintenance, ScheduledOutages).\
             join(ScheduledImages, Schedule.id == ScheduledImages.schedule_id).\
@@ -114,7 +114,7 @@ def get_all_brute_force_joined_schedules():
     finally: session.close()
 
 def get_all_joined_schedules():
-    session = get_db_session()
+    session = get_session()
     try:
 
         schedule_columns = [Schedule.id, Schedule.satellite_id, 

@@ -1,9 +1,9 @@
-from app_config.database import get_db_session, Base
+from app_config.database.setup import get_session, Base
 
 ImageOrder = Base.classes.image_order
 
 def get_image_orders():
-    session = get_db_session()
+    session = get_session()
     try:
         images_orders = session.query(ImageOrder).all()
         return {

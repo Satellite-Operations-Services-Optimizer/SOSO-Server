@@ -1,5 +1,5 @@
 from app_config import get_db_session, logging
-from app_config.db_classes import GroundStation
+from app_config.database.mapping import GroundStation
 from database_scripts.utils import get_data_from_json_files
 from pathlib import Path
 

@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from app_config.database import get_db_session, Base
+from app_config.database.setup import get_session, Base
 
 Satellite = Base.classes.satellite
 GroundStation = Base.classes.ground_station
@@ -23,7 +23,7 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
 
     try:
         #new_satellite = Satellite(tle = data, table_data)
-        session = get_db_session()
+        session = get_session()
         session.add(new_satellite)
         session.commit()
         session.refresh(new_satellite)
@@ -42,7 +42,7 @@ def get_all_satellites():
     Queries ground_station table to select for all rows.
     :return: a list of all rows in ground_station table
     """
-    session = get_db_session()
+    session = get_session()
     try:
         all_satellites = session.query(Satellite).all()
         return all_satellites
@@ -58,7 +58,7 @@ def add_ground_station(data) -> GroundStation | None:
     :param data: A dictionary containing the data for the new asset.
     :return: The primary key of the newly added asset.
     """
-    session = get_db_session()
+    session = get_session()
     try:
         new_ground_station = GroundStation(**data)
         session.add(new_ground_station)
@@ -79,7 +79,7 @@ def get_all_ground_stations():
     Queries ground_station table to select for all rows.
     :return: a list of all rows in ground_station table
     """
-    session = get_db_session()
+    session = get_session()
     try:
         all_ground_stations = session.query(GroundStation).all()
         return all_ground_stations
@@ -95,7 +95,7 @@ def get_ground_station_by_id(id):
     :return: the row in ground_station table with the id of input
     :exception: 404 not found if row with param id is not present
     """
-    session = get_db_session()
+    session = get_session()
     try:
         ground_station = session.query(GroundStation).filter(GroundStation.id==id).first()
 

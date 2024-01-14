@@ -1,6 +1,6 @@
 from app_config import logging
 from app_config import get_db_session
-from app_config.db_classes import Satellite
+from app_config.database.mapping import Satellite
 from pathlib import Path
 from database_scripts.utils import get_data_from_json_files
 import json
