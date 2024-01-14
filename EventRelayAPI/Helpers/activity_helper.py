@@ -1,11 +1,11 @@
-from config.database import db_session, Base
+from app_config.database import get_db_session, Base
 
 MaintenanceOrder = Base.classes.maintenance_order
 
 def get_all_memory_scrubs():
-
+    session = get_db_session()
     try:
-        memory_scrubs = db_session.query(MaintenanceOrder).filter(
+        memory_scrubs = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "MemoryScrub").all()
         
         return {
@@ -17,12 +17,12 @@ def get_all_memory_scrubs():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_all_orbit_maneuvers():
-
+    session = get_db_session()
     try:
-        orbit_maneuvers = db_session.query(MaintenanceOrder).filter(
+        orbit_maneuvers = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "OrbitManeuver").all()
         
         return {
@@ -34,12 +34,12 @@ def get_all_orbit_maneuvers():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_all_orbit_parameter_updates():
-
+    session = get_db_session()
     try:
-        orbit_parameter_update = db_session.query(MaintenanceOrder).filter(
+        orbit_parameter_update = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "OrbitParameterUpdate").all()
         
         return {
@@ -51,12 +51,12 @@ def get_all_orbit_parameter_updates():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_all_payload_diagnostics():
-
+    session = get_db_session()
     try:
-        payload_diagnostic_activities = db_session.query(MaintenanceOrder).filter(
+        payload_diagnostic_activities = session.query(MaintenanceOrder).filter(
             MaintenanceOrder.description == "PayloadDiagnosticActivity").all()
         
         return {
@@ -68,4 +68,4 @@ def get_all_payload_diagnostics():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()

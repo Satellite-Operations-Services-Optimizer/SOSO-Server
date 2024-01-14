@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from config.database import db_session, Base
+from app_config.database import get_db_session, Base
 
 Schedule = Base.classes.schedule
 ScheduledImages = Base.classes.scheduled_images
@@ -7,20 +7,20 @@ ScheduledMaintenance = Base.classes.scheduled_maintenance
 ScheduledOutages = Base.classes.scheduled_outages
 
 def get_all_basic_schedules():
-    
+    session = get_db_session()
     try:
-        all_schedules = db_session.query(Schedule).all()
+        all_schedules = session.query(Schedule).all()
         return all_schedules
     
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_basic_schedule_by_id(id):
-
+    session = get_db_session()
     try:
-        schedule = db_session.query(Schedule).filter(Schedule.id==id).first()
+        schedule = session.query(Schedule).filter(Schedule.id==id).first()
 
         if not schedule:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Schedule with id {id} not found")
@@ -30,7 +30,7 @@ def get_basic_schedule_by_id(id):
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 # Add to_dict methods to instances of the automap classes
 def schedule_to_dict(self):
@@ -88,9 +88,9 @@ ScheduledMaintenance.to_dict = scheduled_maintenance_to_dict
 ScheduledOutages.to_dict = scheduled_outages_to_dict
 
 def get_all_brute_force_joined_schedules():
-
+    session = get_db_session()
     try:
-        all_joined_schedules = db_session.query(Schedule, ScheduledImages, ScheduledMaintenance, ScheduledOutages).\
+        all_joined_schedules = session.query(Schedule, ScheduledImages, ScheduledMaintenance, ScheduledOutages).\
             join(ScheduledImages, Schedule.id == ScheduledImages.schedule_id).\
             join(ScheduledMaintenance, Schedule.id == ScheduledMaintenance.schedule_id).\
             join(ScheduledOutages, Schedule.id == ScheduledOutages.schedule_id).\
@@ -111,10 +111,10 @@ def get_all_brute_force_joined_schedules():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_all_joined_schedules():
-
+    session = get_db_session()
     try:
 
         schedule_columns = [Schedule.id, Schedule.satellite_id, 
@@ -134,7 +134,7 @@ def get_all_joined_schedules():
                                      ScheduledOutages.outage_start, ScheduledOutages.outage_end, ScheduledOutages.status]
 
 
-        all_joined_schedules = db_session.query(*schedule_columns, *scheduled_images_columns, *scheduled_maintenance_columns, *scheduled_outages_columns).\
+        all_joined_schedules = session.query(*schedule_columns, *scheduled_images_columns, *scheduled_maintenance_columns, *scheduled_outages_columns).\
             join(ScheduledImages, Schedule.id == ScheduledImages.schedule_id).\
             join(ScheduledMaintenance, Schedule.id == ScheduledMaintenance.schedule_id).\
             join(ScheduledOutages, Schedule.id == ScheduledOutages.schedule_id).\
@@ -165,5 +165,5 @@ def get_all_joined_schedules():
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 

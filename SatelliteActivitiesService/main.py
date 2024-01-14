@@ -1,5 +1,5 @@
 from rabbit_wrapper import Consumer
-from config.rabbit import rabbit, ServiceQueues
+from app_config.rabbit import rabbit, ServiceQueues
 from services.handler import handle_activity_request
 import logging
 

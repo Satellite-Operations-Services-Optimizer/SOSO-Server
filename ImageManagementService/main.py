@@ -1,5 +1,5 @@
 from rabbit_wrapper import Consumer
-from config import rabbit as rab, ServiceQueues
+from app_config import rabbit, ServiceQueues
 from services.handler import handle_message
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler

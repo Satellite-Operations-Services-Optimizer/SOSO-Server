@@ -4,7 +4,7 @@ from fastapi_pagination import Page
 from Helpers.request_validation_helper import validate_request_schema
 from Models.ImageRequestModel import ImageRequest
 from Models.EventRelayData import EventRelayApiMessage, RequestDetails
-from config import rabbit, ServiceQueues
+from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from Helpers.image_order_helper import get_image_orders
 import logging

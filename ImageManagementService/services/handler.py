@@ -1,7 +1,7 @@
 from Helpers.postgres_helper import add_image_order
 from Helpers.rabbit_helper import publish_message_to_queue
 from datetime import datetime
-from config import ServiceQueues
+from app_config import ServiceQueues
 import logging
 
 def handle_message(body):

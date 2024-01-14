@@ -1,5 +1,5 @@
 from fastapi import HTTPException, status
-from config.database import db_session, Base
+from app_config.database import get_db_session, Base
 
 Satellite = Base.classes.satellite
 GroundStation = Base.classes.ground_station
@@ -23,32 +23,34 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
 
     try:
         #new_satellite = Satellite(tle = data, table_data)
-        db_session.add(new_satellite)
-        db_session.commit()
-        db_session.refresh(new_satellite)
+        session = get_db_session()
+        session.add(new_satellite)
+        session.commit()
+        session.refresh(new_satellite)
         return new_satellite.id  
     
     except Exception as e:
         print(f"An error occurred: {e}")
-        db_session.rollback()
+        session.rollback()
         return None
     
     finally:
-        db_session.close()
+        session.close()
 
 def get_all_satellites():
     """
     Queries ground_station table to select for all rows.
     :return: a list of all rows in ground_station table
     """
+    session = get_db_session()
     try:
-        all_satellites = db_session.query(Satellite).all()
+        all_satellites = session.query(Satellite).all()
         return all_satellites
     
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def add_ground_station(data) -> GroundStation | None:
     """
@@ -56,34 +58,36 @@ def add_ground_station(data) -> GroundStation | None:
     :param data: A dictionary containing the data for the new asset.
     :return: The primary key of the newly added asset.
     """
+    session = get_db_session()
     try:
         new_ground_station = GroundStation(**data)
-        db_session.add(new_ground_station)
-        db_session.commit()
-        db_session.refresh(new_ground_station)     
+        session.add(new_ground_station)
+        session.commit()
+        session.refresh(new_ground_station)     
         return new_ground_station.id  
     
     except Exception as e:
         print(f"An error occurred: {e}")
-        db_session.rollback()
+        session.rollback()
         return None
     
     finally:
-        db_session.close()
+        session.close()
 
 def get_all_ground_stations():
     """
     Queries ground_station table to select for all rows.
     :return: a list of all rows in ground_station table
     """
+    session = get_db_session()
     try:
-        all_ground_stations = db_session.query(GroundStation).all()
+        all_ground_stations = session.query(GroundStation).all()
         return all_ground_stations
     
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 def get_ground_station_by_id(id):
     """
@@ -91,8 +95,9 @@ def get_ground_station_by_id(id):
     :return: the row in ground_station table with the id of input
     :exception: 404 not found if row with param id is not present
     """
+    session = get_db_session()
     try:
-        ground_station = db_session.query(GroundStation).filter(GroundStation.id==id).first()
+        ground_station = session.query(GroundStation).filter(GroundStation.id==id).first()
 
         if not ground_station:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ground station with id {id} not found")
@@ -102,7 +107,7 @@ def get_ground_station_by_id(id):
     except Exception as e:
         print(f"An error occurred: {e}")
     
-    finally: db_session.close()
+    finally: session.close()
 
 """ def modify_ground_station_by_name(name):
 

@@ -1,24 +1,9 @@
 from datetime import datetime, timedelta
-from config.database import db_session
+from app_config.database import get_db_session
 from Models.RequestModel import ActivityRequest
 from Models.ResponseModel import scheduling_options
+from Helpers.util import get_activities
 from Helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
-
-# class scheduled_activity:
-#     schedule_id: int
-#     start_time: datetime
-#     end_time: datetime
-
-class scheduled_activity:
-    def __init__(self, schedule_id: int, start_time: datetime, end_time: datetime):
-        self.schedule_id = schedule_id
-        self.start_time = start_time
-        self.end_time = end_time    
-
-# class scheduling_options:
-#     def __init__(self, request_id: int, options: list[list[datetime]]):
-#         self.request_id = request_id
-#         self.options = options 
 
 def schedule_activity(satellite_id: int , maintenence_request: maintenance_order):
     time_step = maintenence_request.start_time
@@ -36,10 +21,8 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
     max_frequencey = timedelta(seconds=maintenence_request.frequency_max)
     
     # **********to be tested with realdata*********
-    schedules = get_all_schedules_in_window(db_session ,satellite_id, maintenence_request.start_time, maintenence_request.end_time)
-    
-    #temporary test schedule
-    #schedules = newmockschedule.get_schedule(satellite_id, maintenence_request.start_time, maintenence_request.end_time)
+    session = get_db_session()
+    schedules = get_all_schedules_in_window(session ,satellite_id, maintenence_request.start_time, maintenence_request.end_time)
     
     schedule_options = []
     option = []
@@ -118,35 +101,4 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
     print(schedule_options)
     
     return schedule_times
- 
-def get_activities(schedules: list): 
-    list_of_activities = []
-    
-    # **********to be tested with realdata*********   
-    
-    
-    for j in range(len(schedules)):
-        
-        # **************************************
-        
-        image_activities = get_all_scheduled_images_from_schedule(db_session, schedules[j].id)
-        list_of_activities.extend(image_activities)
-        
-        maintenence_activities = get_all_scheduled_maintenence_from_schedule(db_session, schedules[j].id)
-        list_of_activities.extend(maintenence_activities)
-        
-        outage_activities = get_all_scheduled_outage_from_schedule(db_session, schedules[j].id)
-        list_of_activities.extend(outage_activities)
-        
-        
-        # **************************************
-        
-        
-            
-    sorted_schedules = sorted(list_of_activities, key=lambda x: x.start_time)
-    print(f"sorted activities are {sorted_schedules}")
-    print("\n Activities in the Target schedules are:\n")
-    
-    for activity in sorted_schedules:
-        print(activity.__dict__)
-    return sorted_schedules 
+
