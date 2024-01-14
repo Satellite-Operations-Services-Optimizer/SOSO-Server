@@ -55,12 +55,7 @@ CREATE TABLE IF NOT EXISTS task_order (
 	duration interval NOT NULL,
 	delivery_deadline timestamptz CHECK (delivery_deadline <= end_time),
 	visit_count integer NOT NULL DEFAULT 1 CHECK (visit_count>=0),
-	revisit_frequency interval CHECK (
-		CASE
-			WHEN visit_count=1 THEN revisit_frequency IS NULL
-			else revisit_frequency IS NOT NULL
-		END
-	),
+	revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
 	priority integer DEFAULT 1 NOT NULL CHECK (priority >= 0)
 );
 
@@ -236,6 +231,7 @@ CREATE INDEX IF NOT EXISTS satellite_eclipse_asset_index ON satellite_eclipse (a
 
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS transmitted_event (
+	id integer PRIMARY KEY,
 	schedule_id integer REFERENCES schedule_blueprint (id),
 	asset_id integer REFERENCES satellite (id),
 	request_id integer NOT NULL REFERENCES schedule_request(id),
@@ -253,6 +249,7 @@ CREATE INDEX IF NOT EXISTS transmitted_event_asset_index ON transmitted_event (a
 CREATE INDEX IF NOT EXISTS transmitted_event_schedule_index ON transmitted_event (schedule_id);
 CREATE INDEX IF NOT EXISTS transmitted_event_type_index ON transmitted_event (event_type);
 
+CREATE TABLE IF NOT 
 CREATE OR REPLACE VIEW scheduled_imaging AS
 SELECT * FROM transmitted_event WHERE event_type = 'imaging'::event_type;
 

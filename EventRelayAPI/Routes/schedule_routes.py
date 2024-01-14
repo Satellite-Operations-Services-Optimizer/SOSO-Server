@@ -17,4 +17,5 @@ async def get_schedule_by_id(id):
 
 @router.get("/complete")
 async def get_full_schedule():
+    
     return get_all_joined_schedules()
