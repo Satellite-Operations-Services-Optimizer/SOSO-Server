@@ -7,6 +7,8 @@ python-dotenv==1.0.0
 SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
 
+fastapi_pagination==0.12.12
+APScheduler
 celery==5.3.6 # for task management
 
 # our custom rabbitmq wrapper

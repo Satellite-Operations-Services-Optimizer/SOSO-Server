@@ -6,3 +6,6 @@ __pycache__/
 
 .idea
 .vscode
+/MockFTPService/node_modules/
+ImageManagementService/sample.json
+MockFTPService/Sample Image Orders/.DS_Store

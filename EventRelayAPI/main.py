@@ -10,7 +10,8 @@ from Routes.maintenance_router import router as maintenance_router
 from Helpers.request_validation_helper import HttpErrorHandler
 import uvicorn
 
-def lifespan(app: FastAPI):
+
+async def lifespan(app: FastAPI):
     print("ServerRequestHandlerAPI Starting...")
     yield
     print("ServerRequestHandlerAPI Closing...")

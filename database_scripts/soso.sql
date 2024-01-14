@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "soso_schema"."image_order" (
 	"delivery_deadline" timestamp with time zone,
 	"num_of_revisits" integer,
 	"revisit_frequency" integer,
-	"revisit_frequency_units" text
+	"revisit_frequency_units" text,
 	/*"retake_count" integer,
 	"retake_freq_min" integer,
 	"retake_freq_max" integer*/
