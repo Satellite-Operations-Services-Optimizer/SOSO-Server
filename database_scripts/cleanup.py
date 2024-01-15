@@ -3,6 +3,7 @@ from sqlalchemy import text
 from app_config import db_engine, get_db_session
 from app_config import logging
 from app_config.database.setup import setup_database
+from importlib import reload
 import os
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,8 @@ def rebuild_database_schema(sql_path: str):
             conn.commit()
     
     # remap the table names
-    reload()
+    import app_config.database.mapping
+    reload(app_config.database.mapping)
     
     
 if __name__ == "__main__":

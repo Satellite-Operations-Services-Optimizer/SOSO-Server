@@ -6,6 +6,6 @@
     "receive_mask": 5,
     "send_mask": 5,
     "uplink_rate": 40000,
-    "downlink_rate": 100000
+    "downlink_rate": 100000000
 }
   

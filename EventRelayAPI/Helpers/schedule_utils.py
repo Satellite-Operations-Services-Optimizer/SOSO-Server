@@ -6,6 +6,7 @@ ScheduledImages = Base.classes.scheduled_images
 ScheduledMaintenance = Base.classes.scheduled_maintenance
 ScheduledOutages = Base.classes.scheduled_outages
 
+
 def get_all_basic_schedules():
     session = get_session()
     try:
