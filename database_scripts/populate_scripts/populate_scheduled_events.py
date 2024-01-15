@@ -16,7 +16,7 @@ def create_single_sat_single_gs_valid_schedule(start_time: datetime):
 
     sat_1 = session.query(Satellite).first()
     gs_1 = session.query(GroundStation).first()
-    logger.info("Populating schedule with scheduled image orders using satellite '{sat_1.name}' and groundstation '{gs_1.name}'...")
+    logger.info(f"Populating schedule with scheduled image orders using satellite '{sat_1.name}' and groundstation '{gs_1.name}'...")
 
 
     if not sat_1:
