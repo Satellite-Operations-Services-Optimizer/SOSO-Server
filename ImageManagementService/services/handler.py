@@ -1,5 +1,5 @@
-from helpers.postgres_helper import add_image_order
-from helpers.rabbit_helper import publish_message_to_queue
+from Helpers.postgres_helper import add_image_order
+from Helpers.rabbit_helper import publish_message_to_queue
 from datetime import datetime
 from app_config import ServiceQueues
 import logging
@@ -14,9 +14,7 @@ def handle_message(body):
 
     if request_type == 'image-order-request':
         handle_image_orders(request_data)
-    
 
-   
 
 def handle_image_orders(body):
     
@@ -62,6 +60,16 @@ def transform_request_to_db_schema(request_body):
         for req_key, db_key in db_column_mapping.items() if req_key in request_body
     }
     
+    recurrence = request_body["Recurrence"]
+    if recurrence["Revisit"] == "True":
+        transformed_order["num_of_revisits"] = recurrence["NumberOfRevisits"]
+        transformed_order["revisit_frequency"] = recurrence["RevisitFrequency"]
+        transformed_order["revisit_frequency_units"] = recurrence["RevisitFrequencyUnits"]
+    else:
+        transformed_order["num_of_revisits"] = 0
+        transformed_order["revisit_frequency"] = 0
+        transformed_order["revisit_frequency_units"] = ""
+        
     return transformed_order
 
 def apply_image_type_settings(image_type, image_order):

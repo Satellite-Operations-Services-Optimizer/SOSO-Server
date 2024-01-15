@@ -4,3 +4,8 @@ __pycache__/
 # ignore compiled byte codes
 *.pyc
 
+.idea
+.vscode
+/MockFTPService/node_modules/
+ImageManagementService/sample.json
+MockFTPService/Sample Image Orders/.DS_Store

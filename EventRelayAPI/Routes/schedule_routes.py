@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Body, Depends
 import logging
 from Models.ScheduleModel import ScheduleModel
-from Helpers.schedule_utils import get_all_basic_schedules, get_all_joined_schedules, get_basic_schedule_by_id
+from Helpers.schedule_helper import get_all_basic_schedules, get_all_joined_schedules, get_basic_schedule_by_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

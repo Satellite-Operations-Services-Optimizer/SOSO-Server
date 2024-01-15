@@ -8,4 +8,5 @@ class GroundStation(BaseModel):
     station_mask: float
     uplink_rate: float
     downlink_rate: float
+    under_outage: bool
 
