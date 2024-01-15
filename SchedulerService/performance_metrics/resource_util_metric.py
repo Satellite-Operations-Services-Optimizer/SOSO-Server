@@ -1,12 +1,11 @@
 from sqlalchemy import Column
-from sqlalchemy.orm import Query
-from sqlalchemy.sql import BinaryExpression, ClauseElement
+from sqlalchemy.sql import ClauseElement
 from sqlalchemy.sql.expression import func, BinaryExpression
 
 from app_config import get_db_session
 from app_config.database.mapping import SatelliteStateChange, Schedule
-from base import PerformanceMetric
-from utils import min_max_norm_column
+from .base import PerformanceMetric
+from .utils import min_max_norm_column
 
 class ResourceUtilizationMetric(PerformanceMetric):
     """
@@ -41,7 +40,7 @@ class ResourceUtilizationMetric(PerformanceMetric):
         schedule_resource_util = avg(satellite_resource_util)
         """
         session = get_db_session()
-        asset_resource_usage_timelines = self.asset_resource_usage_timelines_subquery(*filters)
+        asset_resource_usage_timelines = self.asset_resource_util_timelines_subquery(*filters)
         
         aggregated_resource_util = session.query(
             Schedule.id,
@@ -59,7 +58,7 @@ class ResourceUtilizationMetric(PerformanceMetric):
             Schedule.group_name,
             SatelliteStateChange.satellite_id,
             SatelliteStateChange.snapshot_time,
-            *self.satellite_resource_usage_columns()
+            *self.satellite_resource_util_columns()
         ).filter(
             SatelliteStateChange.schedule_id == Schedule.id,
             *filters,

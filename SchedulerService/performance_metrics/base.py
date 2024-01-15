@@ -4,15 +4,14 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from sqlalchemy import Column
-from sqlalchemy.sql import BinaryExpression, ClauseElement, Window
-from sqlalchemy.sql.expression import func, BinaryExpression
+from sqlalchemy.sql.expression import BinaryExpression
 from app_config import get_db_session
 from app_config.database.mapping import Schedule
 
 @dataclass
 class TimeHorizon:
-    start: Optional[datetime]
-    end: Optional[datetime]
+    start: Optional[datetime] = None
+    end: Optional[datetime] = None
     include_overlap: bool = False
 
     def apply_filters(self, start_time_column: Column, end_time_column: Optional[Column] = None) -> list[BinaryExpression]:

@@ -1,13 +1,12 @@
 from sqlalchemy import Column
 from sqlalchemy.orm import aliased, Query
-from sqlalchemy.sql import BinaryExpression, ClauseElement, Window
 from sqlalchemy.sql.expression import func, BinaryExpression
 
 from app_config import get_db_session
 from app_config.database.mapping import SatelliteStateChange, Schedule
-from base import PerformanceMetric
-from utils import min_max_norm_column
-from resource_util_metric import ResourceUtilizationMetric
+from .base import PerformanceMetric
+from .utils import min_max_norm_column
+from .resource_util_metric import ResourceUtilizationMetric
 
 
 class WorkloadDistributionMetric(PerformanceMetric):

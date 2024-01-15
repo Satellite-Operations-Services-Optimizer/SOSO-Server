@@ -84,8 +84,8 @@ def _get_sample_satellite_tles():
                 raise Exception(f"Invalid two-line element file at {str(path)}")
 
             satellite_name = lines.pop(0).strip() if len(lines)==3 else None
-            line1 = lines[1] if len(lines)==3 else lines[0]
-            line2 = lines[2] if len(lines)==3 else lines[1]
+            line1 = lines[1].strip() if len(lines)==3 else lines[0]
+            line2 = lines[2].strip() if len(lines)==3 else lines[1]
             tles[str(path)] = {
                 "name": satellite_name,
                 "line1": line1,

@@ -29,17 +29,6 @@ Base = automap_base(metadata=metadata)
 #     __table_args__ = {'autoload_with': engine, 'extend_existing': True}
 
 # --- Define tables with Table syntax. This is the only way I could get it to automap for tables without a primary key
-ScheduledImaging = Table(
-    'scheduled_imaging', metadata,
-    Column('id', Integer, primary_key=True),
-    autoload_with=engine
-)
-
-ScheduledMaintenance = Table(
-    'scheduled_maintenance', metadata,
-    Column('id', Integer, primary_key=True),
-    autoload_with=engine
-)
 
 SatelliteStateChange = Table(
     'satellite_state_change', metadata,
