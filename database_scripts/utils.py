@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Optional
 import json
 
-def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], filename_match: str="*.json", include_path_key: bool=False):
-    jsons = []
+def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], filename_match: str="*.json"):
+    jsons = dict()
     pathlist = Path(path).glob(filename_match)
     for path in pathlist:
         with path.open('r') as file:
@@ -16,7 +16,5 @@ def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], file
                 if len(missing_keys) > 0:
                     raise Exception(f"Invalid JSON file at {str(path)}. Expected keys not found: {missing_keys}")
             
-            if include_path_key:
-                data['file_path'] = str(path)
-            jsons.append(data)
+            jsons[str(path)] = data
     return jsons

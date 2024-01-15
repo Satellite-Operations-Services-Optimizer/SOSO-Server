@@ -41,7 +41,7 @@ if __name__ == "__main__":
     
     sql_path = Path(__file__).with_name("soso.sql")
     rebuild_database_schema(sql_path)
-    exit() # uncomment this line to only rebuild the database, and not populate it
+    # exit() # uncomment this line to only rebuild the database, and not populate it
     
     # we have to import it here, because the database tables might not be setup yet, and the populate scripts import the tables
     from populate_scripts.populate import populate_database

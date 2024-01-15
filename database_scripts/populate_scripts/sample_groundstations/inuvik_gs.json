@@ -5,7 +5,7 @@
     "elevation": 102.5,
     "receive_mask": 5,
     "send_mask": 5,
-    "uplink_rate": 40000,
-    "downlink_rate": 100000000
+    "uplink_rate_bps": 40000,
+    "downlink_rate_bps": 100000000
 }
   

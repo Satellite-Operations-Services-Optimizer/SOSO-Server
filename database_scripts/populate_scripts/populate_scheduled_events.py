@@ -1,5 +1,5 @@
 from app_config import get_db_session
-from app_config.database.mapping import Satellite, GroundStation, ScheduleBlueprint, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
+from app_config.database.mapping import Satellite, GroundStation, Schedule, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
 
 
@@ -8,7 +8,7 @@ def populate_scheduled_events():
 
 def create_single_satellite_valid_schedule(start_time: datetime):
     session = get_db_session()
-    schedule = ScheduleBlueprint(group_name="test_single_satellite_valid_schedule")
+    schedule = Schedule(group_name="test_single_satellite_valid_schedule")
     session.add(schedule)
 
     sat_1 = session.query(Satellite).first()
@@ -40,7 +40,7 @@ def create_single_satellite_valid_schedule(start_time: datetime):
     session.commit()
 
 
-def schedule_image_order(order: ImageOrder, schedule: ScheduleBlueprint, satellite: Satellite, groundstation: GroundStation):
+def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satellite, groundstation: GroundStation):
     requests = []
 
     # create repeated requests

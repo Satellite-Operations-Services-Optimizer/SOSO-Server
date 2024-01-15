@@ -9,7 +9,7 @@ from sqlalchemy.sql import BinaryExpression, ClauseElement, Window
 from sqlalchemy.sql.expression import func, BinaryExpression
 
 from app_config import get_db_session
-from app_config.database.mapping import SatelliteStateChange, ScheduleBlueprint
+from app_config.database.mapping import SatelliteStateChange, Schedule
 
 @dataclass
 class TimeHorizon:
@@ -106,12 +106,12 @@ class ThroughputMetric(PerformanceMetric):
         """
         session = get_db_session()
         time_filters = self.time_horizon.apply_filters(SatelliteStateChange.snapshot_time)
-        throughputs_subquery = session.query(ScheduleBlueprint.schedule_group, ScheduleBlueprint.schedule_id, func.sum(SatelliteStateChange.throughput_delta).label('throughput')) \
-            .filter(SatelliteStateChange.schedule_id==ScheduleBlueprint.id) \
-            .filter(ScheduleBlueprint.group_name == schedule_group) \
+        throughputs_subquery = session.query(Schedule.schedule_group, Schedule.schedule_id, func.sum(SatelliteStateChange.throughput_delta).label('throughput')) \
+            .filter(SatelliteStateChange.schedule_id==Schedule.id) \
+            .filter(Schedule.group_name == schedule_group) \
             .filter(SatelliteStateChange.throughput_delta > 0) \
             .filter(*time_filters) \
-            .group_by(ScheduleBlueprint.group_name, ScheduleBlueprint.schedule_id).subquery()
+            .group_by(Schedule.group_name, Schedule.schedule_id).subquery()
 
         # min/max normalize the "throughput" column of the throughputs_query across all schedules with the same schedule_group
         grades_query = session.query(
@@ -143,16 +143,16 @@ class ResourceUtilizationMetric(PerformanceMetric):
 
         schedule_resource_usage_timeline = session.query(
             SatelliteStateChange.schedule_id,
-            ScheduleBlueprint.group_name,
+            Schedule.group_name,
             SatelliteStateChange.satellite_id,
             SatelliteStateChange.snapshot_time,
             *self.satellite_resource_usage_columns()
         ).filter(
-            SatelliteStateChange.schedule_id == ScheduleBlueprint.id,
+            SatelliteStateChange.schedule_id == Schedule.id,
             SatelliteStateChange.schedule_id == schedule_id,
             *time_filters
         ).group_by(
-            ScheduleBlueprint.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time
+            Schedule.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time
         ).subquery()
         
         resource_utilization = session.query(
@@ -170,16 +170,16 @@ class ResourceUtilizationMetric(PerformanceMetric):
 
         schedule_resource_usage_timeline = session.query(
             SatelliteStateChange.schedule_id,
-            ScheduleBlueprint.group_name,
+            Schedule.group_name,
             SatelliteStateChange.satellite_id,
             SatelliteStateChange.snapshot_time,
             *self.satellite_resource_usage_columns()
         ).filter(
-            SatelliteStateChange.schedule_id == ScheduleBlueprint.schedule_id,
-            ScheduleBlueprint.group_name == schedule_group
+            SatelliteStateChange.schedule_id == Schedule.schedule_id,
+            Schedule.group_name == schedule_group
             *time_filters
         ).group_by(
-            ScheduleBlueprint.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time
+            Schedule.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time
         ).subquery()
         
         schedule_resource_utilizations = session.query(

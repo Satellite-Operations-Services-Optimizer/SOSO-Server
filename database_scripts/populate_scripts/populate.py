@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from app_config import logging
 from app_config.database import get_session
-from populate_orders import populate_sample_image_orders
-from populate_satellites import populate_sample_satellites
-from populate_groundstations import populate_sample_groundstations
-from populate_scheduled_events import populate_scheduled_events
+from .populate_orders import populate_sample_image_orders
+from .populate_satellites import populate_sample_satellites
+from .populate_groundstations import populate_sample_groundstations
+from .populate_scheduled_events import populate_scheduled_events
 
 logger = logging.getLogger(__name__)
 

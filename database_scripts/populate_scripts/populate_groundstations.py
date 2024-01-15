@@ -17,14 +17,14 @@ def populate_sample_groundstations():
             "elevation",
             "send_mask",
             "receive_mask",
-            "uplink_rate",
-            "downlink_rate"
+            "uplink_rate_bps",
+            "downlink_rate_bps"
         ],
         filename_match="*_gs.json",
     )
 
     groundstations = []
-    for gs_json in groundstation_jsons:
+    for gs_json in groundstation_jsons.values():
         groundstations.append(GroundStation(**gs_json))
 
     session = get_db_session()

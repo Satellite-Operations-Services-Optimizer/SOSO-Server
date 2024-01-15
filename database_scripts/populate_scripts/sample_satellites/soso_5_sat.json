@@ -1,6 +1,6 @@
 {
     "name": "SOSO-5",
-    "storage_capacity": 800.0,
+    "storage_capacity": 300000000,
     "power_capacity": 1400.0,
     "fov_max": 40.0,
     "fov_min": -40.0
