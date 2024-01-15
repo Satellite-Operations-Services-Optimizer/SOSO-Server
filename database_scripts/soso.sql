@@ -55,9 +55,14 @@ CREATE TABLE "soso_schema"."image_order" (
 	"start_time" timestamp,
 	"end_time" timestamp,
 	"delivery_deadline" timestamp,
+	"revisit" boolean,
 	"retake_count" integer,
-	"retake_freq_min" integer,
-	"retake_freq_max" integer
+	--"retake_freq_min" integer,
+	--"retake_freq_max" integer,
+	"retake_freq" integer,
+	"retake_freq_units" text UNIQUE,
+	"parent_id" integer,
+	"child_id" integer
 );
 
 CREATE INDEX "image_order_start_time_index" ON "soso_schema"."image_order" (

@@ -167,7 +167,7 @@ class GroundStationAccessesGenerator:
                 current_time += timedelta(minutes=1)
 
         return accesses
-
+ 
     def _get_ground_station_topos(self):
         if self._ground_station_topos is not None:
             return self._ground_station_topos

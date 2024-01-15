@@ -1,9 +1,11 @@
 from config import db_session
-from Models.Satellite import Satellite, SatelliteStateGenerator
+from Models.satellite import Satellite, SatelliteStateGenerator, GroundStation,GroundStationAccessesGenerator
 from datetime import datetime, timedelta
 def handle_message(body):
     satellite = db_session.query(Satellite).first()
+    groundstation = db_session.query(GroundStation).first()
     state_generator = SatelliteStateGenerator(satellite)
+    access_generator = GroundStationAccessesGenerator(groundstation)
 
     start_time = datetime.now()
     end_time = start_time + timedelta(days=5)

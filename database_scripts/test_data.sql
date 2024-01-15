@@ -2,8 +2,9 @@
 -- Ground Station
 INSERT INTO "soso_schema"."ground_station" ("name", "latitude", "longitude", "elevation", "station_mask", "uplink_rate", "downlink_rate", "under_outage")
 VALUES
-    ('Station1', 40.7128, -74.0060, 100, 0.5, 1000, 2000, false),
-    ('Station2', 34.0522, -118.2437, 200, 0.7, 1500, 2500, false);
+    ('Inuvik', 68.3195, -133.549, 102.5, 5, 40000, 100000000, false)
+    ,('Prince Albert', 53.2124, -105.934, 490.3, 5, 40000, 100000000, false)
+    ,('Gatineau', 45.5846, -75.8083, 240.1, 5, 40000, 100000000, false);
 
 -- Satellite
 INSERT INTO "soso_schema"."satellite" ("name", "tle", "storage_capacity", "power_capacity", "fov_max", "fov_min", "is_illuminated", "under_outage")
