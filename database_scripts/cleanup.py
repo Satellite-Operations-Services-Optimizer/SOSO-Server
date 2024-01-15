@@ -20,7 +20,7 @@ def drop_database_schema():
     setup_database()
 
 
-def rebuild_database(sql_path: str):
+def rebuild_database_schema(sql_path: str):
     logger.info("Rebuilding database...")
     with db_engine.connect() as conn:
         p = Path(sql_path)
@@ -28,14 +28,17 @@ def rebuild_database(sql_path: str):
             sql_text = file.read()
             conn.execute(text(sql_text))
             conn.commit()
-    setup_database(use_localhost=True)
+    
+    # remap the table names
+    reload()
+    
     
 if __name__ == "__main__":
     drop_database_schema()
     # exit() # uncomment this line to only drop the database, and not rebuild it
     
     sql_path = Path(__file__).with_name("soso.sql")
-    rebuild_database(sql_path)
+    rebuild_database_schema(sql_path)
     exit() # uncomment this line to only rebuild the database, and not populate it
     
     # we have to import it here, because the database tables might not be setup yet, and the populate scripts import the tables

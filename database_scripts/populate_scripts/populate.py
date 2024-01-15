@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta
-from app_config import get_db_session
 from app_config import logging
-from .populate_orders import populate_sample_image_orders
-from .populate_satellites import populate_sample_satellites
-from .populate_groundstations import populate_sample_groundstations
-from .populate_scheduled_events import populate_scheduled_events
-from app_config.database.mapping import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
+from app_config.database import get_session
+from populate_orders import populate_sample_image_orders
+from populate_satellites import populate_sample_satellites
+from populate_groundstations import populate_sample_groundstations
+from populate_scheduled_events import populate_scheduled_events
 
 logger = logging.getLogger(__name__)
 
@@ -16,22 +15,17 @@ def populate_database():
     populate_sample_image_orders()
     populate_scheduled_events()
 
-    logger.info("Populating `ground_station` table with random data...")
     populate_random_ground_stations()
-    logger.info("Populating `image_orders` table with random data...")
     populate_random_image_orders()
-    logger.info("Populating `schedule` table with random data...")
-    populate_random_schedule()
-    logger.info("Populating `maintenance_order` table with random data...")
     populate_random_maintenance_orders()
-    logger.info("Populating `outage_order` table with random data...")
     populate_random_outage_orders()
+    # populate_random_schedule()
 
 
 import random
 import pytz
 import uuid
-from app_config.database.setup import *
+from app_config.database.mapping import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
 # Ground Stations
 def generate_random_ground_station():
 
@@ -49,6 +43,7 @@ def generate_random_ground_station():
     }
 
 def populate_random_ground_stations(num_ground_stations=10):
+    logger.info("Populating `ground_station` table with random data...")
     ground_stations_data = [generate_random_ground_station() for _ in range(num_ground_stations)]
 
     ground_stations = []
@@ -66,9 +61,9 @@ def populate_random_ground_stations(num_ground_stations=10):
             )
         )
 
-    db_session = get_session()
-    db_session.add_all(ground_stations)
-    db_session.commit()
+    session = get_session()
+    session.add_all(ground_stations)
+    session.commit()
 
 # Image Orders
 def generate_random_image_order():
@@ -88,6 +83,7 @@ def generate_random_image_order():
     }
 
 def populate_random_image_orders(num_orders=10):
+    logger.info("Populating `image_orders` table with random data...")
     image_orders_data = [generate_random_image_order() for _ in range(num_orders)]
 
     image_orders = []
@@ -109,9 +105,9 @@ def populate_random_image_orders(num_orders=10):
             )
         )
 
-    db_session = get_session()
-    db_session.add_all(image_orders)
-    db_session.commit()
+    session = get_session()
+    session.add_all(image_orders)
+    session.commit()
 
 # Schedules
 def generate_random_schedule():
@@ -128,11 +124,12 @@ def generate_random_schedule():
     }
 
 def populate_random_schedule(num_schedules=10):
-    db_session = get_session()
+    logger.info("Populating `schedule` table with random data...")
+    session = get_session()
 
     schedules_data = [generate_random_schedule() for _ in range(num_schedules)]
-    satellite_ids = [satellite.id for satellite in db_session.query(Satellite).all()]
-    ground_station_ids = [station.id for station in db_session.query(GroundStation).all()]   
+    satellite_ids = [satellite.id for satellite in session.query(Satellite).all()]
+    ground_station_ids = [station.id for station in session.query(GroundStation).all()]   
 
     schedules = []
     for data in schedules_data:
@@ -149,9 +146,9 @@ def populate_random_schedule(num_schedules=10):
             )
         )
 
-    db_session = get_session()
-    db_session.add_all(schedules)
-    db_session.commit()
+    session = get_session()
+    session.add_all(schedules)
+    session.commit()
 
 # Maintenance Orders
 def generate_random_maintenance_order():
@@ -184,6 +181,7 @@ def generate_random_maintenance_order():
     }
 
 def populate_random_maintenance_orders(num_orders=10):
+    logger.info("Populating `maintenance_order` table with random data...")
     maintenance_orders_data = [generate_random_maintenance_order() for _ in range(num_orders)]
 
     maintenance_orders = []
@@ -202,9 +200,9 @@ def populate_random_maintenance_orders(num_orders=10):
             )
         )
 
-    db_session = get_session()
-    db_session.add_all(maintenance_orders)
-    db_session.commit()
+    session = get_session()
+    session.add_all(maintenance_orders)
+    session.commit()
 
 # Outage Orders
 def generate_random_outage_order():
@@ -221,21 +219,22 @@ def generate_random_outage_order():
     }
 
 def populate_random_outage_orders(num_orders=10):
+    logger.info("Populating `outage_order` table with random data...")
     outage_orders_data = [generate_random_outage_order() for _ in range(num_orders)]
 
     outage_orders = []
     for data in outage_orders_data:
         outage_orders.append(
-            OutageOrder(
+            SatOutageOrder(
                 asset_name=data["asset_name"],
                 start_time=data["start_time"],
                 end_time=data["end_time"]
             )
         )
 
-    db_session = get_session()
-    db_session.add_all(outage_orders)
-    db_session.commit()
+    session = get_session()
+    session.add_all(outage_orders)
+    session.commit()
 
 
 

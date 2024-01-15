@@ -1,4 +1,4 @@
-from utils import get_data_from_json_files
+from database_scripts.utils import get_data_from_json_files
 from pathlib import Path
 from datetime import datetime
 from app_config import get_db_session
