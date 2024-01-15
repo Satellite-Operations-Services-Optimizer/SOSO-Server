@@ -63,10 +63,10 @@ Base.prepare(autoload_with=engine)
 
 
 # first delete the previously exported classes, in the case that this module is reloaded to remap database
-if 'db_classes' in globals():
-    for db_class_name in globals()['db_classes']:
-        del globals()[db_class_name]
-globals()['db_classes'] = []
+if 'db_classes' not in globals():
+    globals()['db_classes'] = []
+for db_class_name in globals()['db_classes']:
+    del globals()[db_class_name]
 
 # expose the tables to the global namespace
 for db_class in Base.classes:
@@ -74,5 +74,3 @@ for db_class in Base.classes:
     globals()[db_class.__name__] = db_class
     globals()['db_classes'].append(db_class.__name__)
 # ===== End of export the tables to the global namespace =====
-
-globals()['db_classes'] = frozenset(globals())
