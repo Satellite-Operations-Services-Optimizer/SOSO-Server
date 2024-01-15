@@ -1,18 +1,23 @@
-from app_config import get_db_session
+from app_config import get_db_session, logging
 from app_config.database.mapping import Satellite, GroundStation, Schedule, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
+from math import ceil
 
+logger = logging.getLogger(__name__)
 
 def populate_scheduled_events():
-    pass
+    logger.info("Populating various schedules...")
+    create_single_sat_single_gs_valid_schedule(datetime.now())
 
-def create_single_satellite_valid_schedule(start_time: datetime):
+def create_single_sat_single_gs_valid_schedule(start_time: datetime):
     session = get_db_session()
-    schedule = Schedule(group_name="test_single_satellite_valid_schedule")
+    schedule = Schedule(name="test_single_sat_single_gs_valid_schedule")
     session.add(schedule)
 
     sat_1 = session.query(Satellite).first()
     gs_1 = session.query(GroundStation).first()
+    logger.info("Populating schedule with scheduled image orders using satellite '{sat_1.name}' and groundstation '{gs_1.name}'...")
+
 
     if not sat_1:
         raise Exception("No satellites in database. Need at least one satellite to create a schedule.")
@@ -33,18 +38,19 @@ def create_single_satellite_valid_schedule(start_time: datetime):
         end_time=image_order_end_time,
         duration=event_duration,
         delivery_deadline=delivery_deadline,
-        repeat_frequency=timedelta(days=1)
+        revisit_frequency=timedelta(days=1)
     )
-
+    session.add(image_order)
+    session.commit() # populate default fields for image_order
     schedule_image_order(image_order, schedule, sat_1, gs_1)
-    session.commit()
 
 
 def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satellite, groundstation: GroundStation):
     requests = []
 
+    session = get_db_session()
     # create repeated requests
-    for revisit_count in range(order.number_of_revisits):
+    for visit_count in range(order.visit_count):
         window_start = order.start_time
         window_end = order.end_time
         requests.append(
@@ -56,16 +62,16 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
                 window_end=window_end,
                 duration=imaging_duration(order.image_type),
                 delivery_deadline=window_end+timedelta(days=1), # it must be delivered max one day after the image's window end
-                uplink_data_size=100.0,
-                downlink_data_size=image_storage(order.image_type),
+                uplink_bytes=100,
+                downlink_bytes=image_storage(order.image_type),
                 priority=order.priority
             )
         )
-        order.number_of_revisits -= 1
+        order.visit_count -= 1
         order.start_time += order.revisit_frequency
         order.end_time += order.revisit_frequency
+        session.commit()
     
-    session = get_db_session()
     session.add_all(requests)
 
 
@@ -74,7 +80,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
         schedule_id=schedule.id,
         asset_id=satellite.id,
         groundstation_id=groundstation.id,
-        start_time=requests[0].start_time - contact_duration,
+        start_time=requests[0].window_start - contact_duration,
         duration=timedelta(minutes=20)
     )
     session.add(first_contact)
@@ -85,8 +91,11 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
     while len(requests)>0:
 
         scheduled_imaging_partition = []
-        for i in len(requests)/num_of_partitions:
-            request = requests.pop(0, None)
+        for _ in range(ceil(len(requests)/num_of_partitions)):
+            try:
+                request = requests.pop(0)
+            except IndexError:
+                continue
             if not request:
                 break
 
@@ -101,9 +110,9 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
                     window_start=request.window_start,
                     window_end=request.window_end,
                     uplink_contact_id=uplink_contact.id,
-                    uplink_data_size=request.uplink_data_size,
+                    uplink_bytes=request.uplink_bytes,
                     downlink_contact_id=None, # we are soon going to create this
-                    downlink_data_size=request.downlink_data_size,
+                    downlink_bytes=request.downlink_bytes,
                     priority=request.priority
                 )
             )
@@ -114,7 +123,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
             schedule_id=schedule.id,
             asset_id=satellite.id,
             groundstation_id=groundstation.id,
-            start_time=scheduled_imaging_partition[-1].end_time,
+            start_time=scheduled_imaging_partition[-1].window_end,
             duration=timedelta(minutes=20)
         )
         session.add(downlink_contact)

@@ -4,10 +4,11 @@ from app_config import db_engine, get_db_session
 from app_config import logging
 from app_config.database.setup import setup_database
 from importlib import reload
+import argparse
 import os
 
 logger = logging.getLogger(__name__)
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
 def drop_database_schema():
     logger.info("Deleting database...")
@@ -21,8 +22,9 @@ def drop_database_schema():
     setup_database()
 
 
-def rebuild_database_schema(sql_path: str):
+def rebuild_database_schema():
     logger.info("Rebuilding database...")
+    sql_path = Path(__file__).with_name("soso.sql")
     with db_engine.connect() as conn:
         p = Path(sql_path)
         with p.open('r') as file:
@@ -33,16 +35,29 @@ def rebuild_database_schema(sql_path: str):
     # remap the table names
     import app_config.database.mapping
     reload(app_config.database.mapping)
+
+def populate_database():
+    logger.info("Populating database...")
+    from populate_scripts.populate import populate_database
+    populate_database()
+
     
     
 if __name__ == "__main__":
-    drop_database_schema()
-    # exit() # uncomment this line to only drop the database, and not rebuild it
-    
-    sql_path = Path(__file__).with_name("soso.sql")
-    rebuild_database_schema(sql_path)
-    # exit() # uncomment this line to only rebuild the database, and not populate it
-    
-    # we have to import it here, because the database tables might not be setup yet, and the populate scripts import the tables
-    from populate_scripts.populate import populate_database
-    populate_database()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-d", "--drop", action='store_true', default=False, help="Drop database, as well as all tables and data")
+    parser.add_argument("-r", "--rebuild", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
+    parser.add_argument("-p", "--populate", action='store_true', default=False, help="Rebuild and populate database")
+
+    args = parser.parse_args()
+
+    if args.populate or (not args.rebuild and not args.drop): # default when no args set
+        drop_database_schema()
+        rebuild_database_schema()
+        populate_database()
+    elif args.rebuild:
+        drop_database_schema()
+        rebuild_database_schema()
+    elif args.drop:
+        drop_database_schema()
