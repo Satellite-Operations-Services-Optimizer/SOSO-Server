@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 from pydantic import BaseModel, ValidationError
 from typing import Type, Callable
+
+
 class HttpErrorHandler(HTTPException):
     def __init__(self, status_code: int, detail: str):
         super().__init__(status_code=status_code, detail=detail)
