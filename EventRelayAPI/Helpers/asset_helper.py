@@ -36,21 +36,6 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     finally:
         session.close()
 
-def get_all_satellites():
-    """
-    Queries ground_station table to select for all rows.
-    :return: a list of all rows in ground_station table
-    """
-    session = get_session()
-    try:
-        all_satellites = session.query(Satellite).all()
-        return all_satellites
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    finally: session.close()
-
 def add_ground_station(data) -> GroundStation | None:
     """
     Adds a new ground station assset to the 'ground_station' table and returns the primary key of the added asset.
@@ -72,41 +57,6 @@ def add_ground_station(data) -> GroundStation | None:
     
     finally:
         session.close()
-
-def get_all_ground_stations():
-    """
-    Queries ground_station table to select for all rows.
-    :return: a list of all rows in ground_station table
-    """
-    session = get_session()
-    try:
-        all_ground_stations = session.query(GroundStation).all()
-        return all_ground_stations
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    finally: session.close()
-
-def get_ground_station_by_id(id):
-    """
-    Queries ground_station table to select for the row where param id is equivalent to ground_station.id.
-    :return: the row in ground_station table with the id of input
-    :exception: 404 not found if row with param id is not present
-    """
-    session = get_session()
-    try:
-        ground_station = session.query(GroundStation).filter(GroundStation.id==id).first()
-
-        if not ground_station:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Ground station with id {id} not found")
-
-        return ground_station
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-    
-    finally: session.close()
 
 """ def modify_ground_station_by_name(name):
 
