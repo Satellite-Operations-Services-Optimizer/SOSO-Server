@@ -58,24 +58,16 @@ class ResourceUtilizationMetric(PerformanceMetric):
             Schedule.group_name,
             SatelliteStateChange.satellite_id,
             SatelliteStateChange.snapshot_time,
-            *self.satellite_resource_util_columns()
-        ).filter(
-            SatelliteStateChange.schedule_id == Schedule.id,
-            *filters,
-            *time_filters
-        ).group_by(
-            Schedule.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time
-        ).subquery()
-        return schedule_resource_usage_timeline
-
-    def satellite_resource_util_columns(self) -> list[ClauseElement]:
-        """
-        for now we are only considering storage utilization
-        """
-        return [
             func.sum(SatelliteStateChange.storage_util_delta).over(
                 partition_by=(SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id),
                 order_by=SatelliteStateChange.snapshot_time,
                 rows=(None, 0) # all rows up to and including current row
             ).label('storage_util')
-        ]
+        ).join_from(SatelliteStateChange, Schedule).filter(
+            SatelliteStateChange.schedule_id == Schedule.id,
+            *filters,
+            *time_filters
+        ).group_by(
+            Schedule.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time, SatelliteStateChange.storage_util_delta
+        ).subquery()
+        return schedule_resource_usage_timeline

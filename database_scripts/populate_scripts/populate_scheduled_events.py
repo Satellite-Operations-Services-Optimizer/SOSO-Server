@@ -26,18 +26,15 @@ def create_single_sat_single_gs_valid_schedule(start_time: datetime):
         raise Exception("No ground stations in database. Need at least one ground station to create a schedule.")
 
 
-    event_duration = timedelta(minutes=10)
-
     image_order_end_time = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
     delivery_deadline = image_order_end_time + timedelta(days=1) # downlink the photo you took by this time
     image_order = ImageOrder(
         schedule_id=schedule.id,
         latitude=0.0,
         longitude=0.0,
-        image_type='low_res',
+        image_type='medium_res',
         start_time=start_time,
         end_time=image_order_end_time,
-        duration=event_duration,
         delivery_deadline=delivery_deadline,
         revisit_frequency=timedelta(days=1)
     )
@@ -61,10 +58,10 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
                 order_type=order.order_type,
                 window_start=window_start,
                 window_end=window_end,
-                duration=imaging_duration(order.image_type),
+                duration=order.duration,
+                uplink_size=order.uplink_size,
+                downlink_size=order.downlink_size,
                 delivery_deadline=window_end+timedelta(days=1), # it must be delivered max one day after the image's window end
-                uplink_bytes=100,
-                downlink_bytes=image_storage(order.image_type),
                 priority=order.priority
             )
         )
@@ -114,9 +111,9 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
                     window_start=request.window_start,
                     window_end=request.window_end,
                     uplink_contact_id=uplink_contact.id,
-                    uplink_bytes=request.uplink_bytes,
+                    uplink_size=request.uplink_size,
                     downlink_contact_id=None, # we are soon going to create this
-                    downlink_bytes=request.downlink_bytes,
+                    downlink_size=request.downlink_size,
                     priority=request.priority
                 )
             )
@@ -139,13 +136,3 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellite: Satel
         previous_contact = downlink_contact
     
     session.commit()
-        
-def imaging_duration(image_type: str):
-    if image_type=='low_res': return timedelta(minutes=1)
-    elif image_type=='medium_res': return timedelta(minutes=3)
-    elif image_type=='high_res': return timedelta(minutes=5)
-
-def image_storage(image_type: str):
-    if image_type=='low_res': return 5000.0
-    elif image_type=='mid_res': return 10_000.0
-    elif image_type=='high_res': return 20_000.0

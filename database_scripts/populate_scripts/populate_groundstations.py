@@ -17,8 +17,8 @@ def populate_sample_groundstations():
             "elevation",
             "send_mask",
             "receive_mask",
-            "uplink_rate_bps",
-            "downlink_rate_bps"
+            "uplink_rate_mbps",
+            "downlink_rate_mbps"
         ],
         filename_match="*_gs.json",
     )
