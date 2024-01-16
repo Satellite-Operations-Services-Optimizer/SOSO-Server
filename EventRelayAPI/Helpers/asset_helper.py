@@ -1,8 +1,7 @@
 from fastapi import HTTPException, status
-from app_config.database.setup import get_session, Base
+from app_config.database.setup import get_session
+from app_config.database.mapping import Satellite, GroundStation
 
-Satellite = Base.classes.satellite
-GroundStation = Base.classes.ground_station
 
 def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     """

@@ -1,6 +1,5 @@
-from app_config.database.setup import get_session, Base
-
-MaintenanceOrder = Base.classes.maintenance_order
+from app_config.database.setup import get_session
+from app_config.database.mapping import MaintenanceOrder
 
 def get_all_memory_scrubs():
     session = get_session()

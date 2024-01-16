@@ -33,7 +33,15 @@ Base = automap_base(metadata=metadata)
 SatelliteStateChange = Table(
     'satellite_state_change', metadata,
     Column('schedule_id', Integer, primary_key=True),
-    Column('satellite_id', Integer, primary_key=True),
+    Column('asset_id', Integer, primary_key=True),
+    Column('snapshot_time', DateTime(timezone=True), primary_key=True),
+    autoload_with=engine
+)
+
+GroundStationStateChange = Table(
+    'ground_station_state_change', metadata,
+    Column('schedule_id', Integer, primary_key=True),
+    Column('asset_id', Integer, primary_key=True),
     Column('snapshot_time', DateTime(timezone=True), primary_key=True),
     autoload_with=engine
 )

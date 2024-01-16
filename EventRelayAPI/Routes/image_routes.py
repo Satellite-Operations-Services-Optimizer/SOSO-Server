@@ -2,8 +2,8 @@ from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import Page
 from Helpers.request_validator import validate_request_schema
-from Models.ImageRequestModel import ImageRequest
-from Models.EventRelayData import EventRelayApiMessage, RequestDetails
+from models.ImageRequestModel import ImageRequest
+from models.EventRelayData import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from Helpers.image_order_utils import get_image_orders

@@ -1,6 +1,6 @@
-from app_config.database.setup import get_session, Base
+from app_config.database.setup import get_session
+from app_config.database.mapping import ImageOrder
 
-ImageOrder = Base.classes.image_order
 
 def get_image_orders():
     session = get_session()

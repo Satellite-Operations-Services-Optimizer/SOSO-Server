@@ -8,6 +8,7 @@ from sqlalchemy.sql.expression import BinaryExpression
 from app_config import get_db_session
 from app_config.database.mapping import Schedule
 
+
 @dataclass
 class TimeHorizon:
     start: Optional[datetime] = None
@@ -37,7 +38,7 @@ class TimeHorizon:
 
 class PerformanceMetric(ABC):
     time_horizon: TimeHorizon
-    def __init__(self, weight: float):
+    def __init__(self, weight: float = 1.0):
         self.weight = weight
         self.time_horizon = TimeHorizon()
     
@@ -48,26 +49,33 @@ class PerformanceMetric(ABC):
         """
         Calculate the schedule performance measure for this metric.
         """
-        measure = self.measures_subquery(
+        measure = self.measures_query(
             filters=[Schedule.id==schedule_id]
-        ).scalar()
+        ).first().measure
         return measure
     
-    def score(self, schedule_id: int) -> float:
+    def grade(self, schedule_id: int) -> float:
         """
         Calculate satisfaction grades for each schedule in a group.
         """
         session = get_db_session()
-        schedule_group = Schedule.find(schedule_id).group_name
+        schedule = session.query(Schedule).filter_by(id=schedule_id).first()
 
-        scores_query = self.scores_subquery(schedule_group)
-        score = session.query(scores_query.c.score).filter(Schedule.id==schedule_id).scalar()
-        return score
+        # TODO: replace with query looking somehow like this:
+        # 
+        # grade = self.grades_query(
+        #     schedule.group_name,
+        #     filters=[Schedule.id==schedule_id]
+        # ).scalar()
+        # reason is I was given a worning that I was doing an unnecessary cartesian join somewhere, but I can't quite yet figure out where. We will have to figure it out later and fix.
+        grades_query = self.grades_query(schedule.group_name).subquery()
+        grade = session.query(grades_query.c.grade).filter(Schedule.id==schedule_id).scalar()
+        return grade
 
     @abstractmethod
-    def scores_subquery(self, schedule_group: str):
+    def grades_query(self, schedule_group: str):
         pass
 
     @abstractmethod
-    def measures_subquery(self, filters: list[BinaryExpression]=[], group_by: list[Column]=[]):
+    def measures_query(self, filters: list[BinaryExpression]=[], group_by: list[Column]=[]):
         pass

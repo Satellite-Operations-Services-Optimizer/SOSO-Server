@@ -1,11 +1,12 @@
 from sqlalchemy import Column
 from sqlalchemy.sql import ClauseElement
-from sqlalchemy.sql.expression import func, BinaryExpression
+from sqlalchemy.sql.expression import func, BinaryExpression, literal_column
+from sqlalchemy import text
 
 from app_config import get_db_session
 from app_config.database.mapping import SatelliteStateChange, Schedule
 from .base import PerformanceMetric
-from .utils import min_max_norm_column
+from .utils import min_max_norm
 
 class ResourceUtilizationMetric(PerformanceMetric):
     """
@@ -14,24 +15,24 @@ class ResourceUtilizationMetric(PerformanceMetric):
     resources include just storage for the time being
     """
 
-    def scores_subquery(self, schedule_group: str):
+    def grades_query(self, schedule_group: str, filters: list[BinaryExpression]=[]):
         """
         """
         session = get_db_session()
-        schedule_resource_utils = self.measures_subquery(
+        schedule_resource_utils = self.measures_query(
             filters=[Schedule.group_name==schedule_group]
-        )
+        ).subquery()
 
         # min/max normalize the "resource_util" column of all schedules in this group
         grades_query = session.query(
             schedule_resource_utils.c.schedule_id,
-            min_max_norm_column(schedule_resource_utils.c.resource_util).label('score')
-        ).group_by(schedule_resource_utils.c.schedule_id).subquery()
+            min_max_norm(schedule_resource_utils.c.measure).label('grade')
+        ).group_by(schedule_resource_utils.c.schedule_id, schedule_resource_utils.c.measure)
 
         return grades_query
     
 
-    def measures_subquery(self, filters: list[BinaryExpression]=[], group_by: list[Column]=[]):
+    def measures_query(self, filters: list[BinaryExpression]=[], group_by: list[Column]=[]):
         """
         Calculates the resource utilization of a schedule.
          For a given schedule, resource utilization is calculated as follows:
@@ -40,34 +41,41 @@ class ResourceUtilizationMetric(PerformanceMetric):
         schedule_resource_util = avg(satellite_resource_util)
         """
         session = get_db_session()
-        asset_resource_usage_timelines = self.asset_resource_util_timelines_subquery(*filters)
+        asset_resource_timelines = self.asset_resource_util_timelines_query(filters).subquery()
         
         aggregated_resource_util = session.query(
-            Schedule.id,
-            func.avg(asset_resource_usage_timelines.c.storage_util).label('resource_util')
-        ).group_by(Schedule.id, *group_by).subquery()
+            asset_resource_timelines.c.schedule_id,
+            func.avg(asset_resource_timelines.c.resource_util).label('measure')
+        ).group_by(asset_resource_timelines.c.schedule_id, *group_by)
 
         return aggregated_resource_util
 
-    def asset_resource_util_timelines_subquery(self, filters: list[BinaryExpression]):
+    def asset_resource_util_timelines_query(self, filters: list[BinaryExpression]=[]):
         session = get_db_session()
-        time_filters = self.time_horizon.apply_filters(SatelliteStateChange.snapshot_time)
 
+        # we are only handling satellites for now, and only considering their storage utilization
         schedule_resource_usage_timeline = session.query(
             SatelliteStateChange.schedule_id,
-            Schedule.group_name,
-            SatelliteStateChange.satellite_id,
+            SatelliteStateChange.asset_id,
+            SatelliteStateChange.asset_type,
             SatelliteStateChange.snapshot_time,
             func.sum(SatelliteStateChange.storage_util_delta).over(
-                partition_by=(SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id),
+                partition_by=(SatelliteStateChange.schedule_id, SatelliteStateChange.asset_id),
                 order_by=SatelliteStateChange.snapshot_time,
-                rows=(None, 0) # all rows up to and including current row
-            ).label('storage_util')
-        ).join_from(SatelliteStateChange, Schedule).filter(
+                rows=(None, 0) # sum up all rows up to and including current row. Culmulative sum: accumulate the storage_util_delta over time, to form the actual storage of the satellite over time
+            ).label('resource_util') # for now, we are only considering storage utilization
+        ).join(
+            Schedule, SatelliteStateChange.schedule_id==Schedule.id # join with Schedule so we can filter by schedule_group through the 'filters' argument
+        ).filter(
             SatelliteStateChange.schedule_id == Schedule.id,
+            SatelliteStateChange.storage_util_delta != 0,
             *filters,
-            *time_filters
+            *self.time_horizon.apply_filters(SatelliteStateChange.snapshot_time)
         ).group_by(
-            Schedule.group_name, SatelliteStateChange.schedule_id, SatelliteStateChange.satellite_id, SatelliteStateChange.snapshot_time, SatelliteStateChange.storage_util_delta
-        ).subquery()
+            SatelliteStateChange.schedule_id,
+            SatelliteStateChange.asset_id,
+            SatelliteStateChange.asset_type,
+            SatelliteStateChange.snapshot_time,
+            SatelliteStateChange.storage_util_delta
+        )
         return schedule_resource_usage_timeline

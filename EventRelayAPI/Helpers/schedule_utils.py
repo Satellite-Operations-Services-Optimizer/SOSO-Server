@@ -1,10 +1,6 @@
 from fastapi import HTTPException, status
 from app_config.database.setup import get_session, Base
-
-Schedule = Base.classes.schedule
-ScheduledImages = Base.classes.scheduled_images
-ScheduledMaintenance = Base.classes.scheduled_maintenance
-ScheduledOutages = Base.classes.scheduled_outages
+from app_config.database.mapping import Schedule, ScheduledImaging, ScheduledMaintenance, ScheduledOutage
 
 
 def get_all_basic_schedules():
@@ -84,17 +80,17 @@ def scheduled_outages_to_dict(self):
 
 # Add the to_dict methods to the instances of the automap classes
 Schedule.to_dict = schedule_to_dict
-ScheduledImages.to_dict = scheduled_images_to_dict
+ScheduledImaging.to_dict = scheduled_images_to_dict
 ScheduledMaintenance.to_dict = scheduled_maintenance_to_dict
-ScheduledOutages.to_dict = scheduled_outages_to_dict
+ScheduledOutage.to_dict = scheduled_outages_to_dict
 
 def get_all_brute_force_joined_schedules():
     session = get_session()
     try:
-        all_joined_schedules = session.query(Schedule, ScheduledImages, ScheduledMaintenance, ScheduledOutages).\
-            join(ScheduledImages, Schedule.id == ScheduledImages.schedule_id).\
+        all_joined_schedules = session.query(Schedule, ScheduledImaging, ScheduledMaintenance, ScheduledOutage).\
+            join(ScheduledImaging, Schedule.id == ScheduledImaging.schedule_id).\
             join(ScheduledMaintenance, Schedule.id == ScheduledMaintenance.schedule_id).\
-            join(ScheduledOutages, Schedule.id == ScheduledOutages.schedule_id).\
+            join(ScheduledOutage, Schedule.id == ScheduledOutage.schedule_id).\
             all()
 
         result_json = [
@@ -121,24 +117,24 @@ def get_all_joined_schedules():
         schedule_columns = [Schedule.id, Schedule.satellite_id, 
                             Schedule.ground_station_id, Schedule.start_time, Schedule.end_time, Schedule.status]
         
-        scheduled_images_columns = [ScheduledImages.schedule_id, 
-                                    ScheduledImages.image_id, ScheduledImages.request_id, 
-                                    ScheduledImages.downlink_start, ScheduledImages.downlink_end, 
-                                    ScheduledImages.data_size, ScheduledImages.schedule_type, ScheduledImages.status]
+        scheduled_images_columns = [ScheduledImaging.schedule_id, 
+                                    ScheduledImaging.image_id, ScheduledImaging.request_id, 
+                                    ScheduledImaging.downlink_start, ScheduledImaging.downlink_end, 
+                                    ScheduledImaging.data_size, ScheduledImaging.schedule_type, ScheduledImaging.status]
         
         scheduled_maintenance_columns = [ScheduledMaintenance.schedule_id, 
                                          ScheduledMaintenance.maintenance_id, ScheduledMaintenance.maintenance_start, 
                                          ScheduledMaintenance.maintenance_end, ScheduledMaintenance.repetition_number, 
                                          ScheduledMaintenance.description, ScheduledMaintenance.priority, ScheduledMaintenance.status]
         
-        scheduled_outages_columns = [ScheduledOutages.schedule_id, ScheduledOutages.outage_id, 
-                                     ScheduledOutages.outage_start, ScheduledOutages.outage_end, ScheduledOutages.status]
+        scheduled_outages_columns = [ScheduledOutage.schedule_id, ScheduledOutage.outage_id, 
+                                     ScheduledOutage.outage_start, ScheduledOutage.outage_end, ScheduledOutage.status]
 
 
         all_joined_schedules = session.query(*schedule_columns, *scheduled_images_columns, *scheduled_maintenance_columns, *scheduled_outages_columns).\
-            join(ScheduledImages, Schedule.id == ScheduledImages.schedule_id).\
+            join(ScheduledImaging, Schedule.id == ScheduledImaging.schedule_id).\
             join(ScheduledMaintenance, Schedule.id == ScheduledMaintenance.schedule_id).\
-            join(ScheduledOutages, Schedule.id == ScheduledOutages.schedule_id).\
+            join(ScheduledOutage, Schedule.id == ScheduledOutage.schedule_id).\
             all()
 
         result_json = [
