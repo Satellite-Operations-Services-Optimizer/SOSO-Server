@@ -6,3 +6,6 @@ __pycache__/
 
 # ignore exported copilot chats
 copilot_chats/
+
+# ignore environment config
+.env
