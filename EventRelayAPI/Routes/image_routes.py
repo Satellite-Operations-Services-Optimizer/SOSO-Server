@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import Page
-from Helpers.request_validator import validate_request_schema
+from helpers.request_validator import validate_request_schema
 from models.ImageRequestModel import ImageRequest
 from models.EventRelayData import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from Helpers.image_order_utils import get_image_orders
+from app_config import get_db_session
+from app_config.database.mapping import ImageOrder
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
     
 @router.get("/image-orders")
 async def get_all_image_orders():
-    
-    imageOrders = get_image_orders();    
-    return imageOrders
+    session = get_db_session()
+    image_orders = session.query(ImageOrder).all()
+    return jsonable_encoder(image_orders)
 
