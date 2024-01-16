@@ -1,4 +1,3 @@
-from fastapi import HTTPException, status
 from app_config.database.setup import get_session
 from app_config.database.mapping import Satellite, GroundStation
 
