@@ -1,8 +1,11 @@
 from fastapi import APIRouter, Body, Depends
 import logging
 from models.activity_request import ActivityRequest
-from helpers.request_validator import validate_request_schema
+from helpers.request_validation_helper import validate_request_schema
+from models.activity_request import ActivityRequest
+from Helpers.request_validation_helper import validate_request_schema
 from app_config import rabbit, ServiceQueues
+
 from rabbit_wrapper import Publisher
 
 logger = logging.getLogger(__name__)

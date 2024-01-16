@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 import logging
 from app_config import get_db_session
 from app_config.database.mapping import Schedule, ScheduledEvent
