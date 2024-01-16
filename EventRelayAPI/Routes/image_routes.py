@@ -13,7 +13,6 @@ from Models.ImageRequestModel import ImageRequest
 from Models.EventRelayData import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from Helpers.image_order_helper import get_image_orders
 import logging
 
 logger = logging.getLogger(__name__)
