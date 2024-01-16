@@ -4,12 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
 from helpers.asset_helper import add_satellite, add_ground_station
 from models.SatelliteModel import SatelliteCreationRequest
-from models.GroundStationModel import GroundStation
-#from Models.SatelliteModel import Satellite
-from helpers.asset_helper import add_satellite, add_ground_station, get_all_ground_stations, get_all_satellites, get_ground_station_by_id #,modify_ground_station_by_name
-#from Models.EventRelayData import EventRelayApiMessage, RequestDetails
-#from config import rabbit, ServiceQueues
-#from rabbit_wrapper import Publisher
+from helpers.asset_helper import add_satellite, add_ground_station
 from helpers.miscellaneous_helper import txt_to_json_converter
 import logging
 from fastapi import HTTPException
