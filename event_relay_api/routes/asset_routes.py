@@ -3,7 +3,6 @@ import json
 from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
 from helpers.asset_helper import add_satellite, add_ground_station
-from models.SatelliteModel import SatelliteCreationRequest
 from helpers.asset_helper import add_satellite, add_ground_station
 from helpers.miscellaneous_helper import txt_to_json_converter
 import logging
@@ -21,7 +20,7 @@ async def get_all_ground_stations():
     ground_stations = session.query(GroundStation).all()
     return jsonable_encoder(ground_stations)
 
-@router.get("/{id}/ground_stations", response_model=GroundStationCreationRequest)
+@router.get("/ground_stations/{id}", response_model=GroundStationCreationRequest)
 async def get_ground_station(id):
     session = get_db_session()
     ground_station = session.query(GroundStation).filter_by(id=id).first()

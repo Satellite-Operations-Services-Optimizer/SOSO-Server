@@ -8,9 +8,9 @@ from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from app_config import get_db_session
 from app_config.database.mapping import ImageOrder
-from Helpers.request_validation_helper import validate_request_schema
-from Models.ImageRequestModel import ImageRequest
-from Models.EventRelayData import EventRelayApiMessage, RequestDetails
+from helpers.request_validation_helper import validate_request_schema
+from models.ImageRequestModel import ImageRequest
+from models.EventRelayData import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 import logging
