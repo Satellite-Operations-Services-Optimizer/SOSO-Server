@@ -1,25 +1,63 @@
 from pathlib import Path
 from sqlalchemy import text
-from config.database import db_engine, Base
-from config import logging
-from satellite.populate import populate_satellites_from_sample_tles
+from app_config import db_engine, get_db_session
+from app_config import logging
+from app_config.database.setup import setup_database
+from importlib import reload
+import argparse
+import os
 
 logger = logging.getLogger(__name__)
-logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 
-# Delete all tables in database
-logger.info("Deleting database tables...")
-Base.metadata.drop_all(bind=db_engine)
+def drop_database_schema():
+    logger.info("Deleting database...")
 
-# Rebuild database tables using `soso.sql`
-logger.info("Rebuilding database...")
-with db_engine.connect() as conn:
-    p = Path(__file__).with_name("soso.sql")
-    with p.open('r') as file:
-        sql_text = file.read()
-        conn.execute(text(sql_text))
-        conn.commit()
+    session = get_db_session()
+    schema = os.getenv("DB_SCHEMA")
+    session.execute(text(f'DROP SCHEMA IF EXISTS {schema} CASCADE;'))
+    session.execute(text(f'CREATE SCHEMA {schema}'))
 
-# Populate Satellite table with satellite data
-logger.info("Populating `satellite` table...")
-populate_satellites_from_sample_tles()
+    session.commit()
+    setup_database()
+
+
+def rebuild_database_schema():
+    logger.info("Rebuilding database...")
+    sql_path = Path(__file__).with_name("soso.sql")
+    with db_engine.connect() as conn:
+        p = Path(sql_path)
+        with p.open('r') as file:
+            sql_text = file.read()
+            conn.execute(text(sql_text))
+            conn.commit()
+    
+    # remap the table names
+    import app_config.database.mapping
+    reload(app_config.database.mapping)
+
+def populate_database():
+    logger.info("Populating database...")
+    from populate_scripts.populate import populate_database
+    populate_database()
+
+    
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-d", "--drop", action='store_true', default=False, help="Drop database, as well as all tables and data")
+    parser.add_argument("-r", "--rebuild", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
+    parser.add_argument("-p", "--populate", action='store_true', default=False, help="Rebuild and populate database")
+
+    args = parser.parse_args()
+
+    if args.populate or (not args.rebuild and not args.drop): # default when no args set
+        drop_database_schema()
+        rebuild_database_schema()
+        populate_database()
+    elif args.rebuild:
+        drop_database_schema()
+        rebuild_database_schema()
+    elif args.drop:
+        drop_database_schema()

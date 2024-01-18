@@ -1,0 +1,11 @@
+{
+    "name": "Gatineau",
+    "latitude": 45.5846,
+    "longitude": -75.8083,
+    "elevation": 240.1,
+    "receive_mask": 5,
+    "send_mask": 5,
+    "uplink_rate_mbps": 0.04,
+    "downlink_rate_mbps": 100
+}
+  

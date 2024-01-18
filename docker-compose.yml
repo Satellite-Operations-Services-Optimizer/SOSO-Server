@@ -8,7 +8,8 @@ services:
       context: ./ # The build context for each service is the current folder and not the service's folder because the requirements.txt is in the current folder and needs to be copied by the Dockerfile into the container.
       dockerfile: ./EventRelayAPI/Dockerfile
     volumes:
-      - ./EventRelayAPI:/code
+      - ./app_config:/code/app_config
+      - ./EventRelayAPI:/code/EventRelayAPI # This is a volume that allows the container to see the code changes made on the host machine.
     ports:
       - 80:5000
     env_file:
@@ -23,7 +24,8 @@ services:
       context: ./
       dockerfile: ./SchedulerService/Dockerfile
     volumes:
-      - ./SchedulerService:/code
+      - ./app_config:/code/app_config
+      - ./SchedulerService:/code/SchedulerService
     ports:
       - 81:5000
     env_file:
@@ -31,6 +33,7 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+      - scheduler-worker
 
   satellite-activities:
     container_name: satellite-activities
@@ -38,7 +41,8 @@ services:
       context: ./
       dockerfile: ./SatelliteActivitiesService/Dockerfile
     volumes:
-      - ./SatelliteActivitiesService:/code
+      - ./app_config:/code/app_config
+      - ./SatelliteActivitiesService:/code/SatelliteActivitiesService
     ports:
       - 82:5000
     env_file:
@@ -53,7 +57,8 @@ services:
       context: ./ 
       dockerfile: ./ImageManagementService/Dockerfile
     volumes:
-      - ./ImageManagementService:/code
+      - ./app_config:/code/app_config
+      - ./ImageManagementService:/code/ImageManagementService
     ports:
       - 83:5000
     env_file:
@@ -68,7 +73,8 @@ services:
       context: ./
       dockerfile: ./GroundStationOutBoundService/Dockerfile
     volumes:
-      - ./GroundStationOutBoundService:/code
+      - ./app_config:/code/app_config
+      - ./GroundStationOutBoundService:/code/GroundStationOutBoundService
     ports:
       - 84:5000
     env_file:
@@ -76,6 +82,18 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+    
+  scheduler-worker:
+    container_name: scheduler-worker
+    build: 
+      context: ./
+      dockerfile: ./SchedulerService/Dockerfile
+    command: celery -A config.celery_app worker --loglevel=${LOG_LEVEL}
+    volumes:
+      - ./app_config:/code/app_config
+      - ./SchedulerService:/code/SchedulerService
+    env_file:
+      - .env
 
   rabbitmq:
     image: rabbitmq:3.12-management
@@ -87,7 +105,7 @@ services:
 
   postgres:
     container_name: postgres
-    image: postgres:16
+    image: postgres:latest
     restart: always
     environment:
       POSTGRES_USER: root
@@ -100,7 +118,7 @@ services:
   
   pgadmin:
     container_name: pgadmin
-    image: dpage/pgadmin4:7
+    image: dpage/pgadmin4:8
     restart: always
     environment:
       PGADMIN_DEFAULT_EMAIL: root@root.com

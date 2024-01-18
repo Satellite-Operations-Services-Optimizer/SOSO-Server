@@ -1,0 +1,11 @@
+{
+    "name": "Prince Albert",
+    "latitude": 53.2124,
+    "longitude": -105.934,
+    "elevation": 490.3,
+    "receive_mask": 5,
+    "send_mask": 5,
+    "uplink_rate_mbps": 0.04,
+    "downlink_rate_mbps": 100
+}
+  
