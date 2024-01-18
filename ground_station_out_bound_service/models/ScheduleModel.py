@@ -6,20 +6,20 @@ class image_activity(Basemodel):
     image_id: int
     type: str
     priority: str
-    image_time: datetime
+    start_time: datetime
     
 class maintenance_activity(Basemodel):
     activity_id: int
     description: str
     priority: str
-    activity_time: datetime
+    start_time: datetime
     payload_flag: bool
     duration: timedelta
 
 # Intended for the satellite to send
 class downlink_activity(Basemodel):
-    image_id: int
-    downlink_start: datetime
+    image_id: list[int]
+    start_time: datetime
     downlink_stop: datetime
 
 class satellite_schedule(Basemodel):
@@ -32,9 +32,9 @@ class satellite_schedule(Basemodel):
 
 # Intended for the ground station to recieve
 class downlink_image(Basemodel):
-    image_id: int
+    image_id: list[int]
     duration_of_downlink: timedelta
-    size_of_image: str
+    size_of_image: float
     
 class ground_station_request(Basemodel):
     station_name: str
