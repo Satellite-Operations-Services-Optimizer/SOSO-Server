@@ -22,7 +22,7 @@ class WorkloadDistributionMetric(PerformanceMetric):
     workload_distribution = 1 - (spread_factor * avg(asset_util_grade across all assets) + stability_factor * avg(asset_util_flux across all assets))
 
     Above, I mention only satellites, but we apply the same formula to each class of assets, including groundstations.
-    Then we combine across asset class
+    Then we combine across all asset class
     """
     resource_util_measure: ResourceUtilizationMetric
     def __init__(self, weight: float = 1.0, spread_factor: float = 0.5, stability_factor: float = 0.5):

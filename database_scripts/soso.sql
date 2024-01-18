@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS scheduled_event (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	schedule_id integer NOT NULL DEFAULT 0, -- this is the schedule we are in the process of constructing. default schedule has id 0
 	asset_id integer NOT NULL, -- this is the resource we are scheduling to.
+	request_id integer DEFAULT NULL REFERENCES schedule_request(id),
 	start_time timestamptz NOT NULL,
 	duration interval NOT NULL,
 	window_start timestamptz DEFAULT NULL CHECK (window_start <= start_time), -- this is the start of the buffer zone. it is the earliest time this event can be shifted to

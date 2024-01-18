@@ -7,13 +7,16 @@ from models.EventRelayData import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from Helpers.image_order_utils import get_image_orders
+from app_config.database.mapping import ImageOrder
+from app_config import get_db_session
 import logging
+from fastapi import Query    
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-@router.post("/image-requests")
+@router.post("/orders/create")
 async def handle_request(image_request: ImageRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ImageRequest))):
     request = jsonable_encoder(image_request)
 
@@ -34,9 +37,11 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
     return message
 
     
-@router.get("/image-orders")
-async def get_all_image_orders():
-    
-    imageOrders = get_image_orders();    
-    return imageOrders
+@router.get("/orders")
+async def get_all_image_orders(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+    session = get_db_session()
+    query = session.query(ImageOrder)
+    if not all:
+        query.limit(per_page).offset((page - 1) * per_page)
+    return query.all()
 
