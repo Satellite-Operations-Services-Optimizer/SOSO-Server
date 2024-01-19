@@ -100,4 +100,4 @@ If you are having problems with experiencing bugs that are supposed to be fixed,
 docker compose down
 docker system prune -a
 ```
-CAREFUL!!! this deletes all your images and containers, not only the ones associated with this project. If you don't want that to happen, delete the images/containers manually from the docker app, and run docker compose build --no-cache`
+CAREFUL!!! this deletes all your images and containers, not only the ones associated with this project. If you don't want that to happen, delete the images AND containers for this project manually from the docker app, and run docker compose build --no-cache`
