@@ -43,7 +43,7 @@ class WorkloadDistributionMetric(PerformanceMetric):
             asset_resource_util_timelines.c.asset_id,
             asset_resource_util_timelines.c.asset_type,
             func.avg(asset_resource_util_timelines.c.resource_util).label('util_avg'),
-            func.stddev(asset_resource_util_timelines.c.resource_util).label('util_std')
+            func.coalesce(func.stddev(asset_resource_util_timelines.c.resource_util), 0).label('util_std')
         ).group_by(
             asset_resource_util_timelines.c.schedule_id,
             asset_resource_util_timelines.c.asset_id,

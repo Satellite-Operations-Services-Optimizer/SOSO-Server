@@ -6,10 +6,10 @@ services:
     container_name: relay-api
     build:
       context: ./ # The build context for each service is the current folder and not the service's folder because the requirements.txt is in the current folder and needs to be copied by the Dockerfile into the container.
-      dockerfile: ./EventRelayAPI/Dockerfile
+      dockerfile: ./event_relay_api/Dockerfile
     volumes:
       - ./app_config:/code/app_config
-      - ./EventRelayAPI:/code/EventRelayAPI # This is a volume that allows the container to see the code changes made on the host machine.
+      - ./event_relay_api:/code/event_relay_api # This is a volume that allows the container to see the code changes made on the host machine.
     ports:
       - 80:5000
     env_file:
