@@ -5,7 +5,7 @@
 # start by pulling the python image
 FROM python:3.11-alpine
 
-ARG SERVICE_NAME=SchedulerService
+ARG SERVICE_NAME=scheduler_service
 
 # install git on container
 RUN apk update

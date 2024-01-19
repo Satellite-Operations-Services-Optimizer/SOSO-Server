@@ -5,7 +5,7 @@
 # start by pulling the python image
 FROM python:3.11-alpine
 
-ARG SERVICE_NAME=EventRelayAPI
+ARG SERVICE_NAME=event_relay_api
 
 # install git on container
 RUN apk update

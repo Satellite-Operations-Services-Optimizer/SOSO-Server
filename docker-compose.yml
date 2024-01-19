@@ -6,10 +6,10 @@ services:
     container_name: relay-api
     build:
       context: ./ # The build context for each service is the current folder and not the service's folder because the requirements.txt is in the current folder and needs to be copied by the Dockerfile into the container.
-      dockerfile: ./EventRelayAPI/Dockerfile
+      dockerfile: ./event_relay_api/Dockerfile
     volumes:
       - ./app_config:/code/app_config
-      - ./EventRelayAPI:/code/EventRelayAPI # This is a volume that allows the container to see the code changes made on the host machine.
+      - ./event_relay_api:/code/event_relay_api # This is a volume that allows the container to see the code changes made on the host machine.
     ports:
       - 80:5000
     env_file:
@@ -18,31 +18,14 @@ services:
       - rabbitmq
       - postgres
 
-  scheduler:
-    container_name: scheduler
-    build:
-      context: ./
-      dockerfile: ./SchedulerService/Dockerfile
-    volumes:
-      - ./app_config:/code/app_config
-      - ./SchedulerService:/code/SchedulerService
-    ports:
-      - 81:5000
-    env_file:
-      - .env
-    depends_on:
-      - rabbitmq
-      - postgres
-      - scheduler-worker
-
   satellite-activities:
     container_name: satellite-activities
     build:
       context: ./
-      dockerfile: ./SatelliteActivitiesService/Dockerfile
+      dockerfile: ./satellite_activities_service/Dockerfile
     volumes:
       - ./app_config:/code/app_config
-      - ./SatelliteActivitiesService:/code/SatelliteActivitiesService
+      - ./satellite_activities_service:/code/satellite_activities_service
     ports:
       - 82:5000
     env_file:
@@ -55,10 +38,10 @@ services:
     container_name: image-management
     build:
       context: ./ 
-      dockerfile: ./ImageManagementService/Dockerfile
+      dockerfile: ./image_management_service/Dockerfile
     volumes:
       - ./app_config:/code/app_config
-      - ./ImageManagementService:/code/ImageManagementService
+      - ./image_management_service:/code/image_management_service
     ports:
       - 83:5000
     env_file:
@@ -71,10 +54,10 @@ services:
     container_name: gs-outbound
     build:
       context: ./
-      dockerfile: ./GroundStationOutBoundService/Dockerfile
+      dockerfile: ./ground_station_out_bound_service/Dockerfile
     volumes:
       - ./app_config:/code/app_config
-      - ./GroundStationOutBoundService:/code/GroundStationOutBoundService
+      - ./ground_station_out_bound_service:/code/ground_station_out_bound_service
     ports:
       - 84:5000
     env_file:
@@ -87,11 +70,11 @@ services:
     container_name: scheduler-worker
     build: 
       context: ./
-      dockerfile: ./SchedulerService/Dockerfile
+      dockerfile: ./scheduler_service/Dockerfile
     command: celery -A config.celery_app worker --loglevel=${LOG_LEVEL}
     volumes:
       - ./app_config:/code/app_config
-      - ./SchedulerService:/code/SchedulerService
+      - ./scheduler_service:/code/scheduler_service
     env_file:
       - .env
 

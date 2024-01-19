@@ -1,6 +1,6 @@
 FROM node:latest
 
-WORKDIR /MockFTPService
+WORKDIR /mock_ftp_service
 COPY FileSystem/ ./FileSystem
 COPY index.js ./
 COPY package.json ./
