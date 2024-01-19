@@ -6,3 +6,11 @@ __pycache__/
 
 # ignore exported copilot chats
 copilot_chats/
+
+# ignore environment config
+.env
+.idea
+.vscode
+MockFTPService/node_modules/
+ImageManagementService/sample.json
+MockFTPService/Sample Image Orders/.DS_Store
