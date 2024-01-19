@@ -28,7 +28,7 @@ class ThroughputMetric(PerformanceMetric):
             filters=[Schedule.group_name==schedule_group]
         ).subquery()
 
-        # min/max normalize the "throughput" column of the throughputs_query across all schedules with the same schedule_group
+        # min/max normalize the throughput of the throughputs_query across all schedules with the same schedule_group
         grades_query = session.query(
             throughputs_subquery.c.schedule_id,
             min_max_norm(throughputs_subquery.c.measure).label('grade')

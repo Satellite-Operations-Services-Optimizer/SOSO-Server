@@ -1,3 +1,3 @@
-from .resource_util_metric import ResourceUtilizationMetric
-from .throughput_metric import ThroughputMetric
-from .workload_dist_metric import WorkloadDistributionMetric
+from .resource_util import ResourceUtilizationMetric
+from .throughput import ThroughputMetric
+from .workload_distribution import WorkloadDistributionMetric

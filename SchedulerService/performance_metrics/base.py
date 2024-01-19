@@ -67,7 +67,7 @@ class PerformanceMetric(ABC):
         #     schedule.group_name,
         #     filters=[Schedule.id==schedule_id]
         # ).scalar()
-        # reason is I was given a worning that I was doing an unnecessary cartesian join somewhere, but I can't quite yet figure out where. We will have to figure it out later and fix.
+        # reason for not using this better way is that I was given a worning that I was doing an unnecessary cartesian join somewhere, but I can't quite yet figure out where. We will have to figure it out later and fix.
         grades_query = self.grades_query(schedule.group_name).subquery()
         grade = session.query(grades_query.c.grade).filter(Schedule.id==schedule_id).scalar()
         return grade
