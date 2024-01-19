@@ -14,7 +14,7 @@ class ThroughputMetric(PerformanceMetric):
     throughput signifies how many events have been scheduled to take place for a schedule, weighted by how important the event is.
     """
 
-    def grades_query(self, schedule_group: str):
+    def grades_query(self, schedule_group: str, filters: list[BinaryExpression]=[]):
         """
         Creates a query that calculates the throughput satisfaction grade for each schedule in the provided schedule_group.
         throughput_satisfaction_grade is calculated as the min/max normalized schedule_throughput, normalized across all schedules in the same group
@@ -25,10 +25,10 @@ class ThroughputMetric(PerformanceMetric):
         """
         session = get_db_session()
         throughputs_subquery = self.measures_query(
-            filters=[Schedule.group_name==schedule_group]
+            filters=[Schedule.group_name==schedule_group] + filters
         ).subquery()
 
-        # min/max normalize the "throughput" column of the throughputs_query across all schedules with the same schedule_group
+        # min/max normalize the throughput value across all schedules with the same schedule_group
         grades_query = session.query(
             throughputs_subquery.c.schedule_id,
             min_max_norm(throughputs_subquery.c.measure).label('grade')

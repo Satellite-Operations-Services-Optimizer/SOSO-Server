@@ -20,10 +20,10 @@ class ResourceUtilizationMetric(PerformanceMetric):
         """
         session = get_db_session()
         schedule_resource_utils = self.measures_query(
-            filters=[Schedule.group_name==schedule_group]
+            filters=[Schedule.group_name==schedule_group] + filters
         ).subquery()
 
-        # min/max normalize the "resource_util" column of all schedules in this group
+        # min/max normalize the resource utilization of all schedules in this group
         grades_query = session.query(
             schedule_resource_utils.c.schedule_id,
             min_max_norm(schedule_resource_utils.c.measure).label('grade')

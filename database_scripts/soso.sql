@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS scheduled_event (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	schedule_id integer NOT NULL DEFAULT 0, -- this is the schedule we are in the process of constructing. default schedule has id 0
 	asset_id integer NOT NULL, -- this is the resource we are scheduling to.
+	request_id integer DEFAULT NULL REFERENCES schedule_request(id),
 	start_time timestamptz NOT NULL,
 	duration interval NOT NULL,
 	window_start timestamptz DEFAULT NULL CHECK (window_start <= start_time), -- this is the start of the buffer zone. it is the earliest time this event can be shifted to
@@ -387,7 +388,7 @@ CREATE VIEW eventwise_asset_state_change AS
 		transmitted_event.asset_type,
 		contact.start_time as snapshot_time, -- state changes at point of contact (when uplink actually occurs)
 		transmitted_event.uplink_size as storage_delta,
-		0 as throughput_delta
+		0.0 as throughput_delta
 	FROM transmitted_event, scheduled_contact as contact
 	WHERE transmitted_event.schedule_id=contact.schedule_id
 		AND transmitted_event.asset_id=contact.asset_id
@@ -399,7 +400,7 @@ CREATE VIEW eventwise_asset_state_change AS
 		transmitted_event.asset_type,
 		transmitted_event.start_time as snapshot_time, -- state changes at point of execution (when the event is actually scheduled to happen on the satellite)
 		transmitted_event.downlink_size - transmitted_event.uplink_size as storage_delta, -- the command data that was uplinked can be deleted now as the command has been executed. The result of the command now takes up space.
-		transmitted_event.priority as throughput_delta
+		1.0*transmitted_event.priority as throughput_delta
 	FROM transmitted_event
 	WHERE transmitted_event.downlink_contact_id IS NOT NULL
 	UNION ALL
@@ -409,7 +410,7 @@ CREATE VIEW eventwise_asset_state_change AS
 		transmitted_event.asset_type,
 		contact.start_time as snapshot_time, -- state changes at point of contact (when downlink actually occurs. we arbitrarily chose downlink_start_time instead of downlink_end_time. which is better to use is debatable, i can't think of a strong enough reason as to why one way and not the other)
 		(-1.0)*transmitted_event.downlink_size as storage_delta,
-		0 as throughput_delta
+		0.0 as throughput_delta
 	FROM transmitted_event, scheduled_contact as contact
 	WHERE transmitted_event.schedule_id=contact.schedule_id
 		AND transmitted_event.asset_id=contact.asset_id
