@@ -5,8 +5,12 @@ pydantic==2.4.2
 python-dotenv==1.0.0
 SQLAlchemy==2.0.23
 psycopg2-binary==2.9.9
+
+fastapi_pagination==0.12.12
+APScheduler
 celery==5.3.6 # for task management
 unidecode==1.3.7
+pytz==2023.3.post1
 
 # our custom rabbitmq wrapper
 rabbit_wrapper @ git+https://github.com/Satellite-Operations-Services-Optimizer/rabbit-wrapper@main # I specified the main branch. if you want to install another branch, change it here
