@@ -104,10 +104,27 @@ class TestImageRoutes(unittest.IsolatedAsyncioTestCase):
             
             
             returnable = await handle_request(sampleImgReq)
+
+            expected = jsonable_encoder(
+                EventRelayApiMessage(
+                    body=jsonable_encoder(sampleImgReq),
+                    details=RequestDetails(requestType="image-order-request")
+                )
+            )
             
-            print("Printing RabbitMQ Message")
-            print(returnable)
-            self.assertEqual("","")
+            self.assertEqual(returnable,expected)
+        
+        async def test_02_create_image_order(self):
+            jsonData = '{"Latitude": 37.348835836258075,"Longitude": 47.714415386670055,"Priority": 1,"ImageType": "Medium","ImageStartTime": "2023-11-18T05:30:22","ImageEndTime": "2023-11-18T19:34:28","Recurrence": {"Revisit": "True","NumberOfRevisits": 3,"RevisitFrequency": 6,"RevisitFrequencyUnits": "Days"}}'
+            
+            # sampleImgReq = ImageRequest.model_validate_json(jsonData, strict=False)
+            sampleImgReq = ImageRequest()
+            
+            
+            with self.assertRaises(Exception) as e:
+                await handle_request(sampleImgReq)
+            
+            
 
 if __name__ == '__main__':
     unittest.main()
