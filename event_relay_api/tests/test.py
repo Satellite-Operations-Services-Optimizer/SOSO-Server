@@ -97,6 +97,8 @@ class TestAssetRoutes(unittest.IsolatedAsyncioTestCase):
     #     await new_ground_station(newGroundStation)
    
 class TestImageRoutes(unittest.IsolatedAsyncioTestCase):
+    
+        #create_image_order: test with valid input
         async def test_01_create_image_order(self):
             jsonData = '{"Latitude": 37.348835836258075,"Longitude": 47.714415386670055,"Priority": 1,"ImageType": "Medium","ImageStartTime": "2023-11-18T05:30:22","ImageEndTime": "2023-11-18T19:34:28","DeliveryTime": "2023-11-19T03:34:28","Recurrence": {"Revisit": "True","NumberOfRevisits": 3,"RevisitFrequency": 6,"RevisitFrequencyUnits": "Days"}}'
             
@@ -114,16 +116,35 @@ class TestImageRoutes(unittest.IsolatedAsyncioTestCase):
             
             self.assertEqual(returnable,expected)
         
+        #create_image_order: test with invalid input (missing an attribute in image request)
         async def test_02_create_image_order(self):
             jsonData = '{"Latitude": 37.348835836258075,"Longitude": 47.714415386670055,"Priority": 1,"ImageType": "Medium","ImageStartTime": "2023-11-18T05:30:22","ImageEndTime": "2023-11-18T19:34:28","Recurrence": {"Revisit": "True","NumberOfRevisits": 3,"RevisitFrequency": 6,"RevisitFrequencyUnits": "Days"}}'
             
-            # sampleImgReq = ImageRequest.model_validate_json(jsonData, strict=False)
-            sampleImgReq = ImageRequest()
-            
+            sampleImgReq = json.loads(jsonData)
             
             with self.assertRaises(Exception) as e:
                 await handle_request(sampleImgReq)
             
+        #create_image_order: test with invalid input (empty param)
+        async def test_03_create_image_order(self):
+            
+            sampleImgReq = {}
+            
+            with self.assertRaises(Exception) as e:
+                await handle_request(sampleImgReq)    
+
+        #get_all_image_orders: test if values are returned
+        async def test_04_get_all_image_orders(self):
+            returnable = await get_all_image_orders()
+            
+            session = get_db_session()
+            
+            expected = session.query(ImageOrder).all()
+            
+            if len(expected) > 0:
+                self.assertTrue(len(returnable) > 0)
+            else:
+                self.assertFalse(len(returnable) > 0)
             
 
 if __name__ == '__main__':
