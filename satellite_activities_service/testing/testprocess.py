@@ -1,6 +1,6 @@
 from app_config.database.setup import  get_session
-from Models.RequestModel import ActivityRequest
-from Services import process, handler
+from models.RequestModel import ActivityRequest
+from services import process, handler
 
 request1 =  { 
             "body":

@@ -1,5 +1,5 @@
 from typing import Optional, Union
-from models.ImageRequestModel import ImageRequest
+from event_relay_api.models.image_request_model import ImageRequest
 from models.activity_request import ActivityRequest
 from pydantic import BaseModel
 from datetime import datetime
