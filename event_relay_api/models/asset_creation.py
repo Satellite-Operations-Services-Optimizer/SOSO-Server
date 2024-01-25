@@ -5,9 +5,10 @@ class GroundStationCreationRequest(BaseModel):
     latitude: float
     longitude: float
     elevation: float
-    station_mask: float
-    uplink_rate: float
-    downlink_rate: float
+    send_mask: float
+    receive_mask: float
+    uplink_rate_mbps: float
+    downlink_rate_mbps: float
 
 
 class SatelliteCreationRequest(BaseModel): 

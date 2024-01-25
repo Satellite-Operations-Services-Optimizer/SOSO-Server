@@ -30,9 +30,12 @@ async def get_ground_station(id):
 
 @router.post("/create_ground_station")
 async def new_ground_station(ground_station: GroundStationCreationRequest):
-    new_ground_station = ground_station.model_dump()
-    new_ground_station_id = add_ground_station(new_ground_station)
-    return new_ground_station_id
+    session = get_db_session()
+    new_ground_station = GroundStation(**ground_station.model_dump())
+    session.add(new_ground_station)
+    session.commit()
+    session.refresh(new_ground_station)
+    return new_ground_station.id
 
 """ @router.put("/ground_stations/{name}")
 async def modify_ground_station(name):
