@@ -3,7 +3,7 @@ import logging
 from models.activity_request import ActivityRequest
 from helpers.request_validation_helper import validate_request_schema
 from models.activity_request import ActivityRequest
-from helpers.request_validation_helper import validate_request_schema
+from event_relay_api.helpers.request_validation_helper import validate_request_schema
 from app_config import rabbit, ServiceQueues
 
 from rabbit_wrapper import Publisher
