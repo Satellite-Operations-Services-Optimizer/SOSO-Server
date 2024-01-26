@@ -457,6 +457,6 @@ CREATE TABLE IF NOT EXISTS state_checkpoint (
 	asset_type asset_type NOT NULL,
 	checkpoint_time timestamptz NOT NULL,
 	state asset_state_fields NOT NULL,
-	state_delta_since_last_checkpoint asset_state_fields NOT NULL,
-	offset_state_peak_since_last_checkpoint asset_state_fields NOT NULL -- peak state values since last checkpoint, offset from the state values at the last checkpoint. Used to see if we have exceeded the satellite's capacity since the last checkpoint, to know if we have to fix the schedule made there
+	change_since_last_checkpoint asset_state_fields NOT NULL,
+	peak_since_last_checkpoint asset_state_fields NOT NULL -- peak state values since last checkpoint, offset from the state values at the last checkpoint. Used to see if we have exceeded the satellite's capacity since the last checkpoint, to know if we have to fix the schedule made there
 );
