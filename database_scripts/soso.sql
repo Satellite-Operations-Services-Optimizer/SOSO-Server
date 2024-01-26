@@ -381,7 +381,7 @@ CREATE TABLE IF NOT EXISTS scheduled_maintenance (
 CREATE TYPE satellite_state_fields AS (
 	storage double precision,
 	throughput double precision
-)
+);
 
 CREATE VIEW eventwise_asset_state_change AS
 	-- Three cases where the satellite's state changes. (calculate your state_delta in it's respective case, and leave it as 0)
