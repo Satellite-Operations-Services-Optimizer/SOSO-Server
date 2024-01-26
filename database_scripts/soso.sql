@@ -378,7 +378,7 @@ CREATE TABLE IF NOT EXISTS scheduled_maintenance (
 	event_type event_type DEFAULT 'maintenance'::event_type NOT NULL CHECK (event_type = 'maintenance')
 ) INHERITS (transmitted_event);
 
-CREATE TYPE satellite_state_fields AS (
+CREATE TYPE asset_state_fields AS (
 	storage double precision,
 	throughput double precision
 );
@@ -456,9 +456,7 @@ CREATE TABLE IF NOT EXISTS state_checkpoint (
 	asset_id integer REFERENCES asset (id),
 	asset_type asset_type NOT NULL,
 	checkpoint_time timestamptz NOT NULL,
-	state satellite_state_fields NOT NULL,
+	state asset_state_fields NOT NULL,
 	state_delta_since_last_checkpoint asset_state_fields NOT NULL,
 	offset_state_peak_since_last_checkpoint asset_state_fields NOT NULL -- peak state values since last checkpoint, offset from the state values at the last checkpoint. Used to see if we have exceeded the satellite's capacity since the last checkpoint, to know if we have to fix the schedule made there
 );
-
-INSERT INTO state_checkpoint
