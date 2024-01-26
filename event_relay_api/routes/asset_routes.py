@@ -2,8 +2,8 @@ from fastapi import APIRouter, File, UploadFile
 import json
 from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
-from helpers.asset_helper import add_satellite, add_ground_station
-from helpers.asset_helper import add_satellite, add_ground_station
+from helpers.asset_helper import add_satellite
+from helpers.asset_helper import add_satellite
 from helpers.miscellaneous_helper import txt_to_json_converter
 import logging
 from fastapi import HTTPException
