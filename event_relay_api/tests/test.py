@@ -55,46 +55,46 @@ class TestAssetRoutes(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(HTTPException) as e:
             await get_ground_station(randomID)
          
-#new ground_station: test using valid input
-# async def test_01_new_ground_station(self):
-#     # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
-#     newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
-    
-#     returnableID = await new_ground_station(newGroundStation)
-    
-#     alchemyGroundStation = GroundStation(**(newGroundStation.model_dump))
-#     session = get_db_session()
-#     result = session.query(GroundStation).filter_by(name=newGroundStation.name, latitude=newGroundStation.latitude).first()
-#     session.refresh(alchemyGroundStation)
-    
-#     self.assertEqual(returnableID, result.id)
-    
-#     session.delete(alchemyGroundStation)
-#     session.commit()
-
-# #new ground_station: test using invalid input; gs with missing attributes
-# async def test_02_new_ground_station(self):
-#     # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
-#     newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
-    
-#     with self.assertRaises(HTTPException) as e:
-#         await new_ground_station(newGroundStation)
+    #new ground_station: test using valid input
+    async def test_01_new_ground_station(self):
+        # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
+        newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
         
-# #new ground_station: test using invalid input; gs with wrong attributes
-# async def test_03_new_ground_station(self):
-#     # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
-#     newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
-    
-#     with self.assertRaises(HTTPException) as e:
-#         await new_ground_station(newGroundStation)
+        returnableID = await new_ground_station(newGroundStation)
+        
+        alchemyGroundStation = GroundStation(**(newGroundStation.model_dump))
+        session = get_db_session()
+        result = session.query(GroundStation).filter_by(name=newGroundStation.name, latitude=newGroundStation.latitude).first()
+        session.refresh(alchemyGroundStation)
+        
+        self.assertEqual(returnableID, result.id)
+        
+        session.delete(alchemyGroundStation)
+        session.commit()
 
-# #new ground_station: test using invalid input; empty request
-# async def test_04_new_ground_station(self):
-    # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
-    # newGroundStation = None
+    #new ground_station: test using invalid input; gs with missing attributes
+    async def test_02_new_ground_station(self):
+        # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
+        newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
+        
+        with self.assertRaises(HTTPException) as e:
+            await new_ground_station(newGroundStation)
+            
+    #new ground_station: test using invalid input; gs with wrong attributes
+    async def test_03_new_ground_station(self):
+        # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
+        newGroundStation = GroundStationCreationRequest(name="walid", latitude=19012.812, longitude=180231.1231, elevation=19.123, station_mask=123.21, uplink_rate=12.1, downlink_rate=123.21)
+        
+        with self.assertRaises(HTTPException) as e:
+            await new_ground_station(newGroundStation)
 
-    # with self.assertRaises(HTTPException) as e:
-    #     await new_ground_station(newGroundStation)
+    #new ground_station: test using invalid input; empty request
+    async def test_04_new_ground_station(self):
+        # EDIT THE BELOW TEST METHOD TO FIT THE GS CORRECT PARAMETERS
+        newGroundStation = None
+
+        with self.assertRaises(HTTPException) as e:
+            await new_ground_station(newGroundStation)
    
 class TestImageRoutes(unittest.IsolatedAsyncioTestCase):
     
