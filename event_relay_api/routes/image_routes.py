@@ -2,15 +2,15 @@ from fastapi import APIRouter, Body, Depends
 from fastapi.encoders import jsonable_encoder
 from fastapi_pagination import Page
 from helpers.request_validation_helper import validate_request_schema
-from models.ImageRequestModel import ImageRequest
-from models.EventRelayData import EventRelayApiMessage, RequestDetails
+from event_relay_api.models.image_request_model import ImageRequest
+from event_relay_api.models.event_relay_data import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from app_config import get_db_session
 from app_config.database.mapping import ImageOrder
 from helpers.request_validation_helper import validate_request_schema
-from models.ImageRequestModel import ImageRequest
-from models.EventRelayData import EventRelayApiMessage, RequestDetails
+from event_relay_api.models.image_request_model import ImageRequest
+from event_relay_api.models.event_relay_data import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from app_config.database.mapping import ImageOrder

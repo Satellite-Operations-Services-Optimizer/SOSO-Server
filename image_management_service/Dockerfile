@@ -5,7 +5,7 @@
 # start by pulling the python image
 FROM python:3.11-alpine
 
-ARG SERVICE_NAME=ImageManagementService
+ARG SERVICE_NAME=image_management_service
 
 # install git on container
 RUN apk update

@@ -35,28 +35,6 @@ def add_satellite(tle_json, tle_dict, form_data) -> Satellite | None:
     finally:
         session.close()
 
-def add_ground_station(data) -> GroundStation | None:
-    """
-    Adds a new ground station assset to the 'ground_station' table and returns the primary key of the added asset.
-    :param data: A dictionary containing the data for the new asset.
-    :return: The primary key of the newly added asset.
-    """
-    session = get_session()
-    try:
-        new_ground_station = GroundStation(**data)
-        session.add(new_ground_station)
-        session.commit()
-        session.refresh(new_ground_station)     
-        return new_ground_station.id  
-    
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        session.rollback()
-        return None
-    
-    finally:
-        session.close()
-
 """ def modify_ground_station_by_name(name):
 
     try:
