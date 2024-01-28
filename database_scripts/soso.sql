@@ -98,6 +98,7 @@ CREATE TABLE IF NOT EXISTS system_order (
 	delivery_deadline timestamptz,
 	visit_count integer NOT NULL DEFAULT 1,
 	revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
+	revisit_frequency_min interval DEFAULT NULL,
 	revisit_frequency_max interval DEFAULT NULL,
 	priority integer DEFAULT 1 NOT NULL CHECK (priority >= 0)
 	CONSTRAINT valid_end_time CHECK (end_time >= start_time),
