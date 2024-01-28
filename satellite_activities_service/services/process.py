@@ -1,11 +1,12 @@
 from datetime import datetime, timedelta
 from app_config.database.setup import get_session
-from models.RequestModel import ActivityRequest
-from models.ResponseModel import scheduling_options
-from helpers.util import get_activities
-from helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
+from app_config.database.mapping import MaintenanceOrder
+from satellite_activities_service.models.RequestModel import ActivityRequest
+from satellite_activities_service.models.ResponseModel import scheduling_options
+from satellite_activities_service.helpers.util import get_activities
+from satellite_activities_service.helpers.db_curd import get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
 
-def schedule_activity(satellite_id: int , maintenence_request: maintenance_order):
+def schedule_activity(satellite_id: int , maintenence_request: MaintenanceOrder):
     time_step = maintenence_request.start_time
     timeline = []
     
@@ -14,11 +15,12 @@ def schedule_activity(satellite_id: int , maintenence_request: maintenance_order
         time_step += timedelta(minutes=10)
     
     print(maintenence_request.duration)
-    duration = timedelta(hours =int(maintenence_request.duration.hour),
-                         minutes=int(maintenence_request.duration.minute), 
-                         seconds=int(maintenence_request.duration.second))
-    min_frequencey = timedelta(seconds =maintenence_request.frequency_min)
-    max_frequencey = timedelta(seconds=maintenence_request.frequency_max)
+    # duration = timedelta(hours =int(maintenence_request.duration.hour),
+    #                      minutes=int(maintenence_request.duration.minute), 
+    #                      seconds=int(maintenence_request.duration.second))
+    duration = maintenence_request.duration
+    min_frequencey = maintenence_request.revisit_frequency_min
+    max_frequencey = maintenence_request.revisit_frequency_max
     
     # **********to be tested with realdata*********
     session = get_session()

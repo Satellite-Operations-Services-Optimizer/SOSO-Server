@@ -1,6 +1,7 @@
 from app_config.database.setup import  get_session
-from models.RequestModel import ActivityRequest
-from services import process, handler
+from satellite_activities_service.models.RequestModel import ActivityRequest
+from satellite_activities_service.services import process, handler
+
 
 request1 =  { 
             "body":
@@ -105,7 +106,7 @@ outage2 = {
 
 print(request1["body"])
 
-handler.handle_message(request1)
+handler.handle_message(maintenence1)
 # activity_request = ActivityRequest(**request)       
 # response_model = create_maintenence_request(db_session, activity_request)
 
