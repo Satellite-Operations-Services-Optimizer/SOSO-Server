@@ -3,12 +3,12 @@ from fastapi.encoders import jsonable_encoder
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from app_config.database.setup import get_session
-from Services import process
+from services import process
 from app_config import logging
-from Models.SASConsumerEventData import SASConsumerEventData
-from Models.SASProducerEventData import SASProducerScheduleOptionsData
-from Models.RequestModel import ActivityRequest, OutageRequest
-from Helpers.db_curd import create_maintenence_request, create_outage_request, get_satellite_from_name
+from models.SASConsumerEventData import SASConsumerEventData
+from models.SASProducerEventData import SASProducerScheduleOptionsData
+from models.RequestModel import ActivityRequest, OutageRequest
+from helpers.db_curd import create_maintenence_request, create_outage_request, get_satellite_from_name
 import json
 def handle_message(body):
     print("Handler function called!")

@@ -1,5 +1,5 @@
 from app_config.database.setup import engine
-from sqlalchemy import Column, Integer, DateTime
+from sqlalchemy import Column, Integer, DateTime, Float
 from sqlalchemy.ext.automap import automap_base
 from app_config.utils import snake_to_camel_case
 from sqlalchemy import Table
@@ -29,6 +29,11 @@ Base = automap_base(metadata=metadata)
 #     __table_args__ = {'autoload_with': engine, 'extend_existing': True}
 
 # --- Define tables with Table syntax. This is the only way I could get it to automap for tables without a primary key
+
+# class AssetStateFields(Base):
+#     __tablename__ = 'asset_state_fields'
+#     storage = Column(Float)  # replace with actual field names and types
+#     throughput = Column(Float)
 
 SatelliteStateChange = Table(
     'satellite_state_change', metadata,
