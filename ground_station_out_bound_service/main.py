@@ -1,6 +1,6 @@
 from rabbit_wrapper import Consumer, TopicConsumer
 from app_config.rabbit import rabbit, ServiceQueues
-from services.handler import handle_message, handle_maintenance, handle_imaging, handle_cancelled, handle_contact
+from services.handler import handle_message, handle_maintenance, handle_imaging, handle_cancelled, handle_contact, send_schedules
 
 import logging
 
@@ -21,6 +21,10 @@ def startup_event():
     cancelled_consumer.register_callback(callback=handle_cancelled)
     
     rabbit().start_consuming()
+    
+    # send schedule at some set time
+    
+    send_schedules();
 
 
 if __name__ == "__main__":
