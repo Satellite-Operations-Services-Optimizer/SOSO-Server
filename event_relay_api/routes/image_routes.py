@@ -42,51 +42,6 @@ async def handle_request(image_request: ImageRequest = Depends(lambda request_da
     logger.debug("publisher created")
     publisher.publish_message(body=message)
 
-    # Your integration logic starts here
-    order_data = image_request.get("OrderData")
-    recurrence = order_data.get('Recurrence', {})
-    revisit = recurrence.get('Revisit', False)
-    number_of_revisits = int(recurrence.get('NumberOfRevisits', 0))
-    revisit_frequency = int(recurrence.get('RevisitFrequency', 0))
-    revisit_frequency_units = recurrence.get('RevisitFrequencyUnits', 'Days')
-
-    image_start_time = datetime.strptime(order_data['ImageStartTime'], '%Y-%m-%dT%H:%M:%S')
-    image_end_time = datetime.strptime(order_data['ImageEndTime'], '%Y-%m-%dT%H:%M:%S')
-    delivery_time = datetime.strptime(order_data['DeliveryTime'], '%Y-%m-%dT%H:%M:%S')
-    
-    duration = image_end_time - image_start_time
-
-    if revisit:
-        parent_order = ImageOrder(
-            start_time=image_start_time,
-            end_time=image_end_time,
-            duration=duration,
-            delivery_deadline=delivery_time,
-            number_of_revisits=number_of_revisits,
-            revisit_frequency=revisit_frequency,
-            priority=order_data['Priority']
-        )
-
-        session.add(parent_order)
-        session.commit()
-
-        for i in range(number_of_revisits):
-            new_start_time = image_start_time + (i + 1) * timedelta(days=revisit_frequency)
-            new_end_time = image_end_time + (i + 1) * timedelta(days=revisit_frequency)
-            new_delivery_time = delivery_time + (i + 1) * timedelta(days=revisit_frequency)
-
-            child_order = ScheduleRequest(
-                schedule_id=parent_order.id,
-                window_start=new_start_time,
-                window_end=new_end_time,
-                duration=duration,
-                delivery_deadline=new_delivery_time
-            )
-
-            session.add(child_order)
-
-        session.commit()
-
     return message
 
     

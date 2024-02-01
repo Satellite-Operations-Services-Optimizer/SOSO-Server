@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from app_config.database.setup import get_session
-from Models.RequestModel import ActivityRequest
-from Models.ResponseModel import scheduling_options
-from Helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
+from models.RequestModel import ActivityRequest
+from models.ResponseModel import scheduling_options
+from helpers.db_curd import maintenance_order, get_all_schedules_in_window, get_all_scheduled_images_from_schedule, get_all_scheduled_maintenence_from_schedule, get_all_scheduled_outage_from_schedule 
 
 class scheduled_activity:
     def __init__(self, schedule_id: int, start_time: datetime, end_time: datetime):

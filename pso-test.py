@@ -1,4 +1,6 @@
 import random
+from app_config.database.mapping import Schedule, ScheduledEvent, ScheduleRequest, ImageOrder, 
+from app_config import get_db_session
 
 # Define the mutation functions
 def change_uplink_station(schedule):
