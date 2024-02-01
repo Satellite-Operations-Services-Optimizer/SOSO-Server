@@ -35,9 +35,10 @@ def create_maintenence_request(db: Session, request: ActivityRequest):
 
 
 def create_outage_request(db: Session, request: RequestModel.OutageRequest):
-    
+    satellite = get_satellite_from_name(db, request.Target)
     db_request = OutageOrder(
-        asset_name = request.Target,
+        asset_id = satellite.id,
+        duration =  datetime.fromisoformat(request.Window.End) - datetime.fromisoformat(request.Window.Start),
         start_time=datetime.fromisoformat(request.Window.Start),
         end_time=datetime.fromisoformat(request.Window.End),
     )
