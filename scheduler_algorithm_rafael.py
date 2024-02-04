@@ -219,6 +219,7 @@ class satelite:
 
         with open(tle) as f: # For-loop and f-string used to open the TLE files for SOSO-1, SOSO-2, etc.
             data = json.load(f) # Load the JSON data from the file
+            # print(data)
             self.name = data['name']
             line1 = data['line1']
             line2 = data['line2']
@@ -613,34 +614,37 @@ class system:
 
         self.Satelites = []
 
-        satTLEs = os.listdir("data/satellite")
+        satTLEs = os.listdir("database_scripts/populate_scripts/sample_satellites/TLEs_json/")
 
         for TLE in satTLEs:
-            self.Satelites.append(satelite("data/satellite/"+TLE))
+            self.Satelites.append(satelite("database_scripts/populate_scripts/sample_satellites/TLEs_json/"+TLE))
 
 
     def loadEPH(self):
 
         ## Step 2: (Maintenance) Is the satellite in eclipse or in sunlight?
-        self.eph = load('data/de421.bsp')  # Load the JPL ephemeris DE421
+        self.eph = load('scheduler_service/constants/de421.bsp')  # Load the JPL ephemeris DE421
 
     def loadOrders(self):
-        orderList = os.listdir('data/ImageOrderRequests')
+        orderList = os.listdir('database_scripts/populate_scripts/sample_image_orders/')
 
         self.orders = []
 
         ind = 0
         for orderFile in orderList:
 
-            with open('data/ImageOrderRequests/'+orderFile) as f:
+            with open('database_scripts/populate_scripts/sample_image_orders/'+orderFile) as f:
                 ordDict = json.load(f)
                 ordDict["Completed"] = False
                 ordDict["Sources"] = {}
                 ordDict["Schedule"] = None
                 ordDict["Index"] = ind
 
-                if ordDict["RevisitTime"] == 'True':
-                    print(ordDict)
+                for recurrence in ordDict["Recurrence"]:
+                    if isinstance(recurrence, str):
+                        print(f"'recurrence' is a string: {recurrence}")
+                    elif 'Revisit' in recurrence and recurrence["Revisit"] == 'True':
+                        print(ordDict)
                 
 
                 if ordDict['ImageType'] == 'Low':
@@ -656,6 +660,12 @@ class system:
                     ordDict['Storage'] = 256*1024*1024
                     
                 elif ordDict['ImageType'] == 'Spotlight':
+                    ordDict['Length'] = 10
+                    ordDict['Width'] = 10
+                    ordDict['Transfer Time'] = 120
+                    ordDict['Storage'] = 512*1024*1024
+                    
+                elif ordDict['ImageType'] == 'High':
                     ordDict['Length'] = 10
                     ordDict['Width'] = 10
                     ordDict['Transfer Time'] = 120
@@ -703,11 +713,11 @@ class system:
             sat.process_images_final(self.orders, self.end_sky)
 
     def loadMaint(self):
-        maintList = os.listdir('data/MaintenanceRequests')
+        maintList = os.listdir('database_scripts/populate_scripts/sample_maintenance_orders/')
 
         for maintFile in maintList:
             
-            with open('data/MaintenanceRequests/'+maintFile) as f:
+            with open('database_scripts/populate_scripts/sample_maintenance_orders/'+maintFile) as f:
                 maintDict = json.load(f)
                 maintDict['Completed'] = False
 
