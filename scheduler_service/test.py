@@ -3,10 +3,15 @@ from sqlalchemy import literal
 from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import insert
 from app_config import get_db_session
+from datetime import datetime
 
 class SchedulerManager:
     def __init__(self, request_limit: int = 1000):
         self.request_limit = request_limit
+
+
+
+
 
     def query_ordered_candidate_requests(self, schedule: Schedule) -> list[ScheduleRequest]:
         session = get_db_session()
@@ -14,11 +19,15 @@ class SchedulerManager:
         requests_filter = [ScheduleRequest.status=='received']
         # if self.max_schedule_interval:
         #     requests_filter.append((ScheduleRequest.window_start - func.min(ScheduleRequest.window_start)) < self.max_schedule_interval)
+        request_batch = request_batch_query().subquery()
+
 
         return session.query(ScheduleRequest).filter(
             ScheduleRequest.schedule_id == schedule.id,
             *requests_filter
         ).order_by(ScheduleRequest.window_start).limit(self.request_limit)
+    
+    def get_request_span(self, schedule: Schedule) -> tuple[datetime, datetime]:
 
     def copy_schedule_within_candidate_requests_span(self, schedule: Schedule) -> Schedule:
         session = get_db_session()
