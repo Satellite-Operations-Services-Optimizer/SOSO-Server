@@ -1,11 +1,29 @@
+from apscheduler.schedulers.background import BackgroundScheduler
 from rabbit_wrapper import Consumer, TopicConsumer
 from app_config.rabbit import rabbit, ServiceQueues
-from services.handler import handle_message, handle_maintenance, handle_imaging, handle_cancelled, handle_contact, send_schedules
-
+from ground_station_out_bound_service.Services.handler import handle_maintenance, handle_imaging, handle_cancelled
+from ground_station_out_bound_service.Services.routine_send import send_upcoming_contacts
+from ground_station_out_bound_service.test import schedule_send
 import logging
 
 logger = logging.getLogger(__name__)
+
+# check every 1 hour for upcoming contact
+scheduler = BackgroundScheduler()
+scheduler.add_job(send_upcoming_contacts, 'interval', hours=1)
+
+#### test 
+# schedulertest = BackgroundScheduler()
+# schedulertest.add_job(schedule_send, 'interval', seconds=10)
+
 def startup_event():
+    
+    # send schedules
+    scheduler.start()
+    
+    # test
+    # schedulertest.start()
+    
     maintenance_consumer = TopicConsumer(rabbit(), f"schedule.maintenance.created")
     maintenance_consumer.bind(f"schedule.maintenance.rescheduled")
     maintenance_consumer.register_callback(callback=handle_maintenance) 
@@ -14,18 +32,16 @@ def startup_event():
     imaging_consumer.bind(f"schedule.image.rescheduled")
     imaging_consumer.register_callback(callback=handle_imaging) 
     
-    # contact_consumer = TopicConsumer(rabbit(), f"schedule.groundstation.contact")
-    # contact_consumer.register_callback(callback=handle_contact)
+    cancelled_consumer = TopicConsumer(rabbit(), f"schedule.image.cancelled")
+    cancelled_consumer.register_callback(callback=handle_cancelled)
     
-    cancelled_consumer = TopicConsumer(rabbit(), f"#.#.cancelled")
+    cancelled_consumer = TopicConsumer(rabbit(), f"schedule.maintenance.cancelled")
     cancelled_consumer.register_callback(callback=handle_cancelled)
     
     rabbit().start_consuming()
     
-    # send schedule at some set time
     
-    send_schedules();
-
+       
 
 if __name__ == "__main__":
     startup_event()

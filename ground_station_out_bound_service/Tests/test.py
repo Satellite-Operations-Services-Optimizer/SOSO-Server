@@ -2,7 +2,7 @@ import requests
 from fastapi.encoders import jsonable_encoder
 from app_config.database.mapping import Base
 from ground_station_out_bound_service.models.ScheduleModel import outbound_schedule, satellite_schedule, ground_station_request
-from ground_station_out_bound_service.Services.contact_ground_station import send_ground_station_request, send_satellite_schedule
+from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 # schedule formats not up to date, need to follow parameter description given
 outbound = {
   "body": {
@@ -91,9 +91,9 @@ gs_request = {
     "acquisition_of_signal": "2024-01-01T00:00:00",
     "loss_of_signal": "2024-01-01T01:00:00",
     "satellite_schedule_id": 1,
-    "images_to_be_downlinked": [
+    "downlink_images": [
       {
-        "image_id": [1,2],
+        "image_id": 12,
         "duration_of_downlink": 300,
         "size_of_image": 1.5
       }
@@ -111,15 +111,16 @@ def test_connection(schedule):
     response = send_satellite_schedule(schedule)
     return response;
 
-print(test_connection(test_schedule1))
+# print(test_connection(test_schedule1))
 
 def test_connection_gs(schedule):
     
-    gs_url = 'http://localhost:5000/ground_station_schedule'
-    
-    message = jsonable_encoder(schedule)
-    
-    response = requests.post(gs_url, json= message)
+    response = response = send_ground_station_request(schedule)
     return response;
 
-print(test_connection_gs(test_schedule3))
+def test_schedule_send():
+    
+    print("\n Satellite Schedule: ", test_connection(test_schedule1), "\n")
+    print("\nGround Station Schedule: ", test_connection_gs(test_schedule3), "\n\n")  
+
+# print("\n\n", test_connection_gs(test_schedule3), "\n\n")

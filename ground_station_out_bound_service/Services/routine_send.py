@@ -1,3 +1,6 @@
+from fastapi.encoders import jsonable_encoder
+from rabbit_wrapper import TopicConsumer, TopicPublisher
+from app_config.rabbit import rabbit
 from app_config import logging
 from app_config.database.setup import scoped_session as db_session
 from app_config.database.mapping import Base, GroundStationRequest, ScheduledContact, OutboundSchedule
@@ -14,7 +17,7 @@ def send_upcoming_contacts():
     ground_station_schedules = []
     current_datetime = datetime.now() 
     
-    # send schedules every 12 hours
+    # send schedules if cantact is less than 12 hours away
     schedule = datetime.hour(12)
     
     #possibliy multiple gs requests
@@ -26,22 +29,31 @@ def send_upcoming_contacts():
         outboundschedule = db_session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).filter(OutboundSchedule.schedule_status != "sent_to_gs").first()
         if (outboundschedule != None):
             
-            sat_schedule = satellite_schedule(satellite_name=outboundschedule.satellite_name,
-                                              schedule_id=outboundschedule.id,
-                                              activity_window=outboundschedule.activity_window,
-                                              image_activities= outboundschedule.image_activities,
-                                              maintenance_activities=outboundschedule.maintenance_activities,
-                                              downlink_activities=outboundschedule.downlink_activities)
-            sat_schedule_response = send_satellite_schedule(sat_schedule)
-
-            if(sat_schedule_response.status_code == 200):
-                outboundschedule.schedule_status = "sent_to_gs"                
-                satellite_schedules.append(outboundschedule)
+            if(contact.window_start - current_datetime < 0): # don't send if contact window has already passed
+                logging.info(f"cannot uplink updated schedule - previous schedule has been uplinked and contact window has passed")
+                failed_update = jsonable_encoder(outboundschedule)
+                logging.info(f"failed update schedule: \n{failed_update}")
                 
-                logger.info(f"Schedule {sat_schedule.schedule_id} successfully sent to ground station")
+                ## publish failed update
+                publisher = TopicPublisher(rabbit(), f"schedule.maintenance.create")
+                publisher.publish_message("publishing to topic test")
             else:
-                logger.info(f"{sat_schedule_response.status_code}: failed to send schedule {sat_schedule.schedule_id} to groundstation")
-                
+                sat_schedule = satellite_schedule(satellite_name=outboundschedule.satellite_name,
+                                                schedule_id=outboundschedule.id,
+                                                activity_window=outboundschedule.activity_window,
+                                                image_activities= outboundschedule.image_activities,
+                                                maintenance_activities=outboundschedule.maintenance_activities,
+                                                downlink_activities=outboundschedule.downlink_activities)
+                sat_schedule_response = send_satellite_schedule(sat_schedule)
+
+                if(sat_schedule_response.status_code == 200):
+                    outboundschedule.schedule_status = "sent_to_gs"                
+                    satellite_schedules.append(outboundschedule)
+                    
+                    logger.info(f"Schedule {sat_schedule.schedule_id} successfully sent to ground station")
+                else:
+                    logger.info(f"{sat_schedule_response.status_code}: failed to send schedule {sat_schedule.schedule_id} to groundstation")
+                    
         else: logger.info(f"No satellite schedules to be uplinked for contact {contact.id}")
 
         satellite = get_satellite(contact.asset_id)
@@ -63,6 +75,3 @@ def send_upcoming_contacts():
             logger.info(f"{gs_schedule_response.status_code}: failed to send schedule contact_id:{contact.id} to groundstation")
         
     pass
-
-
-

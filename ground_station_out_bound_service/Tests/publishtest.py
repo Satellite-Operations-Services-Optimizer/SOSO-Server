@@ -7,5 +7,9 @@ def pub():
     publisher.publish_message("publishing to topic test")
     pass
 
+
+
 if(__name__ == "__main__"):
     pub()
+   
+    
