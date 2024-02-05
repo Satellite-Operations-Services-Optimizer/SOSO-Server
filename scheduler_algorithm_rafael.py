@@ -18,7 +18,7 @@ from haversine import haversine
 
 
 start_time_str = "2023-10-08 00:00:00"
-end_time_str = "2023-10-08 12:00:00"
+end_time_str = "2023-10-08 23:59:59"
 
 # Convert the input strings to datetime objects
 start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
