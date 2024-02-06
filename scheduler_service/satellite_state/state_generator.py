@@ -1,4 +1,4 @@
-from app_config.database.mapping import Satellite
+from app_config.database.mapping import Satellite, GroundStation
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from datetime import datetime, timedelta
@@ -19,9 +19,9 @@ class SatelliteStateGenerator:
         # get the skyfield EarthSatellite object
         satellite = self._get_skyfield_satellite() 
 
-        time = self._ensure_skyfield_time(time)
-        position = satellite.at(time).position.km
-        subpoint = satellite.at(time).subpoint()
+        skyfield_time = self._ensure_skyfield_time(time)
+        position = satellite.at(skyfield_time).position.km
+        subpoint = satellite.at(skyfield_time).subpoint()
         latitude = subpoint.latitude.degrees
         longitude = subpoint.longitude.degrees
 
@@ -31,9 +31,10 @@ class SatelliteStateGenerator:
         # Calculate FOV
         # fov = degrees(2 * atan(12742 / (2 * (altitude_current + EARTH_RADIUS)))) # maybe move constants like '12742' to the constants.py file for better formula readability
         # No need to calculate FOV since it is given to us.
-        is_sunlit = self.is_sunlit(time)
+        is_sunlit = self.is_sunlit(skyfield_time)
         return SatelliteState(
-            time=time.utc_datetime(),
+            satellite_id=self.db_satellite.id,
+            time=skyfield_time.utc_datetime(),
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
@@ -41,8 +42,21 @@ class SatelliteStateGenerator:
             is_sunlit=is_sunlit
         )
     
-    def stream(self, anchor_time: Optional[datetime] = None):
-        time_offset = anchor_time - datetime.now() if anchor_time else timedelta(seconds=0)
+    def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
+        time = self._ensure_skyfield_time(time)
+
+        return 
+
+
+    def is_sunlit(self, time: Time):
+        skyfield_satellite = self._get_skyfield_satellite()
+        ephemeris = get_ephemeris()
+
+        is_sunlit = skyfield_satellite.at(time).is_sunlit(ephemeris)
+        return True if is_sunlit else False
+    
+    def stream(self, reference_time: Optional[datetime] = None):
+        time_offset = reference_time - datetime.now() if reference_time else timedelta(seconds=0)
         ts = self._get_timescale()
         while True:
             yield self.state_at(datetime.now() + time_offset)
@@ -61,13 +75,6 @@ class SatelliteStateGenerator:
             yield self.state_at(current_time)
             current_time = ts.utc(current_time.utc_datetime() + time_delta)
 
-    def is_sunlit(self, time: Time):
-        skyfield_satellite = self._get_skyfield_satellite()
-        ephemeris = get_ephemeris()
-
-        is_sunlit = skyfield_satellite.at(time).is_sunlit(ephemeris)
-        return True if is_sunlit else False
-    
     _skyfield_satellite: Optional[EarthSatellite] = None
     def _get_skyfield_satellite(self):
         if self._skyfield_satellite is not None:
