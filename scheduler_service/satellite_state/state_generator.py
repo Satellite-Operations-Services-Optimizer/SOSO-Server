@@ -1,4 +1,4 @@
-from app_config.database.mapping import Satellite
+from app_config.database.mapping import Satellite, GroundStation
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from datetime import datetime, timedelta
@@ -9,8 +9,6 @@ import numpy as np
 
 # This class extends the database table 'satellite'
 class SatelliteStateGenerator:
-    _skyfield_satellite: Optional[EarthSatellite] = None
-    _timescale: Optional[Timescale] = None
     def __init__(self, db_satellite: Satellite):
         self.db_satellite = db_satellite
 
@@ -21,9 +19,9 @@ class SatelliteStateGenerator:
         # get the skyfield EarthSatellite object
         satellite = self._get_skyfield_satellite() 
 
-        time = self._ensure_skyfield_time(time)
-        position = satellite.at(time).position.km
-        subpoint = satellite.at(time).subpoint()
+        skyfield_time = self._ensure_skyfield_time(time)
+        position = satellite.at(skyfield_time).position.km
+        subpoint = satellite.at(skyfield_time).subpoint()
         latitude = subpoint.latitude.degrees
         longitude = subpoint.longitude.degrees
 
@@ -33,9 +31,10 @@ class SatelliteStateGenerator:
         # Calculate FOV
         # fov = degrees(2 * atan(12742 / (2 * (altitude_current + EARTH_RADIUS)))) # maybe move constants like '12742' to the constants.py file for better formula readability
         # No need to calculate FOV since it is given to us.
-        is_sunlit = self._is_sunlit(time)
+        is_sunlit = self.is_sunlit(skyfield_time)
         return SatelliteState(
-            time=time.utc_datetime(),
+            satellite_id=self.db_satellite.id,
+            time=skyfield_time.utc_datetime(),
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
@@ -43,32 +42,40 @@ class SatelliteStateGenerator:
             is_sunlit=is_sunlit
         )
     
-    def stream(self):
-        ts = self._get_timescale()
-        while True:
-            yield self.state_at(datetime.now())
+    def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
+        time = self._ensure_skyfield_time(time)
+
+        return 
 
 
-    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta):
-        """
-        This is a generator that iterates through the states of the satelite from `start_time` to `end_time` at intervals of `time_delta`
-        """
-        ts = self._get_timescale()
-        start_time = self._ensure_skyfield_time(start_time)
-        end_time = self._ensure_skyfield_time(end_time)
-
-        current_time = start_time# Compare Julian dates
-        while current_time.tt < end_time.tt:
-            yield self.state_at(current_time)
-            current_time = ts.utc(current_time.utc_datetime() + time_delta)
-
-    def _is_sunlit(self, time: Time):
+    def is_sunlit(self, time: Time):
         skyfield_satellite = self._get_skyfield_satellite()
         ephemeris = get_ephemeris()
 
         is_sunlit = skyfield_satellite.at(time).is_sunlit(ephemeris)
         return True if is_sunlit else False
     
+    def stream(self, reference_time: Optional[datetime] = None):
+        time_offset = reference_time - datetime.now() if reference_time else timedelta(seconds=0)
+        ts = self._get_timescale()
+        while True:
+            yield self.state_at(datetime.now() + time_offset)
+
+
+    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta):
+        """
+        This is a generator that iterates through the states of the satelite from `start_time` to `end_time` at intervals of `time_delta`
+        """
+        start_time = self._ensure_skyfield_time(start_time)
+        end_time = self._ensure_skyfield_time(end_time)
+
+        ts = self._get_timescale()
+        current_time = start_time # Compare Julian dates
+        while current_time.tt < end_time.tt:
+            yield self.state_at(current_time)
+            current_time = ts.utc(current_time.utc_datetime() + time_delta)
+
+    _skyfield_satellite: Optional[EarthSatellite] = None
     def _get_skyfield_satellite(self):
         if self._skyfield_satellite is not None:
             return self._skyfield_satellite
@@ -79,6 +86,7 @@ class SatelliteStateGenerator:
         self._skyfield_satellite = EarthSatellite(line1, line2, name, self._get_timescale())
         return self._skyfield_satellite
 
+    _timescale: Optional[Timescale] = None
     def _get_timescale(self):
         if self._timescale is None:
             self._timescale = load.timescale()

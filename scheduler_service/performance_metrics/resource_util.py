@@ -59,8 +59,8 @@ class ResourceUtilizationMetric(PerformanceMetric):
             SatelliteStateChange.asset_id,
             SatelliteStateChange.asset_type,
             SatelliteStateChange.snapshot_time,
-            func.sum(SatelliteStateChange.storage_util_delta).over(
-                partition_by=(SatelliteStateChange.schedule_id, SatelliteStateChange.asset_id),
+            func.sum(SatelliteStateChange.delta.storage_util).over( # TODO maybe better to sum over all assets of the same type, then divide by count of assets of the same type. consider which would be more performant
+                partition_by=(SatelliteStateChange.schedule_id, SatelliteStateChange.asset_id, SatelliteStateChange.asset_type),
                 order_by=SatelliteStateChange.snapshot_time,
                 rows=(None, 0) # sum up all rows up to and including current row. Culmulative sum: accumulate the storage_util_delta over time, to form the actual storage of the satellite over time
             ).label('resource_util') # for now, we are only considering storage utilization
@@ -68,7 +68,7 @@ class ResourceUtilizationMetric(PerformanceMetric):
             Schedule, SatelliteStateChange.schedule_id==Schedule.id # join with Schedule so we can filter by schedule_group through the 'filters' argument
         ).filter(
             SatelliteStateChange.schedule_id == Schedule.id,
-            SatelliteStateChange.storage_util_delta != 0,
+            SatelliteStateChange.delta.storage_util != 0,
             *filters,
             *self.time_horizon.apply_filters(SatelliteStateChange.snapshot_time)
         ).group_by(
@@ -76,6 +76,6 @@ class ResourceUtilizationMetric(PerformanceMetric):
             SatelliteStateChange.asset_id,
             SatelliteStateChange.asset_type,
             SatelliteStateChange.snapshot_time,
-            SatelliteStateChange.storage_util_delta
+            SatelliteStateChange.delta.storage_util
         )
         return schedule_resource_usage_timeline

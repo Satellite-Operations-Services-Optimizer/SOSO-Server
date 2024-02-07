@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
 
 import os
@@ -14,7 +13,6 @@ import time
 from haversine import haversine
 
 
-# In[2]:
 
 
 start_time_str = "2023-10-08 00:00:00"
@@ -25,7 +23,6 @@ start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
 end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
 
 
-# In[3]:
 
 
 # Class to handle Ground Station operations
@@ -190,7 +187,6 @@ class ground_station:
         
 
 
-# In[4]:
 
 
 class satelite:
@@ -553,7 +549,6 @@ class satelite:
         return False
 
 
-# In[5]:
 
 
 class RLoptimizer:
@@ -565,7 +560,6 @@ class RLoptimizer:
         return True
 
 
-# In[6]:
 
 
 class system:
@@ -1089,7 +1083,6 @@ class system:
             self.schedId = self.schedId + 1
 
 
-# In[7]:
 
 
 sys = system()
@@ -1097,7 +1090,6 @@ sys = system()
 sys.run(start_time, end_time)
 
 
-# In[8]:
 
 
 def genGroundStationRequest(self):
@@ -1139,7 +1131,6 @@ def genGroundStationRequest(self):
 genGroundStationRequest(sys)
 
 
-# In[9]:
 
 
 for sat in sys.Satelites:
@@ -1148,7 +1139,6 @@ for sat in sys.Satelites:
             print(ev["Type"])
 
 
-# In[10]:
 
 
 print("Image Capture Scedule:")
@@ -1188,7 +1178,6 @@ for order in sys.orders:
 
 
 
-# In[11]:
 
 
 for sat in sys.Satelites:
@@ -1240,7 +1229,6 @@ for sat in sys.Satelites:
         print()
 
 
-# In[12]:
 
 
 print()
@@ -1258,7 +1246,6 @@ for sat in sys.Satelites:
 
 
 
-# In[13]:
 
 
 print()
@@ -1290,7 +1277,6 @@ for station in sys.GroundStations:
     
 
 
-# In[14]:
 
 
 print()
@@ -1309,13 +1295,11 @@ for sat in sys.Satelites:
             print("        ", slot["Start"].utc_strftime(), "   ", slot["End"].utc_strftime())
 
 
-# In[ ]:
 
 
 
 
 
-# In[ ]:
 
 
 
