@@ -1,19 +1,27 @@
 from typing import Optional
 from app_config.logs import logging
-from app_config.database.mapping import ImageOrder, MaintenanceOrder, ScheduledImaging, ScheduledContact
-from ground_station_out_bound_service.Helpers.data import get_outbound_schedule, update_outbound_schedule, create_outbound_schedule, get_scheduled_contact, get_scheduled_image, get_scheduled_maintenance, get_schedule, get_satellite, get_ground_station_request, get_ground_station, update_contact_with_downlink
+from app_config.database.mapping import ImageOrder, MaintenanceOrder, ScheduledImaging, ScheduledContact, ScheduledMaintenace
+from ground_station_out_bound_service.Helpers.data import get_outbound_schedule, update_outbound_schedule, create_outbound_schedule, get_scheduled_contact, get_scheduled_image, get_scheduled_maintenance, get_schedule, get_satellite, get_ground_station_request, get_ground_station, update_contact_with_downlink, get_maintenance_order, get_schedule_request, get_image_order
 from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, image_activity, maintenance_activity, downlink_activity, ground_station_request, downlink_image
 import json
 
-def add_maintenance_activity(maint_activity: maintenance_activity, contact_id: int, maint_order: MaintenanceOrder):
+def add_maintenance_activity(scheduled_maintenance: ScheduledMaintenace):
     
+    maintenance_request = get_schedule_request(scheduled_maintenance.request_id, "scheduled")
+    maintenance_order = get_maintenance_order(maintenance_request.order_id)  
+    
+    maint_activity = maintenance_activity(activity_id = scheduled_maintenance.id, description = maintenance_order.description,
+                              priority = maintenance_request.priority, start_time = scheduled_maintenance.start_time,
+                              payload_flag = maintenance_order.operations_flag, duration = maintenance_request.duration)
+    
+    contact_id = scheduled_maintenance.uplink_contact_id
     outbound_schedule = get_outbound_schedule(contact_id)
     
     if(outbound_schedule == None):
         window = [maint_activity.start_time, maint_activity.start_time + maint_activity.duration]
-        satellite = get_satellite(maint_order.asset_id).name
+        satellite = get_satellite(maintenance_order.asset_id).name
         outbound_schedule = create_outbound_schedule(contact_id = contact_id, 
-                                                    satellite_name = get_satellite(maint_order.asset_id).name , 
+                                                    satellite_name = get_satellite(maintenance_order.asset_id).name , 
                                                     actiivity_window =  window, 
                                                     maintenance_activity = maint_activity )
     else:
@@ -28,7 +36,14 @@ def add_maintenance_activity(maint_activity: maintenance_activity, contact_id: i
     return updated_outbound_schedule
 
 # the returned outbound schedule will have the image activity/cature, uplink and downlink information
-def add_image_activity(imaging_activity: image_activity, image_order: ImageOrder, scheduled_image: ScheduledImaging):
+def add_image_activity(scheduled_image: ScheduledImaging):
+    
+    image_request = get_schedule_request(scheduled_image.request_id, "scheduled")    
+    image_order = get_image_order(image_request.order_id)
+   
+    imaging_activity = image_activity(image_id = scheduled_image.id, type = image_order.image_res,
+                              priority = image_request.priority, start_time = scheduled_image.start_time)
+    
     
     outbound_schedule = get_outbound_schedule(scheduled_image.uplink_contact_id)
     window = [imaging_activity.start_time, imaging_activity.start_time + image_order.duration]

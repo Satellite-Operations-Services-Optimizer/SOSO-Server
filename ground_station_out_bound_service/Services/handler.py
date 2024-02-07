@@ -1,3 +1,11 @@
+#######################################################
+#  All handler methods below have been depricated. 
+#  the current implemenation creates and sends schedules 
+#  when contact time approaches instead of iteratively 
+#  bulding the schedule wasting resources on database  
+#  calls and risking data inconsistency.
+#########################################################
+
 from app_config import logging
 from ground_station_out_bound_service.Helpers.data import get_schedule, get_satellite, get_schedule_request, get_scheduled_maintenance, get_scheduled_image, get_maintenance_order, get_image_order, get_scheduled_contact, get_all_scheduled_images_from_contact, get_outbound_schedule, update_outbound_schedule
 from ground_station_out_bound_service.Helpers.util import  add_maintenance_activity, add_image_activity, add_downlink_activity, add_downlink_image

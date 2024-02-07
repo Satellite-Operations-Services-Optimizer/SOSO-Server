@@ -3,11 +3,10 @@ from rabbit_wrapper import TopicConsumer, TopicPublisher
 from app_config.rabbit import rabbit
 from app_config import logging
 from app_config.database.setup import scoped_session as db_session
-from app_config.database.mapping import Base, GroundStationRequest, ScheduledContact, OutboundSchedule, ScheduledMaintenance, ScheduledImaging
+from app_config.database.mapping import Base, GroundStationRequest, ScheduledContact, OutboundSchedule
 from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, ground_station_request
 from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 from ground_station_out_bound_service.Helpers.data import get_satellite, get_ground_station
-from ground_station_out_bound_service.Helpers.util import add_maintenance_activity, add_image_activity, add_downlink_activity, add_downlink_image
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -26,21 +25,6 @@ def send_upcoming_contacts():
     
     for contact in scheduled_contacts:
         
-        scheduled_maintenance = db_session.query(ScheduledMaintenance).filter(ScheduledMaintenance.uplink_contact_id == contact.id).all()
-        
-        for maintenance in scheduled_maintenance:
-            outbound_with_maintenance = add_maintenance_activity(maintenance)
-        
-        scheduled_images = db_session.query(ScheduledImaging).filter(ScheduledImaging.uplink_contact_id == contact.id).all()
-        
-        for imaging in scheduled_images:
-            outbound_with_imaging = add_image_activity(imaging)
-            ############# here###################    
-            outbound_with_downlink = add_downlink_activity(imaging)
-        
-        scheduled_downlinks = db_session.query(ScheduledImaging).filter(ScheduledImaging.downlink_contact_id == contact.id).all()
-        
-    
         # send the satellite schedules scheduled to be uplinked at each contact
         outboundschedule = db_session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).filter(OutboundSchedule.schedule_status != "sent_to_gs").first()
         if (outboundschedule != None):
