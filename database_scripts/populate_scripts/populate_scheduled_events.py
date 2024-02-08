@@ -38,7 +38,7 @@ def create_valid_image_order_schedule(start_time: datetime):
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,
-        visit_count=15,
+        visits_remaining=15,
         revisit_frequency=timedelta(days=1)
     )
     session.add(image_order)
@@ -51,7 +51,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
 
     session = get_db_session()
     # create repeated requests
-    for visit_count in range(order.visit_count):
+    for visit_count in range(order.visits_remaining):
         requests.append(
             ScheduleRequest(
                 schedule_id=order.schedule_id,
@@ -66,7 +66,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                 priority=order.priority
             )
         )
-        order.visit_count -= 1
+        order.visits_remaining -= 1
         order.start_time += order.revisit_frequency
         order.end_time += order.revisit_frequency
         order.delivery_deadline += order.revisit_frequency

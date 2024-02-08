@@ -89,21 +89,21 @@ EXECUTE FUNCTION set_default_name('satellite');
 CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'gs_outage', 'sat_outage');
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS system_order (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    schedule_id integer NOT NULL DEFAULT 0 REFERENCES schedule (id), -- default schedule has id 0
-    asset_id integer DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
-    start_time timestamptz NOT NULL, -- maybe rename to make it clear that it is not the actual start/end time of the event, but the window in which it can be scheduled
-    end_time timestamptz NOT NULL,
-    duration interval NOT NULL,
-    delivery_deadline timestamptz,
-    visit_count integer NOT NULL DEFAULT 1,
-    revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
-    revisit_frequency_min interval DEFAULT NULL,
-    revisit_frequency_max interval DEFAULT NULL,
-    priority integer DEFAULT 1 NOT NULL CHECK (priority >= 0)
-    CONSTRAINT valid_end_time CHECK (end_time >= start_time),
-    CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= end_time),
-    CONSTRAINT valid_visit_count CHECK (visit_count>=0)
+	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	schedule_id integer NOT NULL DEFAULT 0 REFERENCES schedule (id), -- default schedule has id 0
+	asset_id integer DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
+	start_time timestamptz NOT NULL, -- maybe rename to make it clear that it is not the actual start/end time of the event, but the window in which it can be scheduled
+	end_time timestamptz NOT NULL,
+	duration interval NOT NULL,
+	delivery_deadline timestamptz,
+	visits_remaining integer NOT NULL DEFAULT 1,
+	revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
+	revisit_frequency_min interval DEFAULT NULL,
+	revisit_frequency_max interval DEFAULT NULL,
+	priority integer DEFAULT 1 NOT NULL CHECK (priority >= 0)
+	CONSTRAINT valid_end_time CHECK (end_time >= start_time),
+	CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= end_time),
+	CONSTRAINT valid_visits_remaining CHECK (visits_remaining>=0)
 );
 
 CREATE TABLE IF NOT EXISTS transmitted_order (
@@ -486,6 +486,16 @@ CREATE TRIGGER decrement_contact_transmitted_data_size_trigger
 AFTER DELETE ON scheduled_maintenance
 FOR EACH ROW EXECUTE FUNCTION decrement_contact_transmitted_data_size();
 
+CREATE TABLE IF NOT EXISTS outbound_schedule(
+	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	contact_id integer unique REFERENCES contact_opportunity (id),
+	satellite_name text NOT NULL REFERENCES satellite (name),
+	activity_window timestamptz[] NOT NULL,
+	image_activities json[],
+	maintenance_activities json[],
+	downlink_activities json,
+	schedule_status text DEFAULT NULL --"created" at creation, "updated" when a change is made , "sent_to_gs" when sent to the ground station, "cancelled" when cancelled
+);
 
 CREATE TYPE asset_state AS (
     storage double precision,
