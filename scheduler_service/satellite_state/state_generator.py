@@ -1,6 +1,7 @@
 from app_config.database.mapping import Satellite, GroundStation
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
+from skyfield.searchlib import find_discrete
 from datetime import datetime, timedelta
 from constants import EARTH_RADIUS, get_ephemeris
 from typing import Optional, Union
@@ -26,11 +27,9 @@ class SatelliteStateGenerator:
         longitude = subpoint.longitude.degrees
 
         # Calculate altitude from position data
-        altitude = np.linalg.norm(position) - EARTH_RADIUS # The constant comes from ./constants.py file
+        semi_major_axis_km = satellite.model.a * EARTH_RADIUS
+        altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
 
-        # Calculate FOV
-        # fov = degrees(2 * atan(12742 / (2 * (altitude_current + EARTH_RADIUS)))) # maybe move constants like '12742' to the constants.py file for better formula readability
-        # No need to calculate FOV since it is given to us.
         is_sunlit = self.is_sunlit(skyfield_time)
         return SatelliteState(
             satellite_id=self.db_satellite.id,
@@ -38,7 +37,6 @@ class SatelliteStateGenerator:
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
-            fov=0, # TODO: How do we get this value? is it needed?
             is_sunlit=is_sunlit
         )
     
@@ -54,6 +52,28 @@ class SatelliteStateGenerator:
 
         is_sunlit = skyfield_satellite.at(time).is_sunlit(ephemeris)
         return True if is_sunlit else False
+    
+    def eclipse_events(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time]):
+        """
+        Get the eclipse events for the satellite between `start_time` and `end_time`
+        """
+        start_time = self._ensure_skyfield_time(start_time)
+        end_time = self._ensure_skyfield_time(end_time)
+
+        eclipses = []
+        change_times, sunlit_values = find_discrete(start_time, end_time, self.is_sunlit)
+
+        prev_time, prev_sunlit = start_time, self.is_sunlit(start_time)
+        for time, is_sunlit in zip(change_times, sunlit_values):
+            if not prev_sunlit and is_sunlit:
+                eclipses.append((prev_time, time))
+            prev_time = time
+            prev_sunlit = is_sunlit
+
+        if not prev_sunlit and prev_time < end_time:
+            eclipses.append((prev_time, end_time))
+
+        return eclipses
     
     def stream(self, reference_time: Optional[datetime] = None):
         time_offset = reference_time - datetime.now() if reference_time else timedelta(seconds=0)
@@ -110,7 +130,6 @@ class SatelliteState:
     longitude: float
     altitude: float
     is_sunlit: bool
-    fov: float
 
     def __post_init__(self, time: datetime):
         self.time = time.strftime('%Y:%m:%d %H:%M')
