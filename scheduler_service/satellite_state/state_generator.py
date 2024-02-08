@@ -1,5 +1,6 @@
 from pytest import Session
-from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage
+from sqlalchemy import desc
+from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage, StateCheckpoint
 from app_config import get_db_session
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
@@ -32,6 +33,16 @@ class SatelliteStateGenerator:
         semi_major_axis_km = satellite.model.a * EARTH_RADIUS
         altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
 
+        # Query to get satellite state
+        session = get_db_session()
+        satellite_state = session.query(
+                StateCheckpoint.state
+            ).filter(
+                StateCheckpoint.checkpoint_time <= time, asset_id=self.db_satellite.id, asset_type="satellite", schedule_id=0
+            ).order_by(
+                StateCheckpoint.checkpoint_time, desc=True
+            ).limit(1)
+
         is_sunlit = self.is_sunlit(skyfield_time)
         return SatelliteState(
             satellite_id=self.db_satellite.id,
@@ -39,51 +50,47 @@ class SatelliteStateGenerator:
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
-            is_sunlit=is_sunlit
-        )
-    
-    def power_status(self):
-        session = get_db_session()
+            is_sunlit=is_sunlit,
+            power_draw=satellite_state.power_draw,
+            storage_util=satellite_state.power_draw,
+            in_maintenance=self._satellite_maintainence_at,
+            in_outage=self._satellite_outage_at
+        )        
 
-    def storage_status(self):
-        session = get_db_session()
-        power = session.query(Satellite).select(Satellite.storage_capacity).filter_by(asset_id=self.db_satellite.id)
-        return power
-
-    def scheduled_maintainence_at(self, time: Union[datetime, Time]):
+    def _satellite_maintainence_at(self, time: Union[datetime, Time]):
         """
         Checks to see if there is a scheduled maintenance of the satellite at the provided time
         """
+        time = self._ensure_datetime()
         session = get_db_session()
         satellite_maintenance = session.query(
             ScheduledMaintenance
-        ).filter_by(
-            schedule_id=0
-        ).filter_by(
+        ).filter(
+            ScheduledMaintenance.time_range.op('&&')(time),
+            schedule_id=0, 
             asset_id=self.db_satellite.id
-        ).where(
-            (ScheduledMaintenance.window_start <= time) & (ScheduledMaintenance.window_end >= time))
-        
+        ).first()
+
         if satellite_maintenance is None:
             return False
         else:
             return True
         
-    def satellite_outage_at(self, time: Union[datetime, Time]):
+    def _satellite_outage_at(self, time: Union[datetime, Time]):
         """
         Checks to see if the provided satellite has an outage at the provided time
         """
+        time = self._ensure_datetime()
         session = get_db_session()
-        satellite_maintenance = session.query(
+        satellite_outage = session.query(
             SatelliteOutage
-        ).filter_by(
-            schedule_id=0
-        ).filter_by(
+        ).filter(
+            SatelliteOutage.time_range.op('&&')(time),
+            schedule_id=0, 
             asset_id=self.db_satellite.id
-        ).where(
-            (ScheduledMaintenance.window_start <= time) & (ScheduledMaintenance.window_end >= time))
+        ).first()
         
-        if satellite_maintenance is None:
+        if satellite_outage is None:
             return False
         else:
             return True
@@ -169,6 +176,11 @@ class SatelliteStateGenerator:
         skyfield_time = ts.utc(time.year, time.month, time.day, time.hour, time.minute, time.second)
         return skyfield_time
     
+    def _ensure_datetime(self, time: Union[datetime, Time]):
+        if isinstance(time, datetime):
+            return time
+        
+        return time.utc.datetime()
 
 
 @dataclass
@@ -178,6 +190,10 @@ class SatelliteState:
     longitude: float
     altitude: float
     is_sunlit: bool
+    power_draw: float
+    storage_util: float
+    in_maintenance: bool
+    in_outage: bool
 
     def __post_init__(self, time: datetime):
         self.time = time.strftime('%Y:%m:%d %H:%M')
