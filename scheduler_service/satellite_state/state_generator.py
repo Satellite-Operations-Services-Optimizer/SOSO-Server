@@ -1,4 +1,6 @@
-from app_config.database.mapping import Satellite, GroundStation
+from pytest import Session
+from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage
+from app_config import get_db_session
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from datetime import datetime, timedelta
@@ -41,6 +43,52 @@ class SatelliteStateGenerator:
             fov=0, # TODO: How do we get this value? is it needed?
             is_sunlit=is_sunlit
         )
+    
+    def power_status(self):
+        session = get_db_session()
+
+    def storage_status(self):
+        session = get_db_session()
+        power = session.query(Satellite).select(Satellite.storage_capacity).filter_by(asset_id=self.db_satellite.id)
+        return power
+
+    def scheduled_maintainence_at(self, time: Union[datetime, Time]):
+        """
+        Checks to see if there is a scheduled maintenance of the satellite at the provided time
+        """
+        session = get_db_session()
+        satellite_maintenance = session.query(
+            ScheduledMaintenance
+        ).filter_by(
+            schedule_id=0
+        ).filter_by(
+            asset_id=self.db_satellite.id
+        ).where(
+            (ScheduledMaintenance.window_start <= time) & (ScheduledMaintenance.window_end >= time))
+        
+        if satellite_maintenance is None:
+            return False
+        else:
+            return True
+        
+    def satellite_outage_at(self, time: Union[datetime, Time]):
+        """
+        Checks to see if the provided satellite has an outage at the provided time
+        """
+        session = get_db_session()
+        satellite_maintenance = session.query(
+            SatelliteOutage
+        ).filter_by(
+            schedule_id=0
+        ).filter_by(
+            asset_id=self.db_satellite.id
+        ).where(
+            (ScheduledMaintenance.window_start <= time) & (ScheduledMaintenance.window_end >= time))
+        
+        if satellite_maintenance is None:
+            return False
+        else:
+            return True
     
     def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
         time = self._ensure_skyfield_time(time)
