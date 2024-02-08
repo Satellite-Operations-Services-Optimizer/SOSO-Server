@@ -33,7 +33,7 @@ def populate_sample_image_orders():
 
 def image_order_from_json(image_order_json):
     num_revisits = 0 if type(image_order_json["Recurrence"])==list else image_order_json["Recurrence"].get("NumberOfRevisits")
-    revisit_number = num_revisits+1,
+    visits_remaining = num_revisits+1,
     if type(image_order_json["Recurrence"]) != list:
         frequency_amount = image_order_json["Recurrence"].get("RevisitFrequency")
         frequency_unit = image_order_json["Recurrence"].get("RevisitFrequencyUnits").lower()
@@ -48,7 +48,7 @@ def image_order_from_json(image_order_json):
         start_time=datetime.fromisoformat(image_order_json["ImageStartTime"]),
         end_time=datetime.fromisoformat(image_order_json["ImageEndTime"]),
         delivery_deadline=datetime.fromisoformat(image_order_json["DeliveryTime"]),
-        revisit_number=revisit_number,
+        visits_remaining=visits_remaining,
         revisit_frequency=revisit_frequency
     )
 

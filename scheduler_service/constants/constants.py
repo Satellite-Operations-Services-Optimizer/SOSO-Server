@@ -1,6 +1,6 @@
 from skyfield.api import load
 
-EARTH_RADIUS = 6371
+EARTH_RADIUS = 6378.137
 
 _de421_bsp = None
 def get_ephemeris():
