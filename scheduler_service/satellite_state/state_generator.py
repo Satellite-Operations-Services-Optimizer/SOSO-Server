@@ -1,8 +1,11 @@
-from app_config.database.mapping import Satellite, GroundStation
+from pytest import Session
+from sqlalchemy import desc, func
+from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage, StateCheckpoint
+from app_config import get_db_session
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from skyfield.searchlib import find_discrete
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from constants import EARTH_RADIUS, get_ephemeris
 from typing import Optional, Union
 from dataclasses import dataclass, InitVar
@@ -32,6 +35,18 @@ class SatelliteStateGenerator:
         semi_major_axis_km = satellite.model.a * EARTH_RADIUS
         altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
 
+        # session = get_db_session()
+        # satellite_state = session.query(StateCheckpoint.state).filter(
+        #     StateCheckpoint.checkpoint_time <= datetime_time,
+        #     StateCheckpoint.asset_id==self.db_satellite.id,
+        #     StateCheckpoint.asset_type=="satellite",
+        #     StateCheckpoint.schedule_id==0
+        # ).order_by(desc(StateCheckpoint.checkpoint_time)).limit(1).first()
+        # power_draw = satellite_state.power_draw if satellite_state is not None else 0
+        # storage_util = satellite_state.storage_util if satellite_state is not None else 0
+        # in_maintenance = self._satellite_maintainence_at(datetime_time)
+        # in_outage = self._satellite_outage_at(datetime_time)
+
         is_sunlit = True if self.is_sunlit(skyfield_time) else False
         return SatelliteState(
             satellite_id=self.db_satellite.id,
@@ -40,7 +55,45 @@ class SatelliteStateGenerator:
             longitude=longitude,
             altitude=altitude,
             is_sunlit=is_sunlit
-        )
+        )        
+
+    # def _satellite_maintainence_at(self, time: Union[datetime, Time]):
+    #     """
+    #     Checks to see if there is a scheduled maintenance of the satellite at the provided time
+    #     """
+    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
+    #     session = get_db_session()
+    #     satellite_maintenance = session.query(
+    #         ScheduledMaintenance
+    #     ).filter(
+    #         ScheduledMaintenance.utc_time_range.op('&&')(func.tsrange(time, time)),
+    #         ScheduledMaintenance.schedule_id==0, 
+    #         ScheduledMaintenance.asset_id==self.db_satellite.id
+    #     ).first()
+
+    #     if satellite_maintenance is None:
+    #         return False
+    #     else:
+    #         return True
+        
+    # def _satellite_outage_at(self, time: Union[datetime, Time]):
+    #     """
+    #     Checks to see if the provided satellite has an outage at the provided time
+    #     """
+    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
+    #     session = get_db_session()
+    #     satellite_outage = session.query(
+    #         SatelliteOutage
+    #     ).filter(
+    #         SatelliteOutage.time_range.op('&&')(time),
+    #         schedule_id=0, 
+    #         asset_id=self.db_satellite.id
+    #     ).first()
+        
+    #     if satellite_outage is None:
+    #         return False
+    #     else:
+    #         return True
     
     def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
         time = self._ensure_skyfield_time(time)
