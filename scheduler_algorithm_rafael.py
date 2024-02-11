@@ -3,7 +3,6 @@
 
 # In[1]:
 
-
 import os
 import json
 from skyfield.sgp4lib import EarthSatellite
@@ -13,9 +12,7 @@ import math
 import time
 from haversine import haversine
 
-
 # In[2]:
-
 
 start_time_str = "2023-10-08 00:00:00"
 end_time_str = "2023-10-08 23:59:59"
@@ -353,9 +350,7 @@ class satelite:
                     self.stationVisibility[station.Name]["slots"].append(slot)
                     
                     self.stationVisibility[station.Name]["Start"] = None
-                
-                
-            
+                     
     def intersect(self, image, Lat, Long):
 
         distX = haversine((image['Latitude'], Long), (Lat, Long))
@@ -1133,14 +1128,10 @@ class system:
 
 # In[7]:
 
-
 sys = system()
-
 sys.run(start_time, end_time)
 
-
 # In[8]:
-
 
 def genGroundStationRequest(self):
     for activity in self.activitySchedules:
