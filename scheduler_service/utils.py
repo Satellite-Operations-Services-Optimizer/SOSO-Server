@@ -63,4 +63,4 @@ def copy_schedule(self, schedule: Schedule, time_range: TimeHorizon = TimeHorizo
 
 
     # Copy ScheduleRequest instances that overlap with our span
-    schedule_requests_in_span = session.query(
+    schedule_requests_in_span = session.query()

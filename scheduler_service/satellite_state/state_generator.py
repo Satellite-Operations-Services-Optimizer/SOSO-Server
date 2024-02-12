@@ -1,14 +1,15 @@
 from pytest import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage, StateCheckpoint
 from app_config import get_db_session
 from skyfield.api import EarthSatellite, load
 from skyfield.timelib import Timescale, Time
 from skyfield.searchlib import find_discrete
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from constants import EARTH_RADIUS, get_ephemeris
 from typing import Optional, Union
 from dataclasses import dataclass, InitVar
+from pydantic import BaseModel
 import numpy as np
 
 # This class extends the database table 'satellite'
@@ -23,6 +24,7 @@ class SatelliteStateGenerator:
         # get the skyfield EarthSatellite object
         satellite = self._get_skyfield_satellite() 
 
+        datetime_time = self._ensure_datetime(time)
         skyfield_time = self._ensure_skyfield_time(time)
         position = satellite.at(skyfield_time).position.km
         subpoint = satellite.at(skyfield_time).subpoint()
@@ -33,67 +35,65 @@ class SatelliteStateGenerator:
         semi_major_axis_km = satellite.model.a * EARTH_RADIUS
         altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
 
-        # Query to get satellite state
-        session = get_db_session()
-        satellite_state = session.query(
-                StateCheckpoint.state
-            ).filter(
-                StateCheckpoint.checkpoint_time <= time, asset_id=self.db_satellite.id, asset_type="satellite", schedule_id=0
-            ).order_by(
-                StateCheckpoint.checkpoint_time, desc=True
-            ).limit(1)
+        # session = get_db_session()
+        # satellite_state = session.query(StateCheckpoint.state).filter(
+        #     StateCheckpoint.checkpoint_time <= datetime_time,
+        #     StateCheckpoint.asset_id==self.db_satellite.id,
+        #     StateCheckpoint.asset_type=="satellite",
+        #     StateCheckpoint.schedule_id==0
+        # ).order_by(desc(StateCheckpoint.checkpoint_time)).limit(1).first()
+        # power_draw = satellite_state.power_draw if satellite_state is not None else 0
+        # storage_util = satellite_state.storage_util if satellite_state is not None else 0
+        # in_maintenance = self._satellite_maintainence_at(datetime_time)
+        # in_outage = self._satellite_outage_at(datetime_time)
 
-        is_sunlit = self.is_sunlit(skyfield_time)
+        is_sunlit = True if self.is_sunlit(skyfield_time) else False
         return SatelliteState(
             satellite_id=self.db_satellite.id,
-            time=skyfield_time.utc_datetime(),
+            time=datetime_time,
             latitude=latitude,
             longitude=longitude,
             altitude=altitude,
-            is_sunlit=is_sunlit,
-            power_draw=satellite_state.power_draw,
-            storage_util=satellite_state.power_draw,
-            in_maintenance=self._satellite_maintainence_at,
-            in_outage=self._satellite_outage_at
+            is_sunlit=is_sunlit
         )        
 
-    def _satellite_maintainence_at(self, time: Union[datetime, Time]):
-        """
-        Checks to see if there is a scheduled maintenance of the satellite at the provided time
-        """
-        time = self._ensure_datetime()
-        session = get_db_session()
-        satellite_maintenance = session.query(
-            ScheduledMaintenance
-        ).filter(
-            ScheduledMaintenance.time_range.op('&&')(time),
-            schedule_id=0, 
-            asset_id=self.db_satellite.id
-        ).first()
+    # def _satellite_maintainence_at(self, time: Union[datetime, Time]):
+    #     """
+    #     Checks to see if there is a scheduled maintenance of the satellite at the provided time
+    #     """
+    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
+    #     session = get_db_session()
+    #     satellite_maintenance = session.query(
+    #         ScheduledMaintenance
+    #     ).filter(
+    #         ScheduledMaintenance.utc_time_range.op('&&')(func.tsrange(time, time)),
+    #         ScheduledMaintenance.schedule_id==0, 
+    #         ScheduledMaintenance.asset_id==self.db_satellite.id
+    #     ).first()
 
-        if satellite_maintenance is None:
-            return False
-        else:
-            return True
+    #     if satellite_maintenance is None:
+    #         return False
+    #     else:
+    #         return True
         
-    def _satellite_outage_at(self, time: Union[datetime, Time]):
-        """
-        Checks to see if the provided satellite has an outage at the provided time
-        """
-        time = self._ensure_datetime()
-        session = get_db_session()
-        satellite_outage = session.query(
-            SatelliteOutage
-        ).filter(
-            SatelliteOutage.time_range.op('&&')(time),
-            schedule_id=0, 
-            asset_id=self.db_satellite.id
-        ).first()
+    # def _satellite_outage_at(self, time: Union[datetime, Time]):
+    #     """
+    #     Checks to see if the provided satellite has an outage at the provided time
+    #     """
+    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
+    #     session = get_db_session()
+    #     satellite_outage = session.query(
+    #         SatelliteOutage
+    #     ).filter(
+    #         SatelliteOutage.time_range.op('&&')(time),
+    #         schedule_id=0, 
+    #         asset_id=self.db_satellite.id
+    #     ).first()
         
-        if satellite_outage is None:
-            return False
-        else:
-            return True
+    #     if satellite_outage is None:
+    #         return False
+    #     else:
+    #         return True
     
     def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
         time = self._ensure_skyfield_time(time)
@@ -106,7 +106,7 @@ class SatelliteStateGenerator:
         ephemeris = get_ephemeris()
 
         is_sunlit = skyfield_satellite.at(time).is_sunlit(ephemeris)
-        return True if is_sunlit else False
+        return is_sunlit
     
     def eclipse_events(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time]):
         """
@@ -116,7 +116,13 @@ class SatelliteStateGenerator:
         end_time = self._ensure_skyfield_time(end_time)
 
         eclipses = []
-        change_times, sunlit_values = find_discrete(start_time, end_time, self.is_sunlit)
+
+        def is_sunlit_wrapper(time: Time):
+            return self.is_sunlit(time)
+
+        step_time_minutes = 1
+        is_sunlit_wrapper.step_days = step_time_minutes / (24 * 60) # convert minutes to days
+        change_times, sunlit_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
 
         prev_time, prev_sunlit = start_time, self.is_sunlit(start_time)
         for time, is_sunlit in zip(change_times, sunlit_values):
@@ -125,7 +131,7 @@ class SatelliteStateGenerator:
             prev_time = time
             prev_sunlit = is_sunlit
 
-        if not prev_sunlit and prev_time < end_time:
+        if not prev_sunlit and prev_time.tt < end_time.tt:
             eclipses.append((prev_time, end_time))
 
         return eclipses
@@ -137,7 +143,7 @@ class SatelliteStateGenerator:
             yield self.state_at(datetime.now() + time_offset)
 
 
-    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta):
+    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta=timedelta(minutes=1)):
         """
         This is a generator that iterates through the states of the satelite from `start_time` to `end_time` at intervals of `time_delta`
         """
@@ -176,27 +182,22 @@ class SatelliteStateGenerator:
         skyfield_time = ts.utc(time.year, time.month, time.day, time.hour, time.minute, time.second)
         return skyfield_time
     
-    def _ensure_datetime(self, time: Union[datetime, Time]):
+    def _ensure_datetime(self, time: Union[datetime, Time]) -> datetime:
         if isinstance(time, datetime):
             return time
-        
-        return time.utc.datetime()
+        return time.utc_datetime()
+    
 
 
-@dataclass
-class SatelliteState:
-    time: InitVar[datetime]
+class SatelliteState(BaseModel):
+    satellite_id: int
+    time: datetime
     latitude: float
     longitude: float
     altitude: float
     is_sunlit: bool
-    power_draw: float
-    storage_util: float
-    in_maintenance: bool
-    in_outage: bool
 
-    def __post_init__(self, time: datetime):
-        self.time = time.strftime('%Y:%m:%d %H:%M')
-
-    def __str__(self):
-        return f"{{time: {self.time}, latitude: {self.latitude}, longitude: {self.longitude}, altitude: {self.altitude}, is_sunlit: {self.is_sunlit}, fov: {self.fov}}}"
+    class Config:
+        json_encoders = {
+            datetime: lambda v: v.strftime('%Y:%m:%d %H:%M')
+        }
