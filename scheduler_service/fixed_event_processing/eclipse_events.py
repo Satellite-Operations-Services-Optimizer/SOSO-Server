@@ -18,20 +18,13 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
     eclipses = []
     state_generators = dict() # satellite_id -> satellite_state_generator
     for block in blocks_to_process:
-        # just to be safe, let us have some buffer time around the processing block to allow for any undersampling errors
-        block_duration = block.time_range.upper - block.time_range.lower
-        min_allowance = timedelta(minutes=5)
-        max_allowance = timedelta(minutes=20)
-        error_allowance = max(min_allowance, min(0.5*block_duration, max_allowance))
-        error_allowance = timedelta(minutes=0)
-
         # Find and insert all eclipse events that occur within the time range of the processing block
         if block.satellite_id not in state_generators:
             satellite = session.query(Satellite).get(block.satellite_id)
             state_generators[block.satellite_id] = SatelliteStateGenerator(satellite)
         
         state_generator = state_generators[block.satellite_id]
-        eclipse_time_ranges = state_generator.eclipse_events(block.time_range.lower-error_allowance, block.time_range.upper+error_allowance)
+        eclipse_time_ranges = state_generator.eclipse_events(block.time_range.lower, block.time_range.upper)
 
         # merge eclipses in case there are other eclipses that overlap (more specifically are continuous) with you. otherwise, create a new eclipse
         for eclipse_start, eclipse_end in eclipse_time_ranges:
