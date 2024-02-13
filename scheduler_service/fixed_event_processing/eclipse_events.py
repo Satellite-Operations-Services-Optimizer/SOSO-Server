@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy import func, or_
 from app_config import get_db_session
 from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
@@ -18,13 +18,20 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
     eclipses = []
     state_generators = dict() # satellite_id -> satellite_state_generator
     for block in blocks_to_process:
+        # just to be safe, let us have some buffer time around the processing block to allow for any undersampling errors
+        block_duration = block.time_range.upper - block.time_range.lower
+        min_allowance = timedelta(minutes=5)
+        max_allowance = timedelta(minutes=20)
+        error_allowance = max(min_allowance, min(0.5*block_duration, max_allowance))
+        error_allowance = timedelta(minutes=0)
+
         # Find and insert all eclipse events that occur within the time range of the processing block
         if block.satellite_id not in state_generators:
             satellite = session.query(Satellite).get(block.satellite_id)
             state_generators[block.satellite_id] = SatelliteStateGenerator(satellite)
         
         state_generator = state_generators[block.satellite_id]
-        eclipse_time_ranges = state_generator.eclipse_events(block.time_range.lower, block.time_range.upper)
+        eclipse_time_ranges = state_generator.eclipse_events(block.time_range.lower-error_allowance, block.time_range.upper+error_allowance)
 
         # merge eclipses in case there are other eclipses that overlap (more specifically are continuous) with you. otherwise, create a new eclipse
         for eclipse_start, eclipse_end in eclipse_time_ranges:
@@ -42,13 +49,15 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
 
             # first delete overlapping eclipses
             if overlapping_eclipses:
-                min_start = min(eclipse.utc_time_range.lower for eclipse in overlapping_eclipses)
-                max_end = max(eclipse.utc_time_range.upper for eclipse in overlapping_eclipses)
+                min_overlapping_start = min([eclipse.utc_time_range.lower for eclipse in overlapping_eclipses])
+                max_overlapping_end = max([eclipse.utc_time_range.upper for eclipse in overlapping_eclipses])
 
                 for eclipse in overlapping_eclipses:
                     session.delete(eclipse)
 
-                eclipse_start, eclipse_end = min_start, max_end # update eclipse start and end to encompass all continuous/overlapping eclipses
+                # update eclipse start and end to encompass all continuous/overlapping eclipses
+                eclipse_start = min(eclipse_start, min_overlapping_start)
+                eclipse_end = max(eclipse_end, max_overlapping_end) 
 
             # then add the eclipse encompassing them all
             eclipses.append(SatelliteEclipse(

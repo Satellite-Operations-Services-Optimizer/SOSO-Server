@@ -110,7 +110,7 @@ def query_processing_gaps(start_time: datetime, end_time: Optional[datetime], pr
         preceding_gap_time_range.label('time_range')
     ).filter(
         preceding_gap_time_range.op('&&')(main_time_range),
-        func.lower(preceding_gap_time_range) < func.upper(preceding_gap_time_range) # TODO: maybe not needed. guaranteed by the above logic I believe
+        func.lower(text('time_range')) < func.upper(text('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
     )
 
     # We did not consider the gaps that come after the last processing block.
@@ -123,7 +123,9 @@ def query_processing_gaps(start_time: datetime, end_time: Optional[datetime], pr
     trailing_gaps_query = session.query(
         *subquery_partition_columns,
         trailing_gap_time_range.label('time_range')
-    ).filter(func.upper(processing_blocks.c.time_range) < end_time).group_by(*subquery_partition_columns)
+    ).filter(
+        func.lower(text('time_range')) < func.upper(text('time_range'))
+    ).group_by(*subquery_partition_columns)
 
 
     unfiltered_processing_gaps = union(gaps_query_main, trailing_gaps_query).subquery()

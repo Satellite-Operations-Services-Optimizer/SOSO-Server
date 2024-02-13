@@ -9,7 +9,7 @@ from sqlalchemy import func
 from collections import deque
 
 def test_accurate_eclipse_event_population(test_satellite: Satellite):
-    start_time = datetime.utcnow()# + timedelta(hours=5.3)
+    start_time = datetime(2024, 2, 13, 2, 20, 45, 772453) + timedelta(hours=5.3)
     end_time = start_time + timedelta(days=1)
     ensure_eclipse_events_populated(start_time, end_time)
 
