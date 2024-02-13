@@ -28,14 +28,15 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
 
         # merge eclipses in case there are other eclipses that overlap (more specifically are continuous) with you. otherwise, create a new eclipse
         for eclipse_start, eclipse_end in eclipse_time_ranges:
-            eclipse_start = eclipse_start.utc_datetime()
-            eclipse_end = eclipse_end.utc_datetime()
+            eclipse_start = eclipse_start.utc_datetime().replace(tzinfo=None) # remove time zone info to compare with utc_time_range column which is tsrange type (doesn't have timezone info)
+            eclipse_end = eclipse_end.utc_datetime().replace(tzinfo=None)
 
             overlapping_eclipses = session.query(SatelliteEclipse).filter(
                 SatelliteEclipse.asset_id == block.satellite_id,
                 or_(
-                    func.lower(SatelliteEclipse.utc_time_range) >= eclipse_start,
-                    func.upper(SatelliteEclipse.utc_time_range) <= eclipse_end
+                    SatelliteEclipse.utc_time_range.op('&&')(func.tsrange(eclipse_start, eclipse_end)), # if the eclipse overlaps with our eclipse
+                    func.lower(SatelliteEclipse.utc_time_range) == eclipse_end, # if the eclipse starts where our eclipse ends
+                    func.upper(SatelliteEclipse.utc_time_range) == eclipse_start # if the eclipse ends where our eclipse starts
                 )
             ).all()
 
