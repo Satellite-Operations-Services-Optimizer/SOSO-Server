@@ -1,9 +1,9 @@
 from rabbit_wrapper import Consumer
-from app_config import rabbit, ServiceQueues
+from app_config import rabbit as rab, ServiceQueues
 from services.handler import handle_message
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from helpers.ftp_helper import *
+from Helpers.ftp_helper import *
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()
@@ -18,16 +18,16 @@ def startup_event():
 
 @scheduler.scheduled_job('interval', seconds=5)
 def timed_job():
-    logging.info('[FTP] Running')
+    logging.info('[Cron Job | Pull From FTP] Running')
     imageRequests = getJSONsFromFTP()
     
-    logging.info("[FTP: FINAL] Files To Be Considered")
+    logging.info("[Cron Job | Pull From FTP: FINAL] Files To Be Considered")
     for imgReq in imageRequests:
         logging.info(str(imgReq))
         logging.info("***")
     
     for imgReq in imageRequests:
-        logging.info(f"[FTP] Sent {str(imgReq)} to image handler")
+        logging.info(f"[Cron Job | Pull From FTP] Sent {str(imgReq)} to image handler")
         handle_image_orders(imgReq) 
     
 

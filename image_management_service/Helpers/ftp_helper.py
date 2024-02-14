@@ -61,21 +61,21 @@ def getJSONsFromFTP() -> List[ImageRequest]:
                     currImgReq = ImageRequest.model_validate_json(currJSON);
                     ftpFiles.append(currImgReq)
                     
-                    logging.info("[FTP: ADD] Added " + file + " as a potential image order")
+                    logging.info("[Cron Job | Pull From FTP: ADD] Added " + file + " as a potential image order")
                     
                     currFile = None
                     currJSON = None
                 else:
-                    logging.info("[FTP: IGNORE] file " + file + " did not pass the schema check.");    
+                    logging.info("[Cron Job | Pull From FTP: IGNORE] file " + file + " did not pass the schema check.");    
                 ftp.delete(file)
-                logging.info("[FTP: DELETE] Deleting from server" + file)
+                logging.info("[Cron Job | Pull From FTP: DELETE] Deleting from server" + file)
                 
             except Exception as error:
-                logging.error("[FTP: IGNORE] file " + file + " is not included in the image order queue. ")
+                logging.error("[Cron Job | Pull From FTP: IGNORE] file " + file + " is not included in the image order queue. ")
             
         
         ftp.close();
     except Exception as error:
-        logging.error("[FTP] Exception Occurred During FTP pull: " + str(error))
+        logging.error("[Cron Job | Pull From FTP] Exception Occurred During FTP pull: " + str(error))
         
     return ftpFiles;
