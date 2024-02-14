@@ -33,8 +33,9 @@ def z_score(column: ClauseElement, partition_by: list[ClauseElement] = None) -> 
     """
     partition_by = partition_by or []
     stddev = func.stddev(column).over(partition_by=partition_by)
+    stddev_safe = func.coalesce(stddev, 0)
 
-    z_score = (column - func.avg(column).over(partition_by=partition_by)) / stddev
-    z_score_safe = case((stddev == 0, 0), else_=z_score) # avoid division by zero, also, if stddev=0, they are all 0 standard deviations away from the mean, so set to 0
+    z_score = (column - func.avg(column).over(partition_by=partition_by)) / stddev_safe
+    z_score_safe = case((stddev_safe == 0, 0), else_=z_score) # avoid division by zero, also, if stddev=0, they are all 0 standard deviations away from the mean, so set to 0
     return z_score_safe
 

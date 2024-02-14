@@ -1,5 +1,5 @@
 from app_config import get_db_session, logging
-from app_config.database.mapping import Satellite, GroundStation, Schedule, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
+from app_config.database.mapping import Satellite, GroundStation, Schedule, ContactOpportunity, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
 from math import ceil
 import random
@@ -38,7 +38,7 @@ def create_valid_image_order_schedule(start_time: datetime):
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,
-        visit_count=10,
+        visits_remaining=15,
         revisit_frequency=timedelta(days=1)
     )
     session.add(image_order)
@@ -46,12 +46,12 @@ def create_valid_image_order_schedule(start_time: datetime):
     schedule_image_order(image_order, schedule, satellites, ground_stations)
 
 
-def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Satellite, ground_stations: GroundStation):
+def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list[Satellite], ground_stations: list[GroundStation]):
     requests = []
 
     session = get_db_session()
     # create repeated requests
-    for visit_count in range(order.visit_count):
+    for visit_count in range(order.visits_remaining):
         requests.append(
             ScheduleRequest(
                 schedule_id=order.schedule_id,
@@ -66,7 +66,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Sate
                 priority=order.priority
             )
         )
-        order.visit_count -= 1
+        order.visits_remaining -= 1
         order.start_time += order.revisit_frequency
         order.end_time += order.revisit_frequency
         order.delivery_deadline += order.revisit_frequency
@@ -77,10 +77,14 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Sate
 
 
     contact_duration = timedelta(minutes=10)
-    first_contact = ScheduledContact(
+
+    sat = random.choice(satellites)
+    gs = random.choice(ground_stations)
+
+    first_contact = ContactOpportunity(
         schedule_id=schedule.id,
-        asset_id=satellites[0].id,
-        groundstation_id=ground_stations[0].id,
+        asset_id=sat.id,
+        groundstation_id=gs.id,
         start_time=requests[0].window_start - contact_duration,
         duration=timedelta(minutes=20)
     )
@@ -88,8 +92,8 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Sate
     session.commit()
 
     # partition requests into three separate arrays, evenly based on index
-    num_of_partitions = 3
-    previous_contact = first_contact
+    num_of_partitions = 7
+    uplink_contact = first_contact
 
     partition_count = 0
     while len(requests)>0:
@@ -104,15 +108,12 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Sate
             if not request:
                 break
 
-            satellite = satellites[0]
-
             event_start_time = (request.window_end - request.duration)
-            uplink_contact = previous_contact
             scheduled_imaging_partition.append(
                 ScheduledImaging(
                     schedule_id=request.schedule_id,
                     request_id=request.id,
-                    asset_id=satellite.id,
+                    asset_id=sat.id,
                     start_time=event_start_time,
                     duration=request.duration,
                     window_start=request.window_start,
@@ -126,14 +127,34 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: Sate
             )
 
         # create a downlink contact and add it as downlink_contact_id for every request in the partition
-        downlink_contact = ScheduledContact(
+        downlink_contact = ContactOpportunity(
             schedule_id=schedule.id,
-            asset_id=satellites[0].id,
-            groundstation_id=ground_stations[0].id,
+            asset_id=sat.id,
+            groundstation_id=gs.id,
             start_time=scheduled_imaging_partition[-1].window_end,
             duration=timedelta(minutes=20)
         )
         session.add(downlink_contact)
+
+        new_sat = random.choice(satellites)
+        new_gs = random.choice(ground_stations)
+
+        if new_sat.id != sat.id or new_gs.id != gs.id:
+            sat = new_sat
+            gs = new_gs
+
+            uplink_contact = ContactOpportunity(
+                schedule_id=schedule.id,
+                asset_id=sat.id,
+                groundstation_id=gs.id,
+                start_time=downlink_contact.start_time - contact_duration,
+                duration=timedelta(minutes=20)
+            )
+            session.add(uplink_contact)
+        else:
+            uplink_contact = downlink_contact
+
+
         session.commit()
         for scheduled_imaging in scheduled_imaging_partition:
             scheduled_imaging.downlink_contact_id = downlink_contact.id

@@ -2,8 +2,8 @@ from fastapi import APIRouter, File, UploadFile
 import json
 from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
-from helpers.asset_helper import add_satellite, add_ground_station
-from helpers.asset_helper import add_satellite, add_ground_station
+from helpers.asset_helper import add_satellite
+from helpers.asset_helper import add_satellite
 from helpers.miscellaneous_helper import txt_to_json_converter
 import logging
 from fastapi import HTTPException
@@ -30,9 +30,12 @@ async def get_ground_station(id):
 
 @router.post("/create_ground_station")
 async def new_ground_station(ground_station: GroundStationCreationRequest):
-    new_ground_station = ground_station.model_dump()
-    new_ground_station_id = add_ground_station(new_ground_station)
-    return new_ground_station_id
+    session = get_db_session()
+    new_ground_station = GroundStation(**ground_station.model_dump())
+    session.add(new_ground_station)
+    session.commit()
+    session.refresh(new_ground_station)
+    return new_ground_station.id
 
 """ @router.put("/ground_stations/{name}")
 async def modify_ground_station(name):
