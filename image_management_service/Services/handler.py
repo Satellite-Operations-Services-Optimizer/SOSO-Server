@@ -41,6 +41,8 @@ def handle_image_orders(body):
                     request_type='image-schedule',
                     destination=ServiceQueues.SCHEDULER
                     )
+    
+    return image_order
 
 
 def transform_request_to_db_schema(request_body):    
