@@ -36,7 +36,7 @@ app.add_middleware(
 add_pagination(app)
 
 app.include_router(image_router, tags=["Image Operations"], prefix="/images")
-app.include_router(satellite_activity_router, tags=["Satellite Operation"], prefix="/assets/satellite")
+app.include_router(satellite_activity_router, tags=["Satellite Operation"], prefix="/assets/satellites")
 app.include_router(asset_router, tags=["Asset Creation"], prefix="/assets")
 app.include_router(schedule_router, tags=["Schedule Retrieval"], prefix="/schedules")
 app.include_router(maintenance_router, tags=["Maintenence Activities"], prefix="/maintenance")

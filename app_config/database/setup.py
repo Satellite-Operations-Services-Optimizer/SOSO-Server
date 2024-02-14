@@ -5,6 +5,7 @@ import os
 
 engine = None
 Base = None
+_db_url = None
 
 load_dotenv()
 def setup_database(use_localhost=False):
@@ -23,7 +24,9 @@ def setup_database(use_localhost=False):
     schema = schema if len(schema) > 0 else None
 
     # Create database endine
-    _db_url = f"{driver}://{user}:{password}@{host}/{db_name}"
+    # We need to specify search path because sqlalchemy_utils.register_composites cannot see the schema we are using
+    # https://stackoverflow.com/questions/59298580/how-to-specify-schema-in-psycopg2-connection-method
+    _db_url = f"{driver}://{user}:{password}@{host}/{db_name}?options=-csearch_path%3D{schema},public"
     engine = create_engine(_db_url)
 
 _global_session = None

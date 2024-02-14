@@ -43,7 +43,6 @@ class ThroughputMetric(PerformanceMetric):
 
         For a given schedule, throughput is calculated with the following formula:
         schedule_throughput = Σ_{satellite_event in schedule} satellite_event.event_weight
-
         
         """
         session = get_db_session()
@@ -51,12 +50,11 @@ class ThroughputMetric(PerformanceMetric):
 
         throughputs_query = session.query(
             SatelliteStateChange.schedule_id,
-            func.sum(SatelliteStateChange.throughput_delta).label('measure')
+            func.sum(SatelliteStateChange.delta.throughput).label('measure')
         ).join(
-            Schedule, SatelliteStateChange.schedule_id==Schedule.id # join with Schedule so we can filter by schedule_group through the 'filters' argument
+            Schedule, Schedule.id==SatelliteStateChange.schedule_id # join with Schedule so we can filter by schedule_group through the 'filters' argument
         ).filter(
-            SatelliteStateChange.schedule_id==Schedule.id,
-            SatelliteStateChange.throughput_delta != 0,
+            SatelliteStateChange.delta.throughput != 0,
             *filters,
             *time_filters
         ).group_by(SatelliteStateChange.schedule_id, *group_by)

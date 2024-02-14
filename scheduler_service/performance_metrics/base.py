@@ -7,33 +7,7 @@ from sqlalchemy import Column
 from sqlalchemy.sql.expression import BinaryExpression
 from app_config import get_db_session
 from app_config.database.mapping import Schedule
-
-
-@dataclass
-class TimeHorizon:
-    start: Optional[datetime] = None
-    end: Optional[datetime] = None
-    include_overlap: bool = False
-
-    def apply_filters(self, start_time_column: Column, end_time_column: Optional[Column] = None) -> list[BinaryExpression]:
-        filters = []
-
-        if self.start is not None:
-            start_filter = (start_time_column >= self.start)
-            if end_time_column and self.include_overlap:
-                start_filter |= (end_time_column >= self.start)
-            filters.append(start_filter)
-        
-        if self.end is not None:
-            end_column = end_time_column if end_time_column else start_time_column
-            end_filter = (end_column <= self.end)
-            if start_time_column and self.include_overlap:
-                end_filter |= (start_time_column <= self.end)
-            filters.append(end_filter)
-
-        return filters
-
-
+from utils import TimeHorizon
 
 
 class PerformanceMetric(ABC):
@@ -69,7 +43,7 @@ class PerformanceMetric(ABC):
         # ).scalar()
         # reason for not using this better way is that I was given a worning that I was doing an unnecessary cartesian join somewhere, but I can't quite yet figure out where. We will have to figure it out later and fix.
         grades_query = self.grades_query(schedule.group_name).subquery()
-        grade = session.query(grades_query.c.grade).filter(Schedule.id==schedule_id).scalar()
+        grade = session.query(grades_query.c.grade).filter_by(schedule_id=schedule_id).scalar()
         return grade
 
     @abstractmethod

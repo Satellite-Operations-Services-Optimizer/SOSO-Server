@@ -3,12 +3,12 @@ from fastapi.encoders import jsonable_encoder
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
 from app_config.database.setup import get_session
-from services import process
+from satellite_activities_service.services import process
 from app_config import logging
-from models.SASConsumerEventData import SASConsumerEventData
-from models.SASProducerEventData import SASProducerScheduleOptionsData
-from models.RequestModel import ActivityRequest, OutageRequest
-from helpers.db_curd import create_maintenence_request, create_outage_request, get_satellite_from_name
+from satellite_activities_service.models.SASConsumerEventData import SASConsumerEventData
+from satellite_activities_service.models.SASProducerEventData import SASProducerScheduleOptionsData
+from satellite_activities_service.models.RequestModel import ActivityRequest, OutageRequest
+from satellite_activities_service.helpers.db_curd import create_maintenence_request, create_outage_request, get_satellite_from_name
 import json
 def handle_message(body):
     print("Handler function called!")
@@ -36,6 +36,7 @@ def handle_message(body):
             saved_request = create_maintenence_request(session, request)
         except Exception as e:
             not_maintenence = e
+            print("not maintenance: ", {e})
             
             try:
                 request = OutageRequest(**request_body)     
@@ -43,6 +44,7 @@ def handle_message(body):
                 
             except Exception as e:
                 not_outage = e
+                print("not outage: ", {e})
                 
 
         if not_outage and not_maintenence:

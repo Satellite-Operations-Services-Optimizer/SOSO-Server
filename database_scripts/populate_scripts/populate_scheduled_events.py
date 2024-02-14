@@ -1,5 +1,5 @@
 from app_config import get_db_session, logging
-from app_config.database.mapping import Satellite, GroundStation, Schedule, ScheduledContact, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
+from app_config.database.mapping import Satellite, GroundStation, Schedule, ContactOpportunity, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
 from math import ceil
 import random
@@ -38,7 +38,7 @@ def create_valid_image_order_schedule(start_time: datetime):
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,
-        visit_count=15,
+        visits_remaining=15,
         revisit_frequency=timedelta(days=1)
     )
     session.add(image_order)
@@ -51,7 +51,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
 
     session = get_db_session()
     # create repeated requests
-    for visit_count in range(order.visit_count):
+    for visit_count in range(order.visits_remaining):
         requests.append(
             ScheduleRequest(
                 schedule_id=order.schedule_id,
@@ -66,7 +66,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                 priority=order.priority
             )
         )
-        order.visit_count -= 1
+        order.visits_remaining -= 1
         order.start_time += order.revisit_frequency
         order.end_time += order.revisit_frequency
         order.delivery_deadline += order.revisit_frequency
@@ -81,7 +81,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
     sat = random.choice(satellites)
     gs = random.choice(ground_stations)
 
-    first_contact = ScheduledContact(
+    first_contact = ContactOpportunity(
         schedule_id=schedule.id,
         asset_id=sat.id,
         groundstation_id=gs.id,
@@ -127,7 +127,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
             )
 
         # create a downlink contact and add it as downlink_contact_id for every request in the partition
-        downlink_contact = ScheduledContact(
+        downlink_contact = ContactOpportunity(
             schedule_id=schedule.id,
             asset_id=sat.id,
             groundstation_id=gs.id,
@@ -143,7 +143,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
             sat = new_sat
             gs = new_gs
 
-            uplink_contact = ScheduledContact(
+            uplink_contact = ContactOpportunity(
                 schedule_id=schedule.id,
                 asset_id=sat.id,
                 groundstation_id=gs.id,

@@ -7,11 +7,21 @@ services:
     build:
       context: ./ # The build context for each service is the current folder and not the service's folder because the requirements.txt is in the current folder and needs to be copied by the Dockerfile into the container.
       dockerfile: ./event_relay_api/Dockerfile
-    volumes:
-      - ./app_config:/code/app_config
-      - ./event_relay_api:/code/event_relay_api # This is a volume that allows the container to see the code changes made on the host machine.
     ports:
       - 80:5000
+    env_file:
+      - .env
+    depends_on:
+      - rabbitmq
+      - postgres
+  
+  scheduler:
+    container_name: scheduler
+    build:
+      context: ./
+      dockerfile: ./scheduler_service/Dockerfile
+    ports:
+      - 81:5000
     env_file:
       - .env
     depends_on:
@@ -23,9 +33,6 @@ services:
     build:
       context: ./
       dockerfile: ./satellite_activities_service/Dockerfile
-    volumes:
-      - ./app_config:/code/app_config
-      - ./satellite_activities_service:/code/satellite_activities_service
     ports:
       - 82:5000
     env_file:
@@ -39,9 +46,6 @@ services:
     build:
       context: ./ 
       dockerfile: ./image_management_service/Dockerfile
-    volumes:
-      - ./app_config:/code/app_config
-      - ./image_management_service:/code/image_management_service
     ports:
       - 83:5000
     env_file:
@@ -55,9 +59,6 @@ services:
     build:
       context: ./
       dockerfile: ./ground_station_out_bound_service/Dockerfile
-    volumes:
-      - ./app_config:/code/app_config
-      - ./ground_station_out_bound_service:/code/ground_station_out_bound_service
     ports:
       - 84:5000
     env_file:
@@ -72,9 +73,6 @@ services:
       context: ./
       dockerfile: ./scheduler_service/Dockerfile
     command: celery -A config.celery_app worker --loglevel=${LOG_LEVEL}
-    volumes:
-      - ./app_config:/code/app_config
-      - ./scheduler_service:/code/scheduler_service
     env_file:
       - .env
 

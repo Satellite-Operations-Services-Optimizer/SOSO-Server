@@ -1,6 +1,7 @@
 from app_config.database.setup import  get_session
-from models.RequestModel import ActivityRequest
-from services import process, handler
+from satellite_activities_service.models.RequestModel import ActivityRequest
+from satellite_activities_service.services import process, handler
+
 
 request1 =  { 
             "body":
@@ -77,7 +78,7 @@ maintenence2 = {
 outage1 = { 
             "body":
             {
-  "Target": "ICAN",
+  "Target": "SOSO-2",
   "Activity": "Outage",
   "Window": {
     "Start": "2023-10-08T23:00:00",
@@ -105,7 +106,7 @@ outage2 = {
 
 print(request1["body"])
 
-handler.handle_message(request1)
+handler.handle_message(outage1)
 # activity_request = ActivityRequest(**request)       
 # response_model = create_maintenence_request(db_session, activity_request)
 
