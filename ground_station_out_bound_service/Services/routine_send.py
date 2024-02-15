@@ -3,7 +3,7 @@ from rabbit_wrapper import TopicConsumer, TopicPublisher
 from app_config.rabbit import rabbit
 from app_config import logging
 from app_config.database.setup import scoped_session as db_session
-from app_config.database.mapping import Base, GroundStationRequest, ScheduledContact, OutboundSchedule, ScheduledMaintenance, ScheduledImaging
+from app_config.database.mapping import Base, GroundStationRequest, ContactEvent, OutboundSchedule, ScheduledMaintenance, ScheduledImaging
 from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, ground_station_request
 from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 from ground_station_out_bound_service.Helpers.data import get_satellite, get_ground_station, update_schedule_request_status
@@ -22,7 +22,7 @@ def send_upcoming_contacts():
     schedule = datetime.minute(30)
     
     #possibliy multiple gs requests
-    scheduled_contacts = db_session.query(ScheduledContact).filter(ScheduledContact.window_start - current_datetime > datetime.minute(5)).filter(ScheduledContact.window_start - current_datetime <= datetime.hour(schedule)).all()
+    scheduled_contacts = db_session.query(ContactEvent).filter(ContactEvent.window_start - current_datetime > datetime.minute(5)).filter(ContactEvent.window_start - current_datetime <= datetime.hour(schedule)).all()
     
     for contact in scheduled_contacts:
         request_ids = []
@@ -45,14 +45,15 @@ def send_upcoming_contacts():
         outboundschedule = db_session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).filter(OutboundSchedule.schedule_status != "sent_to_gs").first()
         if (outboundschedule != None):
             
-            if(contact.window_start - current_datetime < 0): # don't send if contact window has already passed
+            if(contact.window_start - current_datetime <= datetime.minute(5)): # don't send if contact window has already passed or less than 5 minutes away
                 logging.info(f"cannot uplink updated schedule - previous schedule has been uplinked and contact window has passed")
                 failed_update = jsonable_encoder(outboundschedule)
                 logging.info(f"failed update schedule: \n{failed_update}")
+                outboundschedule.schedule_status = "failed_to_send"
                 
                 ## publish failed update
-                publisher = TopicPublisher(rabbit(), f"schedule.maintenance.create")
-                publisher.publish_message("publishing to topic test")
+                publisher = TopicPublisher(rabbit(), f"outbound.schedule.failed")
+                publisher.publish_message("schedule not sent: time is past valid contact window")
             else:
                 sat_schedule = satellite_schedule(satellite_name=outboundschedule.satellite_name,
                                                 schedule_id=outboundschedule.id,

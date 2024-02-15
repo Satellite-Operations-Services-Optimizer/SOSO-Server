@@ -1,5 +1,5 @@
 from datetime import datetime
-from app_config.database.mapping import Base,Schedule, ImageOrder, MaintenanceOrder, OutageOrder, OutboundSchedule, ScheduledImaging, ScheduledMaintenance, ScheduledContact, GroundStationRequest, GroundStation, Satellite, ScheduleRequest, ScheduledOutage
+from app_config.database.mapping import Schedule, ImageOrder, MaintenanceOrder, OutageOrder, OutboundSchedule, ScheduledImaging, ScheduledMaintenance, ContactEvent, GroundStationRequest, GroundStation, Satellite, ScheduleRequest, ScheduledOutage
 from app_config.database.setup import  scoped_session
 from models.QueueModel import QueueRequest, QueueDetails
 from models.ScheduleModel import maintenance_activity, image_activity, downlink_activity, outbound_schedule
@@ -39,7 +39,7 @@ def get_scheduled_outage(outage_id: int):
 
 def get_scheduled_contact(contact_id: int):
     db = scoped_session
-    return db.query(ScheduledContact).filter(ScheduledContact.id == contact_id).first()
+    return db.query(ContactEvent).filter(ContactEvent.id == contact_id).first()
 
 def get_all_scheduled_images_from_schedule(schedule_id: int):
     db = scoped_session
@@ -105,10 +105,10 @@ def update_outbound_schedule(outbound_schedule: OutboundSchedule):
     db.commit()
     return get_outbound_schedule(schedule.contact_id)
 
-def update_contact_with_downlink(scheduled_contact: ScheduledContact):
+def update_contact_with_downlink(scheduled_contact: ContactEvent):
     db = scoped_session
        
-    contact = db.query(ScheduledContact).filter_by(id = scheduled_contact.id).with_for_update().one()
+    contact = db.query(ContactEvent).filter_by(id = scheduled_contact.id).with_for_update().one()
     
     contact.downlink_images = scheduled_contact.downlink_images
     

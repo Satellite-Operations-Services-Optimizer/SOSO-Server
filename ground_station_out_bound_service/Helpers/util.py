@@ -1,8 +1,8 @@
 from typing import Optional
 from app_config.logs import logging
-from app_config.database.mapping import ImageOrder, MaintenanceOrder, ScheduledImaging, ScheduledContact, ScheduledMaintenace
-from ground_station_out_bound_service.Helpers.data import get_outbound_schedule, update_outbound_schedule, create_outbound_schedule, get_scheduled_contact, get_scheduled_image, get_scheduled_maintenance, get_schedule, get_satellite, get_ground_station_request, get_ground_station, update_contact_with_downlink, get_maintenance_order, get_schedule_request, get_image_order
-from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, image_activity, maintenance_activity, downlink_activity, ground_station_request, downlink_image
+from app_config.database.mapping import ScheduledImaging, ScheduledMaintenace
+from ground_station_out_bound_service.Helpers.data import get_outbound_schedule, update_outbound_schedule, create_outbound_schedule, get_scheduled_contact,  get_satellite,  get_ground_station,  get_maintenance_order, get_schedule_request, get_image_order
+from ground_station_out_bound_service.models.ScheduleModel import  image_activity, maintenance_activity, downlink_activity,  downlink_image
 import json
 
 def add_maintenance_activity(scheduled_maintenance: ScheduledMaintenace):

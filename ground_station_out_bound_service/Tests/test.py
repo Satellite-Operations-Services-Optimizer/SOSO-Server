@@ -1,7 +1,6 @@
 import requests
 from fastapi.encoders import jsonable_encoder
-from app_config.database.mapping import Base
-from ground_station_out_bound_service.models.ScheduleModel import outbound_schedule, satellite_schedule, ground_station_request
+from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, ground_station_request
 from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 # schedule formats not up to date, need to follow parameter description given
 outbound = {
@@ -124,3 +123,4 @@ def test_schedule_send():
     print("\nGround Station Schedule: ", test_connection_gs(test_schedule3), "\n\n")  
 
 # print("\n\n", test_connection_gs(test_schedule3), "\n\n")
+test_schedule_send()
