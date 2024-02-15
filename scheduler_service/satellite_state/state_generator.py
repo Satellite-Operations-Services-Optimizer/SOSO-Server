@@ -2,7 +2,7 @@ from pytest import Session
 from sqlalchemy import desc, func
 from app_config.database.mapping import Satellite, GroundStation, ScheduledMaintenance, SatelliteOutage, StateCheckpoint
 from app_config import get_db_session
-from skyfield.api import EarthSatellite, load
+from skyfield.api import EarthSatellite, load, Topos
 from skyfield.timelib import Timescale, Time
 from skyfield.searchlib import find_discrete
 from datetime import datetime, timedelta, timezone
@@ -15,7 +15,7 @@ import numpy as np
 # This class extends the database table 'satellite'
 class SatelliteStateGenerator:
     def __init__(self, db_satellite: Satellite):
-        self.db_satellite = db_satellite
+        self._db_satellite = db_satellite
 
     def state_at(self, time: Union[datetime, Time]):
         """
@@ -35,21 +35,9 @@ class SatelliteStateGenerator:
         semi_major_axis_km = satellite.model.a * EARTH_RADIUS
         altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
 
-        # session = get_db_session()
-        # satellite_state = session.query(StateCheckpoint.state).filter(
-        #     StateCheckpoint.checkpoint_time <= datetime_time,
-        #     StateCheckpoint.asset_id==self.db_satellite.id,
-        #     StateCheckpoint.asset_type=="satellite",
-        #     StateCheckpoint.schedule_id==0
-        # ).order_by(desc(StateCheckpoint.checkpoint_time)).limit(1).first()
-        # power_draw = satellite_state.power_draw if satellite_state is not None else 0
-        # storage_util = satellite_state.storage_util if satellite_state is not None else 0
-        # in_maintenance = self._satellite_maintainence_at(datetime_time)
-        # in_outage = self._satellite_outage_at(datetime_time)
-
         is_sunlit = True if self.is_sunlit(skyfield_time) else False
         return SatelliteState(
-            satellite_id=self.db_satellite.id,
+            satellite_id=self._db_satellite.id,
             time=datetime_time,
             latitude=latitude,
             longitude=longitude,
@@ -57,49 +45,25 @@ class SatelliteStateGenerator:
             is_sunlit=is_sunlit
         )        
 
-    # def _satellite_maintainence_at(self, time: Union[datetime, Time]):
-    #     """
-    #     Checks to see if there is a scheduled maintenance of the satellite at the provided time
-    #     """
-    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
-    #     session = get_db_session()
-    #     satellite_maintenance = session.query(
-    #         ScheduledMaintenance
-    #     ).filter(
-    #         ScheduledMaintenance.utc_time_range.op('&&')(func.tsrange(time, time)),
-    #         ScheduledMaintenance.schedule_id==0, 
-    #         ScheduledMaintenance.asset_id==self.db_satellite.id
-    #     ).first()
+    def can_observe(self, latitude: float, longitude: float, time: Union[datetime, Time]):
+        """
+        Check if the satellite can be observed from the provided latitude and longitude at the provided time
+        """
+        time = self._ensure_skyfield_time(time)
+        satellite = self._get_skyfield_satellite()
+        ephemeris = get_ephemeris()
 
-    #     if satellite_maintenance is None:
-    #         return False
-    #     else:
-    #         return True
-        
-    # def _satellite_outage_at(self, time: Union[datetime, Time]):
-    #     """
-    #     Checks to see if the provided satellite has an outage at the provided time
-    #     """
-    #     time = self._ensure_datetime(time).replace(tzinfo=timezone.utc)
-    #     session = get_db_session()
-    #     satellite_outage = session.query(
-    #         SatelliteOutage
-    #     ).filter(
-    #         SatelliteOutage.time_range.op('&&')(time),
-    #         schedule_id=0, 
-    #         asset_id=self.db_satellite.id
-    #     ).first()
-        
-    #     if satellite_outage is None:
-    #         return False
-    #     else:
-    #         return True
+        observer = Topos(latitude, longitude)
+        return satellite.at(time).is_above_horizon(observer, ephemeris)
     
-    def groundstation_visibility(self, groundstation: GroundStation, time: Union[datetime, Time]):
+    def is_in_contact_with(self, groundstation: GroundStation, time: Union[datetime, Time]):
         time = self._ensure_skyfield_time(time)
 
-        return 
-
+        satellite = self._get_skyfield_satellite() 
+        ground_station_topos = Topos(groundstation.latitude, groundstation.longitude)
+        relative_position = (satellite - ground_station_topos).at(time)
+        elevation_angle = relative_position.altaz()[0]
+        return elevation_angle.degrees > groundstation.send_mask
 
     def is_sunlit(self, time: Time):
         skyfield_satellite = self._get_skyfield_satellite()
@@ -112,29 +76,82 @@ class SatelliteStateGenerator:
         """
         Get the eclipse events for the satellite between `start_time` and `end_time`
         """
+        eclipse_events = []
+
         start_time = self._ensure_skyfield_time(start_time)
         end_time = self._ensure_skyfield_time(end_time)
 
-        eclipses = []
-
+        step_time_minutes = 1
         def is_sunlit_wrapper(time: Time):
             return self.is_sunlit(time)
-
-        step_time_minutes = 1
         is_sunlit_wrapper.step_days = step_time_minutes / (24 * 60) # convert minutes to days
-        change_times, sunlit_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
 
+        change_times, sunlit_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
         prev_time, prev_sunlit = start_time, self.is_sunlit(start_time)
         for time, is_sunlit in zip(change_times, sunlit_values):
             if not prev_sunlit and is_sunlit:
-                eclipses.append((prev_time, time))
+                eclipse_events.append((prev_time, time))
             prev_time = time
             prev_sunlit = is_sunlit
 
         if not prev_sunlit and prev_time.tt < end_time.tt:
-            eclipses.append((prev_time, end_time))
+            eclipse_events.append((prev_time, end_time))
 
-        return eclipses
+        return eclipse_events
+    
+    def contact_events(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], groundstation: GroundStation):
+        """
+        Get the contact events between the satellite and the groundstation between `start_time` and `end_time`
+        """
+        contact_events = []
+
+        start_time = self._ensure_skyfield_time(start_time)
+        end_time = self._ensure_skyfield_time(end_time)
+
+        satellite = self._get_skyfield_satellite()
+        groundstation_topos = Topos(groundstation.latitude, groundstation.longitude)
+        change_times, contact_values = satellite.find_events(groundstation_topos, start_time, end_time, altitude_degrees=groundstation.send_mask)
+
+        # def is_in_contact_wrapper(time: Time):
+        #     return self.is_in_contact_with(groundstation, time)
+        # is_in_contact_wrapper.step_days = 1 / (24 * 60) # convert minutes to days
+        # change_times, contact_values = find_discrete(start_time, end_time, is_in_contact_wrapper)
+
+        event_names = ('rise', 'culminate', 'set')
+        prev_rise_time = start_time
+        for time, event in zip(change_times, contact_values):
+            if event_names[event] == 'rise':
+                prev_rise_time = time
+            elif event_names[event] == 'set':
+                contact_events.append((prev_rise_time, time))
+
+        return contact_events
+    
+    def observation_events(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], latitude: float, longitude: float):
+        """
+        Get the events between `start_time` and `end_time` when the provided latitude and longitude is in the field of view of the satellite.
+        """
+
+        start_time = self._ensure_skyfield_time(start_time)
+        end_time = self._ensure_skyfield_time(end_time)
+
+        satellite = self._get_skyfield_satellite()
+        observer = Topos(latitude, longitude)
+        change_times, is_visible_values = satellite.find_events(observer, start_time, end_time, altitude_degrees=0)
+
+        prev_time, prev_visible = start_time, self.can_observe(latitude, longitude, start_time)
+        observation_events = []
+        for time, is_visible in zip(change_times, is_visible_values):
+            if not prev_visible and is_visible:
+                observation_events.append((prev_time, time))
+            prev_time = time
+            prev_visible = is_visible
+
+        if not prev_visible and prev_time.tt < end_time.tt:
+            observation_events.append((prev_time, end_time))
+
+        return observation_events
+
     
     def stream(self, reference_time: Optional[datetime] = None):
         time_offset = reference_time - datetime.now() if reference_time else timedelta(seconds=0)
@@ -161,9 +178,9 @@ class SatelliteStateGenerator:
         if self._skyfield_satellite is not None:
             return self._skyfield_satellite
 
-        line1 = self.db_satellite.tle["line1"]
-        line2 = self.db_satellite.tle["line2"]
-        name = self.db_satellite.name
+        line1 = self._db_satellite.tle["line1"]
+        line2 = self._db_satellite.tle["line2"]
+        name = self._db_satellite.name
         self._skyfield_satellite = EarthSatellite(line1, line2, name, self._get_timescale())
         return self._skyfield_satellite
 

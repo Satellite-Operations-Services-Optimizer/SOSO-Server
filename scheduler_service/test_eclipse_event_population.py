@@ -1,6 +1,5 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from scheduler_service.fixed_event_processing.utils import retrieve_and_lock_unprocessed_blocks_for_processing
 from scheduler_service.fixed_event_processing.eclipse_events import ensure_eclipse_events_populated
 from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 from app_config import get_db_session
@@ -9,9 +8,11 @@ from sqlalchemy import func
 from collections import deque
 
 def test_accurate_eclipse_event_population(test_satellite: Satellite):
-    start_time = datetime(2024, 2, 13, 2, 20, 45, 772453) + timedelta(hours=5.3)
+    start_time = datetime(2024, 2, 14, 2, 20, 45, 772453) + timedelta(hours=5.3)
+    # start_time = datetime.utcnow()
     end_time = start_time + timedelta(days=1)
     ensure_eclipse_events_populated(start_time, end_time)
+    return
 
     session = get_db_session()
     satellite_eclipses_within_time_range = session.query(SatelliteEclipse.utc_time_range).filter(
@@ -55,9 +56,8 @@ def test_accurate_eclipse_event_population(test_satellite: Satellite):
 
 
 session = get_db_session()
-sat = session.query(Satellite).get(2)
-test_accurate_eclipse_event_population(sat)
 for satellite in session.query(Satellite).all():
     test_accurate_eclipse_event_population(satellite)
+    exit()
 
 print("done")

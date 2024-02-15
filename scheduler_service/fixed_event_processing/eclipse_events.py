@@ -13,7 +13,6 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
         partition_columns=[EclipseProcessingBlock.satellite_id],
         valid_partition_values_subquery=session.query(Satellite.id.label('satellite_id')).subquery()
     )
-    # add, and lock, blocks for satellites that don't any have blocks in this range, or at all, yet (just find all valid partition key values that are not included in the retrieved blocks_to_process)
 
     eclipses = []
     state_generators = dict() # satellite_id -> satellite_state_generator

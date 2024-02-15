@@ -1,5 +1,5 @@
 from app_config import get_db_session, logging
-from app_config.database.mapping import Satellite, GroundStation, Schedule, ContactOpportunity, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
+from app_config.database.mapping import Satellite, GroundStation, Schedule, ContactEvent, ScheduledImaging, ScheduledMaintenance, ScheduleRequest, ImageOrder
 from datetime import datetime, timedelta
 from math import ceil
 import random
@@ -81,7 +81,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
     sat = random.choice(satellites)
     gs = random.choice(ground_stations)
 
-    first_contact = ContactOpportunity(
+    first_contact = ContactEvent(
         schedule_id=schedule.id,
         asset_id=sat.id,
         groundstation_id=gs.id,
@@ -127,7 +127,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
             )
 
         # create a downlink contact and add it as downlink_contact_id for every request in the partition
-        downlink_contact = ContactOpportunity(
+        downlink_contact = ContactEvent(
             schedule_id=schedule.id,
             asset_id=sat.id,
             groundstation_id=gs.id,
@@ -143,7 +143,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
             sat = new_sat
             gs = new_gs
 
-            uplink_contact = ContactOpportunity(
+            uplink_contact = ContactEvent(
                 schedule_id=schedule.id,
                 asset_id=sat.id,
                 groundstation_id=gs.id,
