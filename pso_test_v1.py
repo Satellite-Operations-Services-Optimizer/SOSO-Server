@@ -22,7 +22,6 @@ class Particle:
         self.velocity = self.initialize_velocity()
         self.best_position = self.position.copy()
         self.fitness = float('-inf') # To be calculated based on the objective function
-        self.best_fitness = float('-inf')  # Initialize best fitness attribute
     
     def initialize_position(self, image_orders, maintenance_orders, outage_orders):
         # Combine all orders and shuffle them to create an initial position
@@ -86,17 +85,10 @@ def objective_function(particle, ts):
             scheduler_system.process_outage_order(order)
     # Calculate fitness based on the quality of the schedule
     fitness = scheduler_system.evaluate_schedule_quality()
-    def calculate_overlaps(self):
-        # Calculate any overlaps or conflicts between orders
-        # Modify the logic to ensure it always returns an integer value
-        overlaps = 0  # Initialize overlaps as an integer
-        # Your logic for calculating overlaps goes here
-        # Update overlaps variable accordingly
-        return overlaps
     # Apply penalties for any overlaps or conflicts
-    penalty += scheduler_system.calculate_overlaps() or 0
+    penalty += scheduler_system.calculate_overlaps()
     # Return the fitness score (higher is better) minus any penalties
-    return fitness - penalty if fitness is not None else 0  # Return 0 if fitness is None
+    return fitness - penalty
     
 ## Step 3: Update the Particle Position and Velocity
 # The order particles position and velocities will be based on the time values given in 
@@ -156,7 +148,7 @@ for iteration in range(max_iterations):
     # Update particle positions and velocities
     for particle in particles:
         inertia = w * np.array(particle.velocity)
-        cognitive = c1 * np.random.rand() * (particle.best_position - particle.position)
+        cognitive = c1 * np.random.rand() * (np.array(particle.best_position) - np.array(particle.position))
         social = c2 * np.random.rand() * (np.array(global_best_position) - np.array(particle.position))
         particle.velocity = list(inertia + cognitive + social)
         particle.position = list(np.array(particle.position) + np.array(particle.velocity))

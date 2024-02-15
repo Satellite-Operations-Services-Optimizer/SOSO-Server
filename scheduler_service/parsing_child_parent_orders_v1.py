@@ -6,19 +6,19 @@ from sqlalchemy.sql import ImageOrder, ScheduleRequest
 # Initialize your session
 session = Session()
 
-# Parse the image order
-def parse_order(order_json):
-    order = json.loads(order_json)
-    recurrence = order.get('Recurrence', {})
-    revisit = recurrence.get('Revisit', 'False') == 'True'
+# Iterate over all the orders in the task_order table
+for parent_order in session.query(ImageOrder).all():
+    # If the order has revisits, create child orders
+    recurrence = parent_order.recurrence
+    revisit = recurrence.get('Revisit', False)
     number_of_revisits = int(recurrence.get('NumberOfRevisits', 0))
     revisit_frequency = int(recurrence.get('RevisitFrequency', 0))
     revisit_frequency_units = recurrence.get('RevisitFrequencyUnits', 'Days')
 
     # Convert times to datetime objects
-    image_start_time = datetime.strptime(order['ImageStartTime'], '%Y-%m-%dT%H:%M:%S')
-    image_end_time = datetime.strptime(order['ImageEndTime'], '%Y-%m-%dT%H:%M:%S')
-    delivery_time = datetime.strptime(order['DeliveryTime'], '%Y-%m-%dT%H:%M:%S')
+    image_start_time = parent_order.image_start_time
+    image_end_time = parent_order.image_end_time
+    delivery_time = parent_order.delivery_time
 
     # Calculate duration
     duration = image_end_time - image_start_time
@@ -39,7 +39,7 @@ def parse_order(order_json):
         delivery_deadline=delivery_time,
         number_of_revisits=number_of_revisits if revisit else 1,
         revisit_frequency=revisit_frequency,
-        priority=order['Priority']
+        priority=parent_order.priority
     )
 
     session.add(parent_order)
@@ -49,9 +49,9 @@ def parse_order(order_json):
     if revisit:
         for i in range(number_of_revisits):
             # Calculate the new times
-            new_start_time = image_start_time + (i+1) * revisit_frequency
-            new_end_time = image_end_time + (i+1) * revisit_frequency
-            new_delivery_time = delivery_time + (i+1) * revisit_frequency
+            new_start_time = image_start_time + (i + 1) * revisit_frequency
+            new_end_time = image_end_time + (i + 1) * revisit_frequency
+            new_delivery_time = delivery_time + (i + 1) * revisit_frequency
 
             child_order = ScheduleRequest(
                 schedule_id=parent_order.id,
@@ -65,40 +65,29 @@ def parse_order(order_json):
 
         session.commit()
 
-# Iterate over all the orders in the task_order table
-for parent_order in session.query(ImageOrder).all():
-    # If the order has revisits, create child orders
     if parent_order.number_of_revisits > 1:
         for i in range(1, parent_order.number_of_revisits):
 
             # Create a child order
             child_order = ScheduleRequest(
-                order_id = parent_order.id,
-                window_start = parent_order.start_time,
-                window_end = parent_order.end_time,
-                duration = parent_order.duration,
-                delivery_deadline = parent_order.delivery_time
+                order_id=parent_order.id,
+                window_start=parent_order.start_time,
+                window_end=parent_order.end_time,
+                duration=parent_order.duration,
+                delivery_deadline=parent_order.delivery_deadline
             )
 
             # Calculate the new times
             parent_order.start_time = parent_order.start_time + i * parent_order.revisit_frequency
             parent_order.end_time = parent_order.end_time + i * parent_order.revisit_frequency
-            parent_order.delivery_time = parent_order.delivery_deadline + i * parent_order.revisit_frequency
+            parent_order.delivery_deadline = parent_order.delivery_deadline + i * parent_order.revisit_frequency
 
             # Add the child order to the session
             session.add(child_order)
 
-        # Commit the session
-        session.commit()
-
-# Close the session
-session.close()
-
-# say you have an order:
-my_order = session.query(ImageOrder).first() # just get the first image order from the database
 # This is how you get all its children - everything that has been requested to be scheduled from the order
 # Note: 'ScheduleRequest' is the table name
-all_children = session.query(ScheduleRequest).filter_by(order_id=my_order.id, order_type=my_order.order_type).all() # we specify order type because id cannot be unique across the different database tables for the different order types
+all_children = session.query(ScheduleRequest).filter_by(order_id=parent_order.id, order_type=parent_order.order_type).all()  # we specify order type because id cannot be unique across the different database tables for the different order types
 
 # if you want to order them by the time, so the first request comes first, second second, e.t.c., do this instead:
-all_children = session.query(ScheduleRequest).filter_by(order_id=my_order.id, order_type=my_order.order_type).order_by(ScheduleRequest.start_time).all()
+all_children = session.query(ScheduleRequest).filter_by(order_id=parent_order.id, order_type=parent_order.order_type).order_by(ScheduleRequest.start_time).all()

@@ -14,3 +14,4 @@ copilot_chats/
 MockFTPService/node_modules/
 ImageManagementService/sample.json
 MockFTPService/Sample Image Orders/.DS_Store
+pso-test.py

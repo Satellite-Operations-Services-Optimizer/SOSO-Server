@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
+# In[1]:
 
 import os
 import json
@@ -12,11 +12,10 @@ import math
 import time
 from haversine import haversine
 
-
-
+# In[2]:
 
 start_time_str = "2023-10-08 00:00:00"
-end_time_str = "2023-10-08 12:00:00"
+end_time_str = "2023-10-08 23:59:59"
 
 # Convert the input strings to datetime objects
 start_time = datetime.strptime(start_time_str, "%Y-%m-%d %H:%M:%S")
@@ -28,6 +27,7 @@ end_time = datetime.strptime(end_time_str, "%Y-%m-%d %H:%M:%S")
 # Class to handle Ground Station operations
 class ground_station:
 
+    # Defines groun station class
     def __init__(self, name, lat, long, height, mask_receive,
                  mask_transmit, uplink_rate, downlink_rate):
 
@@ -48,7 +48,8 @@ class ground_station:
         
         self.availableSlots = []
         self.allocatedSlots = []
-        
+    
+    # Checks to see if satellite is in contact with ground station through station mask
     def isVisibleRecv(self, sat, tm): 
         # Check if sattelite is visible from ground station for Receiving i.e. Elevation Mask
         relative_pos =  (sat.satObj - self.topos).at(tm)
@@ -59,6 +60,7 @@ class ground_station:
         
         return False
 
+    # Checks to see if satellite is in contact with ground station
     def isVisibleTrans(self, sat, tm): 
         # Check if sattelite is visible from ground station for Transmitting i.e. Elevation Mask
         relative_pos =  (sat.satObj - self.topos).at(tm)
@@ -69,6 +71,7 @@ class ground_station:
         
         return False
     
+    # Sets up slots for ground station to communicate with satellite
     def reset(self, start, end):
         # Reset the Ground Station i.e. Clear all the slots.
         slot = {}
@@ -78,17 +81,20 @@ class ground_station:
         self.availableSlots = [slot]
         self.allocatedSlots = []
 
+    # Convert the datetime objects to skyfield Time objects
     def strToTm(self, ts, Str):        
         dt = datetime.strptime(Str, "%Y-%m-%dT%H:%M:%S")
         return ts.utc(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
 
+    # Check if there is a slot available for uplink
     def canUplink(self, sched, start, ts, visibility):
         # Check if there is a slot available for uplink
         transfer_dur = len(json.dumps(sched)) / (self.UplinkRate/8)        
         delivery = self.strToTm(ts, sched['Activity Window']["Start"])
         
         return self.getSlot(start, delivery, transfer_dur, visibility)
-        
+    
+    # Check if there is a slot available for downlink
     def canDownlink(self, ev, tm, ts, visibility):
         # Check if there is a slot available for downlink
 
@@ -102,6 +108,7 @@ class ground_station:
         
         return self.getSlot(start, delivery, transfer_dur, visibility)
     
+    # Check if there is a slot available for both uplink and downlink
     def getSlot(self, req_start, req_end, duration, visibility):
 
         # check if the request is valid
@@ -141,12 +148,13 @@ class ground_station:
                 
         return [False, req_start, {}]
     
+    # Book time slot for downlinking data
     def bookSlot(self, ev, start, slot, ts):
         # Book a time slot on Ground station
         duration = ev["Ref"]['Storage'] / self.DownlinkRate
         
-        #print("bookSlot", start.utc_strftime(), slot["Start"].utc_strftime(), slot["End"].utc_strftime(), duration)
-        #print(slot['Start'].utc_strftime(), slot['End'].utc_strftime())
+        print("bookSlot", start.utc_strftime(), slot["Start"].utc_strftime(), slot["End"].utc_strftime(), duration)
+        print(slot['Start'].utc_strftime(), slot['End'].utc_strftime())
 
         # If after spitting the free slot, we end up with a free slot at the start 
         if start.tt > slot["Start"].tt + 5/(3600.0*24):
@@ -188,9 +196,10 @@ class ground_station:
 
 
 
-
+# Define satellites using class
 class satelite:
 
+    # Define satellite parameters
     def __init__(self, tle):
 
         self.loadTLE(tle)
@@ -205,27 +214,30 @@ class satelite:
         self.Events = []
         self.Scheduled = []
         self.outages = []
+        self.last_image_time = None  # Add a new attribute to track the last image time
         
         self.stationVisibility = {}
 
-
+    # Load TLE files for satellites
     def loadTLE(self, tle):
 
         ts = load.timescale() # Create timescale object for TLE computation
 
         with open(tle) as f: # For-loop and f-string used to open the TLE files for SOSO-1, SOSO-2, etc.
             data = json.load(f) # Load the JSON data from the file
+            # print(data)
             self.name = data['name']
             line1 = data['line1']
             line2 = data['line2']
         self.satObj = EarthSatellite(line1, line2, self.name, ts) # Create new satellite object where line 1 = tle[1], line 2 = tle[2], title = tle[0], and ts for timescale
 
+    # Define the initialization of power sources
     def initPower(self):
-        # Power Management Example
-        self.P_sunlit = 500 # in Watts during Sunlight
+        # Initialize power sources for eclipse and sunlight:
+        self.P_sunlit = 500  # in Watts during Sunlight
         # 200-800 Watts for research sat.
         # 1000-1500 Watts for commercial sat.
-        self.P_eclipse = self.P_sunlit * 0.4 # in Watts during Eclipse (assuming 40% of power is used)
+        self.P_eclipse = self.P_sunlit * 0.4  # in Watts during Eclipse (assuming 40% of power is used)
 
     def update(self, tm, eph, images, ts, GroundStations):
 
@@ -296,6 +308,26 @@ class satelite:
             Long = Long + dLong
             tm = ts.utc(tm.utc_datetime() + timedelta(seconds=60/Dec))
 
+    def process_images(self, images, Lat, Long, tm):
+        total_image_time = 0  # Initialize total image time for the current eclipse period
+
+        for im in images:
+            if self.intersect(im, Lat, Long):
+                if self.last_image_time is not None:
+                    # Calculate the time difference between the current image and the last image
+                    time_diff = (tm - self.last_image_time).tt * 24 * 3600  # in seconds
+                    total_image_time += time_diff  # Add the time difference to the total image time
+
+                if total_image_time < 360:  # Check if the total image time is less than 6 minutes (360 seconds)
+                    # Process the image
+                    self.logImageStart(im, tm)
+                    self.last_image_time = tm  # Update the last image time
+                else:
+                    # If the total image time exceeds 6 minutes, stop processing images
+                    break
+
+        return total_image_time  # Return the total image time for further evaluation
+
     def process_ground_stations(self, tm, stations):
         for station in stations:
             if station.Name not in self.stationVisibility:
@@ -316,9 +348,7 @@ class satelite:
                     self.stationVisibility[station.Name]["slots"].append(slot)
                     
                     self.stationVisibility[station.Name]["Start"] = None
-                
-                
-            
+                     
     def intersect(self, image, Lat, Long):
 
         distX = haversine((image['Latitude'], Long), (Lat, Long))
@@ -590,10 +620,10 @@ class system:
         return [False, tm, {}, None]
         
     def loadOutages(self):
-        outList = os.listdir('data/OutageRequests')
+        outList = os.listdir('database_scripts/populate_scripts/sample_outage_orders/')
         
         for outFile in outList:
-            with open('data/OutageRequests/'+outFile) as f:
+            with open('database_scripts/populate_scripts/sample_outage_orders/'+outFile) as f:
                 outDict = json.load(f)
                 outDict["Start"] = self.strToTm(outDict["Window"]["Start"])
                 outDict["End"] = self.strToTm(outDict["Window"]["End"])
@@ -607,34 +637,37 @@ class system:
 
         self.Satelites = []
 
-        satTLEs = os.listdir("data/satellite")
+        satTLEs = os.listdir("database_scripts/populate_scripts/sample_satellites/TLEs_json/")
 
         for TLE in satTLEs:
-            self.Satelites.append(satelite("data/satellite/"+TLE))
+            self.Satelites.append(satelite("database_scripts/populate_scripts/sample_satellites/TLEs_json/"+TLE))
 
 
     def loadEPH(self):
 
         ## Step 2: (Maintenance) Is the satellite in eclipse or in sunlight?
-        self.eph = load('data/de421.bsp')  # Load the JPL ephemeris DE421
+        self.eph = load('scheduler_service/constants/de421.bsp')  # Load the JPL ephemeris DE421
 
     def loadOrders(self):
-        orderList = os.listdir('data/ImageOrderRequests')
+        orderList = os.listdir('database_scripts/populate_scripts/sample_image_orders/')
 
         self.orders = []
 
         ind = 0
         for orderFile in orderList:
 
-            with open('data/ImageOrderRequests/'+orderFile) as f:
+            with open('database_scripts/populate_scripts/sample_image_orders/'+orderFile) as f:
                 ordDict = json.load(f)
                 ordDict["Completed"] = False
                 ordDict["Sources"] = {}
                 ordDict["Schedule"] = None
                 ordDict["Index"] = ind
 
-                if ordDict["RevisitTime"] == 'True':
-                    print(ordDict)
+                for recurrence in ordDict["Recurrence"]:
+                    if isinstance(recurrence, str):
+                        print(f"'recurrence' is a string: {recurrence}")
+                    elif 'Revisit' in recurrence and recurrence["Revisit"] == 'True':
+                        print(ordDict)
                 
 
                 if ordDict['ImageType'] == 'Low':
@@ -650,6 +683,12 @@ class system:
                     ordDict['Storage'] = 256*1024*1024
                     
                 elif ordDict['ImageType'] == 'Spotlight':
+                    ordDict['Length'] = 10
+                    ordDict['Width'] = 10
+                    ordDict['Transfer Time'] = 120
+                    ordDict['Storage'] = 512*1024*1024
+                    
+                elif ordDict['ImageType'] == 'High':
                     ordDict['Length'] = 10
                     ordDict['Width'] = 10
                     ordDict['Transfer Time'] = 120
@@ -697,11 +736,11 @@ class system:
             sat.process_images_final(self.orders, self.end_sky)
 
     def loadMaint(self):
-        maintList = os.listdir('data/MaintenanceRequests')
+        maintList = os.listdir('database_scripts/populate_scripts/sample_maintenance_orders/')
 
         for maintFile in maintList:
             
-            with open('data/MaintenanceRequests/'+maintFile) as f:
+            with open('database_scripts/populate_scripts/sample_maintenance_orders/'+maintFile) as f:
                 maintDict = json.load(f)
                 maintDict['Completed'] = False
 
@@ -1083,14 +1122,12 @@ class system:
             self.schedId = self.schedId + 1
 
 
-
+# In[7]:
 
 sys = system()
-
 sys.run(start_time, end_time)
 
-
-
+# In[8]:
 
 def genGroundStationRequest(self):
     for activity in self.activitySchedules:

@@ -11,6 +11,8 @@ from typing import Optional, Union
 from dataclasses import dataclass, InitVar
 from pydantic import BaseModel
 import numpy as np
+from math import atan, degrees
+from skyfield.api import Topos
 
 # This class extends the database table 'satellite'
 class SatelliteStateGenerator:
