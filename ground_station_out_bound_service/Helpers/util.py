@@ -115,16 +115,16 @@ def add_downlink_image(scheduled_image: ScheduledImaging):
      
     downlink = downlink_image(image_id = scheduled_image.id ,
                                     duration_of_downlink= scheduled_image.downlink_size/downlink_rate,
-                                    size_of_image = scheduled_image.downlink_size)  ## need to confirm
+                                    size_of_image = scheduled_image.downlink_size)
     
-    if(downlink_contact.downlink_images == None):        
-        downlink_contact.downlink_images = [downlink]
-    else:
-        downlink_contact.downlink_images.append(scheduled_image.id)
+    # if(downlink_contact.downlink_images == None):        
+    #     downlink_contact.downlink_images = [downlink]
+    # else:
+    #     downlink_contact.downlink_images.append(scheduled_image.id)
     
-    downlink_contact = update_contact_with_downlink(downlink_contact)
+    # downlink_contact = update_contact_with_downlink(downlink_contact)
     
-    return downlink_contact
+    return downlink
 
 
     

@@ -101,8 +101,7 @@ def update_outbound_schedule(outbound_schedule: OutboundSchedule):
     schedule.maintenance_activities = outbound_schedule.maintenance
     schedule.downlink_activities = outbound_schedule.downlink
     schedule.schedule_status = "updated"
-    
-    db.add(schedule)
+   
     db.commit()
     return get_outbound_schedule(schedule.contact_id)
 
@@ -113,7 +112,18 @@ def update_contact_with_downlink(scheduled_contact: ScheduledContact):
     
     contact.downlink_images = scheduled_contact.downlink_images
     
-    db.add(contact)
     db.commit()
     return get_outbound_schedule(contact.id)
+
+def update_schedule_request_status(request_ids: list[int], status: str):
+    db = scoped_session
+    
+    schedule_requests = db.query(ScheduleRequest).filter(ScheduleRequest.id.in_(request_ids)).with_for_update().all()
+    for request in schedule_requests:
+        request.schedule_request_status = status
+    
+    db.commit()
+    
+    pass   
+        
     

@@ -66,8 +66,8 @@ def handle_imaging(body):
 
 
 
-def handle_cancelled(body):    
-    print("cancelled function called!")
+def handle_message(body):    
+    print("handler function called!")
     
     request_body    = body["body"]
     request_details = body["details"]
@@ -75,8 +75,6 @@ def handle_cancelled(body):
     
     logging.info(f"Recieved {request_body}")
     
-    # activity cancelled
-    # schedule cancelled
     pass
 
 
