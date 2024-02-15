@@ -1,32 +1,82 @@
 from datetime import datetime, timedelta
 from tokenize import String
 from skyfield.api import load, Topos, EarthSatellite
+from sqlalchemy import func, or_
 from app_config import get_db_session
-from app_config.database.mapping import ContactProcessingBlock, ContactOpportunity, Satellite, GroundStation
-from utils import retrieve_and_lock_unprocessed_blocks_for_processing
+from app_config.database.mapping import ContactProcessingBlock, ContactEvent, Satellite, GroundStation
+from .utils import retrieve_and_lock_unprocessed_blocks_for_processing
 from ..satellite_state.state_generator import SatelliteStateGenerator
 
-def ensure_contact_opportunities_populated(start_time: datetime, end_time: datetime):
+def ensure_contact_events_populated(start_time: datetime, end_time: datetime):
     session = get_db_session()
+    all_satellite_groundstation_combinations_subquery = session.query(
+        Satellite.id.label("satellite_id"),
+        GroundStation.id.label("groundstation_id")
+    ).subquery()
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time, end_time,
         ContactProcessingBlock,
         partition_columns=[
             ContactProcessingBlock.satellite_id,
             ContactProcessingBlock.groundstation_id
-        ]
+        ],
+        valid_partition_values_subquery=all_satellite_groundstation_combinations_subquery
     )
-    # add, and lock, blocks for satellite/gs combinations that don't any have blocks in this range, or at all, yet (just find all valid partition key values that are not included in the retrieved blocks_to_process)
 
-    contacts = []
+    contact_events = []
     state_generators = dict() # satellite_id -> satellite_state_generator
-    groundstations = dict()
+    groundstations = dict() # groundstation_id -> groundstation
     for block in blocks_to_process:
         # Find and insert all eclipse events that occur within the time range of the processing block
         if block.satellite_id not in state_generators:
-            satellite = session.query(Satellite).get(block.satellite_id)
+            satellite = session.query(Satellite).filter_by(id=block.satellite_id).first()
             state_generators[block.satellite_id] = SatelliteStateGenerator(satellite)
-        if block.groundstation_id not in groundstations
+        if block.groundstation_id not in groundstations:
+            groundstation = session.query(GroundStation).filter_by(id=block.groundstation_id).first()
+            groundstations[block.groundstation_id] = groundstation
+        
+        state_generator = state_generators[block.satellite_id]
+        event_time_ranges = state_generator.contact_events(block.time_range.lower, block.time_range.upper, groundstations[block.groundstation_id])
+
+        # merge events that either overlap, or are contiguous, and create the appropriate events
+        for event_start, event_end in event_time_ranges:
+            event_start = event_start.utc_datetime().replace(tzinfo=None) # remove time zone info to compare with utc_time_range column which is tsrange type (doesn't have timezone info)
+            event_end = event_end.utc_datetime().replace(tzinfo=None)
+
+            merged_events = session.query(ContactEvent).filter(
+                ContactEvent.asset_id == block.satellite_id,
+                ContactEvent.groundstation_id == block.groundstation_id,
+                or_(
+                    ContactEvent.utc_time_range.op('&&')(func.tsrange(event_start, event_end)), # if the eclipse overlaps with our eclipse
+                    func.lower(ContactEvent.utc_time_range) == event_end, # if the eclipse starts where our eclipse ends
+                    func.upper(ContactEvent.utc_time_range) == event_start # if the eclipse ends where our eclipse starts
+                )
+            ).all()
+
+            if merged_events:
+                min_overlapping_start = min([eclipse.utc_time_range.lower for eclipse in merged_events])
+                max_overlapping_end = max([eclipse.utc_time_range.upper for eclipse in merged_events])
+                # update eclipse start and end to encompass all continuous/overlapping eclipses
+                event_start = min(event_start, min_overlapping_start)
+                event_end = max(event_end, max_overlapping_end) 
+
+            # first delete overlapping events
+            for event in merged_events:
+                session.delete(event)
+            # then add the event encompassing them all
+            contact_events.append(ContactEvent(
+                asset_id=block.satellite_id,
+                groundstation_id=block.groundstation_id,
+                start_time=event_start,
+                duration=event_end - event_start,
+            ))
+    
+    session.add_all(contact_events)
+    # update blocks_to_proces state to 'processed' using batch update
+    for block in blocks_to_process:
+        block.status = 'processed'
+    session.commit() # releases lock on processing blocks
+        
 
 def contact_update(start_time: datetime, end_time: datetime, satellite):
     """

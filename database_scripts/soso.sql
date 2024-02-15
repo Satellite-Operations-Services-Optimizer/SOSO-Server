@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS transmitted_order (
     CONSTRAINT valid_downlink_size CHECK (downlink_size >= 0)
 ) INHERITS (system_order);
 
-CREATE TYPE image_type AS ENUM ('low_res', 'medium_res', 'high_res');
+CREATE TYPE image_type AS ENUM ('low', 'medium', 'spotlight');
 CREATE TABLE IF NOT EXISTS image_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
@@ -316,7 +316,7 @@ CREATE TABLE IF NOT EXISTS fixed_event (
 ) INHERITS (scheduled_event);
 -- ================== End of Abstract tables for Scheduled Events ==================
 
-CREATE TABLE IF NOT EXISTS contact_opportunity (
+CREATE TABLE IF NOT EXISTS contact_event (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer NOT NULL REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES satellite (id),
@@ -334,8 +334,8 @@ CREATE TABLE IF NOT EXISTS contact_opportunity (
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
 ) INHERITS (fixed_event);
 
-CREATE INDEX IF NOT EXISTS contact_opportunity_start_time_index ON contact_opportunity (start_time);
-CREATE INDEX IF NOT EXISTS contact_opportunity_asset_index ON contact_opportunity (asset_id);
+CREATE INDEX IF NOT EXISTS contact_event_start_time_index ON contact_event (start_time);
+CREATE INDEX IF NOT EXISTS contact_event_asset_index ON contact_event (asset_id);
 
 -- This table is for tracking the observation opportunities - when a location of interest is in view of a satellite.
 -- Useful for finding potential opportunities for imaging
@@ -398,8 +398,8 @@ CREATE TABLE IF NOT EXISTS transmitted_event (
     schedule_id integer REFERENCES schedule (id),
     asset_id integer REFERENCES satellite (id),
     request_id integer NOT NULL REFERENCES schedule_request(id),
-    uplink_contact_id integer NOT NULL REFERENCES contact_opportunity (id),
-    downlink_contact_id integer DEFAULT NULL REFERENCES contact_opportunity (id), -- it is nullable because not all events have data they have to transmit back to groundstation
+    uplink_contact_id integer NOT NULL REFERENCES contact_event (id),
+    downlink_contact_id integer DEFAULT NULL REFERENCES contact_event (id), -- it is nullable because not all events have data they have to transmit back to groundstation
     uplink_size double precision NOT NULL CHECK (uplink_size>=0),
     downlink_size double precision NOT NULL CHECK (downlink_size>=0),
     power_usage double precision NOT NULL DEFAULT 0.0 CHECK (power_usage>=0),
@@ -416,15 +416,15 @@ CREATE INDEX IF NOT EXISTS transmitted_event_type_index ON transmitted_event (ev
 CREATE OR REPLACE FUNCTION increment_contact_transmitted_data_size() RETURNS TRIGGER AS $$
 BEGIN
     -- lock contact events for update
-    PERFORM * FROM contact_opportunity
+    PERFORM * FROM contact_event
     WHERE id=NEW.uplink_contact_id OR id=NEW.downlink_contact_id
     FOR UPDATE;
 
     -- increment the uplink/downlink sizes of corresponding contact events
-    UPDATE contact_opportunity SET total_uplink_size = total_uplink_size + NEW.uplink_size
+    UPDATE contact_event SET total_uplink_size = total_uplink_size + NEW.uplink_size
     WHERE id=NEW.uplink_contact_id;
 
-    UPDATE contact_opportunity SET total_downlink_size = total_downlink_size + NEW.downlink_size
+    UPDATE contact_event SET total_downlink_size = total_downlink_size + NEW.downlink_size
     WHERE id=NEW.downlink_contact_id;
 
     RETURN NEW;
@@ -434,15 +434,15 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION decrement_contact_transmitted_data_size() RETURNS TRIGGER AS $$
 BEGIN
     -- lock contact events for update
-    PERFORM * FROM contact_opportunity 
+    PERFORM * FROM contact_event 
     WHERE id=NEW.uplink_contact_id OR id=NEW.downlink_contact_id
     FOR UPDATE;
 
     -- increment the uplink/downlink sizes of corresponding contact events
-    UPDATE contact_opportunity SET total_uplink_size = total_uplink_size - NEW.uplink_size
+    UPDATE contact_event SET total_uplink_size = total_uplink_size - NEW.uplink_size
     WHERE id=NEW.uplink_contact_id;
 
-    UPDATE contact_opportunity SET total_downlink_size = total_downlink_size - NEW.downlink_size
+    UPDATE contact_event SET total_downlink_size = total_downlink_size - NEW.downlink_size
     WHERE id=NEW.downlink_contact_id;
 
     RETURN NEW;
@@ -454,8 +454,8 @@ CREATE TABLE IF NOT EXISTS scheduled_imaging (
     schedule_id integer REFERENCES schedule (id),
     asset_id integer REFERENCES satellite (id),
     request_id integer NOT NULL REFERENCES schedule_request(id),
-    uplink_contact_id integer NOT NULL REFERENCES contact_opportunity (id),
-    downlink_contact_id integer DEFAULT NULL REFERENCES contact_opportunity (id), -- it is nullable because not all events have data they have to transmit back to groundstation
+    uplink_contact_id integer NOT NULL REFERENCES contact_event (id),
+    downlink_contact_id integer DEFAULT NULL REFERENCES contact_event (id), -- it is nullable because not all events have data they have to transmit back to groundstation
     power_usage double precision DEFAULT 1.0, -- TODO: verify with CSA
     -- the fields below are autogenerated by the database. don't worry about them.
     event_type event_type DEFAULT 'imaging'::event_type NOT NULL CHECK (event_type = 'imaging')
@@ -474,8 +474,8 @@ CREATE TABLE IF NOT EXISTS scheduled_maintenance (
     schedule_id integer REFERENCES schedule (id),
     asset_id integer REFERENCES satellite (id),
     request_id integer NOT NULL REFERENCES schedule_request(id),
-    uplink_contact_id integer NOT NULL REFERENCES contact_opportunity (id),
-    downlink_contact_id integer DEFAULT NULL REFERENCES contact_opportunity (id), -- it is nullable because not all events have data they have to transmit back to groundstation
+    uplink_contact_id integer NOT NULL REFERENCES contact_event (id),
+    downlink_contact_id integer DEFAULT NULL REFERENCES contact_event (id), -- it is nullable because not all events have data they have to transmit back to groundstation
     -- the fields below are autogenerated by the database. don't worry about them.
     event_type event_type DEFAULT 'maintenance'::event_type NOT NULL CHECK (event_type = 'maintenance')
 ) INHERITS (transmitted_event);
@@ -490,7 +490,7 @@ FOR EACH ROW EXECUTE FUNCTION decrement_contact_transmitted_data_size();
 
 CREATE TABLE IF NOT EXISTS outbound_schedule(
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-	contact_id integer unique REFERENCES contact_opportunity (id),
+	contact_id integer unique REFERENCES contact_event (id),
 	satellite_name text NOT NULL REFERENCES satellite (name),
 	activity_window timestamptz[] NOT NULL,
 	image_activities json[],
@@ -525,7 +525,7 @@ CREATE VIEW eventwise_asset_state_change AS
         0.0 as throughput_delta,
         0.0 as energy_usage_under_eclipse_delta,
         0.0 as power_draw_delta
-    FROM transmitted_event, contact_opportunity as contact
+    FROM transmitted_event, contact_event as contact
     WHERE transmitted_event.schedule_id=contact.schedule_id
         AND transmitted_event.asset_id=contact.asset_id
         AND transmitted_event.uplink_contact_id=contact.id
@@ -551,7 +551,7 @@ CREATE VIEW eventwise_asset_state_change AS
         0.0 as throughput_delta,
         0.0 as energy_usage_under_eclipse_delta,
         0.0 as power_draw_delta
-    FROM transmitted_event, contact_opportunity as contact
+    FROM transmitted_event, contact_event as contact
     WHERE transmitted_event.schedule_id=contact.schedule_id
         AND transmitted_event.asset_id=contact.asset_id
         AND transmitted_event.downlink_contact_id=contact.id

@@ -13,10 +13,11 @@ from event_relay_api.models.image_request_model import ImageRequest
 from event_relay_api.models.event_relay_data import EventRelayApiMessage, RequestDetails
 from app_config import rabbit, ServiceQueues
 from rabbit_wrapper import Publisher
-from app_config.database.mapping import ImageOrder
+from app_config.database.mapping import ImageOrder, ScheduleRequest
 from app_config import get_db_session
 import logging
 from fastapi import Query    
+from datetime import timedelta, datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,8 +25,9 @@ router = APIRouter()
 
 @router.post("/orders/create")
 async def handle_request(image_request: ImageRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ImageRequest))):
+    session = get_db_session()
+    
     request = jsonable_encoder(image_request)
-
     request_details = RequestDetails(requestType="image-order-request")
 
     message = jsonable_encoder(
