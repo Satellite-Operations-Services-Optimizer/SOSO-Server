@@ -1,5 +1,6 @@
 from pathlib import Path
 from sqlalchemy import text
+from sqlalchemy.orm import close_all_sessions
 from app_config import db_engine, get_db_session
 from app_config import logging
 from app_config.database.setup import setup_database
@@ -13,7 +14,15 @@ logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
 def drop_database_schema():
     logger.info("Deleting database...")
 
+    close_all_sessions()
     session = get_db_session()
+    # Terminate all connections to the database (prevents any blocking due to active connections or locks)
+    session.execute(text(f"""
+        SELECT pg_terminate_backend(pg_stat_activity.pid)
+        FROM pg_stat_activity
+        WHERE pg_stat_activity.datname = current_database()
+        AND pid <> pg_backend_pid();
+    """))
     schema = os.getenv("DB_SCHEMA")
     session.execute(text(f'DROP SCHEMA IF EXISTS {schema} CASCADE;'))
     session.execute(text(f'CREATE SCHEMA {schema}'))

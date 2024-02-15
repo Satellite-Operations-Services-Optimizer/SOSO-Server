@@ -5,6 +5,7 @@ import os
 
 engine = None
 Base = None
+_db_url = None
 
 load_dotenv()
 def setup_database(use_localhost=False):
