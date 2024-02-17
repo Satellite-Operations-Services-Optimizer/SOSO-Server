@@ -1,6 +1,10 @@
-from Helpers.postgres_helper import add_image_order
-from Helpers.rabbit_helper import publish_message_to_queue
-from datetime import datetime
+from image_management_service.helpers.postgres_helper import add_image_order
+from image_management_service.helpers.rabbit_helper import publish_message_to_queue
+from image_management_service.helpers.conversion_helper import transform_request_to_order
+from image_management_service.models.RequestModel import ImageRequest
+from app_config.database.mapping import ImageOrder
+from pydantic import ValidationError
+from datetime import datetime, timedelta
 from app_config import ServiceQueues
 import logging
 
@@ -14,7 +18,7 @@ def handle_message(body):
 
     if request_type == 'image-order-request':
         handle_image_orders(request_data)
-
+    
 
 def handle_image_orders(body):
     
@@ -22,12 +26,14 @@ def handle_image_orders(body):
         logging.error("No image order data found")
         return
 
-
-    image_type = body.get('ImageType')
-
+    try:
+        model = ImageRequest.model_validate(body)
+    except ValidationError:
+        return ("", -1)
+    
     logging.info(f"Converting image orders to accepted schema: {body}")
 
-    image_order = apply_image_type_settings(image_type, transform_request_to_db_schema(body))
+    image_order = transform_request_to_order(body)
 
     logging.info(f"Saving orders into database: {image_order}")
 
@@ -42,50 +48,6 @@ def handle_image_orders(body):
                     destination=ServiceQueues.SCHEDULER
                     )
     
-    return image_order
+    return (image_order, primary_key)
 
 
-def transform_request_to_db_schema(request_body):    
-
-    db_column_mapping = {
-        "Latitude": "latitude",
-        "Longitude": "longitude",
-        "Priority": "priority",
-        "ImageStartTime": "start_time",
-        "ImageEndTime": "end_time",
-        "DeliveryTime": "delivery_deadline",
-    }
-
-    transformed_order = {
-        db_key: datetime.strptime(request_body[req_key], '%Y-%m-%dT%H:%M:%S')
-        if "Time" in req_key else request_body[req_key]
-        for req_key, db_key in db_column_mapping.items() if req_key in request_body
-    }
-    
-    recurrence = request_body["Recurrence"]
-    if recurrence["Revisit"] == "True":
-        transformed_order["num_of_revisits"] = recurrence["NumberOfRevisits"]
-        transformed_order["revisit_frequency"] = recurrence["RevisitFrequency"]
-        transformed_order["revisit_frequency_units"] = recurrence["RevisitFrequencyUnits"]
-    else:
-        transformed_order["num_of_revisits"] = 0
-        transformed_order["revisit_frequency"] = 0
-        transformed_order["revisit_frequency_units"] = ""
-        
-    return transformed_order
-
-def apply_image_type_settings(image_type, image_order):
-
-    image_type_settings = {
-        'Spotlight': {'image_res': 3, 'image_height': 10000, 'image_width': 10000},
-        'Medium':    {'image_res': 2, 'image_height': 40000, 'image_width': 20000},
-        'Low':       {'image_res': 1, 'image_height': 40000, 'image_width': 20000},
-    }
-    
-    if image_type in image_type_settings:
-        image_order.update(image_type_settings[image_type])
-    else:
-        logging.error(f"Unrecognized image type: {image_type}")
-        return None
-    
-    return image_order
