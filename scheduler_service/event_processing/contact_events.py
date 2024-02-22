@@ -16,7 +16,7 @@ def ensure_contact_events_populated(start_time: datetime, end_time: datetime):
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time, end_time,
         ContactProcessingBlock,
-        partition_columns=[
+        partition_column_names=[
             ContactProcessingBlock.satellite_id,
             ContactProcessingBlock.groundstation_id
         ],
@@ -54,8 +54,8 @@ def ensure_contact_events_populated(start_time: datetime, end_time: datetime):
             ).all()
 
             if merged_events:
-                min_overlapping_start = min([eclipse.utc_time_range.lower for eclipse in merged_events])
-                max_overlapping_end = max([eclipse.utc_time_range.upper for eclipse in merged_events])
+                min_overlapping_start = min([event.utc_time_range.lower for event in merged_events])
+                max_overlapping_end = max([event.utc_time_range.upper for event in merged_events])
                 # update eclipse start and end to encompass all continuous/overlapping eclipses
                 event_start = min(event_start, min_overlapping_start)
                 event_end = max(event_end, max_overlapping_end) 
@@ -128,16 +128,3 @@ def _is_in_contact(satellite, ground_station, time):
     relative_position = (satellite - ground_station_topos).at(time)
     elevation_angle = relative_position.altaz()[0]
     return elevation_angle.degrees > ground_station.mask
-
-class Stub:
-    gs_name: String
-    contact: String
-    duration: datetime
-    loss_of_signal: datetime
-
-    def __innit__(self, gs_name, contact, duration, loss_of_signal):
-        self.gs_name=gs_name
-        self.contact=contact
-        self.duration=duration
-        self.duration=loss_of_signal
-        

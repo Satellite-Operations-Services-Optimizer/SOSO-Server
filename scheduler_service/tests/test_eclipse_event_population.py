@@ -1,17 +1,35 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from scheduler_service.fixed_event_processing.eclipse_events import ensure_eclipse_events_populated
+from scheduler_service.event_processing.eclipse_events import ensure_eclipse_events_populated
 from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 from app_config import get_db_session
 from app_config.database.mapping import Satellite, SatelliteEclipse
 from sqlalchemy import func
 from collections import deque
+import time
 
 def test_accurate_eclipse_event_population(test_satellite: Satellite):
-    start_time = datetime(2024, 2, 14, 2, 20, 45, 772453) + timedelta(hours=5.3)
-    # start_time = datetime.utcnow()
-    end_time = start_time + timedelta(days=1)
+    # start_time = datetime(2024, 2, 14, 2, 20, 45, 772453) + timedelta(hours=5.3)
+    start_time = datetime.utcnow()
+    end_time = start_time + timedelta(days=20)
+    log_start = time.time()
     ensure_eclipse_events_populated(start_time, end_time)
+    elapsed_time = time.time() - log_start
+    print(f"ensure_eclipse_events_populated took {elapsed_time} seconds.")
+
+
+    # Iterate over time and calculate contact at each time step
+    log_start = time.time()
+    sat_state_generator = SatelliteStateGenerator(test_satellite)
+    ts = sat_state_generator._get_timescale()
+    skyfield_end_time = sat_state_generator._ensure_skyfield_time(end_time)
+    current_time = sat_state_generator._ensure_skyfield_time(start_time)
+    while current_time.tt < skyfield_end_time.tt:
+        sat_state_generator.is_sunlit(current_time)
+        current_time = ts.utc(current_time.utc_datetime() + timedelta(minutes=1))
+
+    elapsed_time = time.time() - log_start
+    print(f"Iterating state took {elapsed_time} seconds.")
     return
 
     session = get_db_session()

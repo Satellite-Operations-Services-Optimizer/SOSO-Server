@@ -5,7 +5,6 @@ from sqlalchemy.sql.expression import BinaryExpression
 from dataclasses import dataclass
 from app_config.database.mapping import Schedule
 from typing import Optional, TypedDict, List
-from utils import TimeHorizon
 from datetime import timedelta
 from app_config.database.mapping import ScheduledEvent
 from app_config import get_db_session
@@ -49,7 +48,7 @@ def copy_schedule(self, schedule: Schedule, time_range: TimeHorizon = TimeHorizo
     copy_options = {
         'copied_schedule_request_types': ['received'],
         'context_duration': None,
-        'context_event_types': ['sat_outage', 'gs_outage', 'contact', 'eclipse'],
+        'context_event_types': ['outage', 'contact', 'eclipse'],
         'backpopulate_contact_events': True
     }
     copy_options.update(options)
@@ -64,3 +63,13 @@ def copy_schedule(self, schedule: Schedule, time_range: TimeHorizon = TimeHorizo
 
     # Copy ScheduleRequest instances that overlap with our span
     schedule_requests_in_span = session.query()
+
+
+def get_image_dimensions(image_type: str):
+    image_type = image_type.lower()
+    if image_type == "spotlight":
+        return 10, 10
+    elif image_type == "medium":
+        return 40, 20
+    elif image_type == "low":
+        return 40, 20

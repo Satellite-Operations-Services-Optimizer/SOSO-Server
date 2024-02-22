@@ -6,7 +6,7 @@ import numpy as np
 from datetime import datetime, timedelta
 from skyfield.api import load, Topos
 from skyfield.sgp4lib import EarthSatellite
-from scheduler_algorithm_rafael import *
+from scheduler_service.schedulers.deterministic.scheduler_algorithm_rafael import *
 
 ## Step 1: Define the Particle Class:
 # This represents the order particles used in the system

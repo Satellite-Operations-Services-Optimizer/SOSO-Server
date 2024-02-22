@@ -54,8 +54,8 @@ def image_order_from_json(image_order_json):
 
 def parse_image_type(request_image_type):
     type_mappings = {
-        'low': 'low_res',
-        'medium': 'medium_res',
-        'high': 'high_res'
+        'low': 'low',
+        'medium': 'medium',
+        'high': 'spotlight'
     }
     return type_mappings[request_image_type.lower()]
