@@ -1,0 +1,8 @@
+{
+    "Target": "SOSO-1",
+    "Activity": "Outage",
+    "Window": {
+        "Start": "2024-04-24T12:15:05",
+        "End": "2024-07-30T04:14:20"
+    }
+}

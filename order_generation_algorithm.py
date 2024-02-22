@@ -17,9 +17,16 @@ def random_target(num_satellites):
     return f"SOSO-{random.randint(1, num_satellites)}"
 
 # Directory creation and navigation
-image_order_dir = "database_scripts/populate_scripts/sample_image_orders"
-maintenance_order_dir = "database_scripts/populate_scripts/sample_maintenance_orders"
-outage_order_dir = "database_scripts/populate_scripts/sample_outage_orders"
+# Define the relative target directories for each order type
+base_dir = os.path.dirname(os.path.abspath(__file__))  # Get the directory where the script is located
+image_order_dir = os.path.join(base_dir, "database_scripts/populate_scripts/image_orders")
+maintenance_order_dir = os.path.join(base_dir, "database_scripts/populate_scripts/maintenance_orders")
+outage_order_dir = os.path.join(base_dir, "database_scripts/populate_scripts/outage_orders")
+
+# Ensure directory exists function
+def ensure_directory_exists(directory):
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
 # Random order generation algorithm
 # Image orders are generated with random data and dates
@@ -58,8 +65,8 @@ def generate_maintenance_order(order_id, order_type, num_satellites, start_time,
         "Duration": str(random.randint(1, 1000)),
         "RepeatCycle": {
             "Frequency": {
-                "MinimumGap": str(random.randint(1, 10000)) if activity != "OrbitManeuver" else "Null",
-                "MaximumGap": str(random.randint(1, 10000)) if activity != "OrbitManeuver" else "Null"
+                "MinimumGap": str(random.randint(1, 100000)) if activity != "OrbitManeuver" else "Null",
+                "MaximumGap": str(random.randint(1, 100000)) if activity != "OrbitManeuver" else "Null"
             },
             "Repetition": str(random.randint(1, 50)) if activity != "OrbitManeuver" else "Null"
         },

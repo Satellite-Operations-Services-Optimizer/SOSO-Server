@@ -1,6 +1,6 @@
 from app_config.database.setup import get_session, Base
-
-ImageOrder = Base.classes.image_order
+from app_config.database.mapping import ImageOrder
+from image_management_service.helpers.conversion_helper import transform_orderDict_to_orderDMModel
 
 def add_image_order(data):
     """
@@ -10,7 +10,7 @@ def add_image_order(data):
     """
     session = get_session()
     try:
-        new_order = ImageOrder(**data)
+        new_order = transform_orderDict_to_orderDMModel(data)
         session.add(new_order)
         session.commit()
         
