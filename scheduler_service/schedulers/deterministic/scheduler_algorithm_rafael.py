@@ -753,11 +753,12 @@ class system:
     
     def unscheduleRequest(self, request_id):
         session = get_db_session()
-        request = session.query(ScheduleRequest).filter_by(id=request_id).first()
         scheduled_events = session.query(ScheduledEvent).filter_by(request_id=request_id).all()
-
         for event in scheduled_events:
             session.delete(event)
+        session.commit()
+
+        request = session.query(ScheduleRequest).filter_by(id=request_id).first()
         request.status = "received"
         
         session.commit()

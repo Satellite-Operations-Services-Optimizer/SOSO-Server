@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS scheduled_outage (
 	window_start timestamptz DEFAULT NULL CHECK (window_start IS NULL),
 	window_end timestamptz DEFAULT NULL CHECK (window_end IS NULL),
     event_type event_type DEFAULT 'outage'::event_type NOT NULL CHECK (event_type = 'outage')
-);
+) INHERITS (scheduled_event);
 
 CREATE TABLE IF NOT EXISTS groundstation_outage (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
