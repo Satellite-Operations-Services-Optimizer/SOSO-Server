@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS transmitted_order (
     CONSTRAINT valid_downlink_size CHECK (downlink_size >= 0)
 ) INHERITS (system_order);
 
-CREATE TYPE image_type AS ENUM ('low_res', 'medium_res', 'high_res');
+CREATE TYPE image_type AS ENUM ('low', 'medium', 'spotlight');
 CREATE TABLE IF NOT EXISTS image_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
