@@ -166,6 +166,6 @@ print("Best Schedule:", best_schedule)
 
 ## Performance Check
 # Code to see failed orders, overlapped orders, and time it takes to generate schedules.
-sys = system()
+sys = System()
 sys.run(start_time, end_time)
 

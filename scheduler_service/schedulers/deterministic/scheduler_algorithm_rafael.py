@@ -11,7 +11,7 @@ import math
 import time
 from haversine import haversine
 from app_config import get_db_session
-from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, GroundstationOutageOrder, SatelliteOutageOrder, MaintenanceOrder, ScheduledEvent
+from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, GroundstationOutageOrder, SatelliteOutageOrder, MaintenanceOrder, ScheduledEvent, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
 from sqlalchemy import case, and_
 from scheduler_service.constants import get_ephemeris
 from scheduler_service.utils import get_image_dimensions
@@ -599,9 +599,22 @@ class RLoptimizer:
 
 
 
-class system:
+class System:
+
     def __init__(self, schedule_id):
         self.schedule_id = schedule_id
+
+        self.eph = get_ephemeris()
+        self.loadGS()
+        self.loadSat()
+        self.loadOrders()
+        self.loadMaint()
+
+        self.ts = load.timescale() # Create timescale object for TLE computation
+        self.optimizer = RLoptimizer()
+        self.schedId = 0
+        self.imageID = 0
+        self.maintID = 0
 
     def loadGS(self):
         session = get_db_session()
@@ -644,7 +657,7 @@ class system:
         ).filter(OutageOrder.schedule_id==self.schedule_id).all()
 
         for outage in outage_orders:
-            self.unscheduleRequest(outage.request_id)
+            self.unscheduleRequest(outage.request_id, ScheduledOutage)
             outage_dict = {
                 "Target": outage.asset_name,
                 "Activity": "Outage",
@@ -678,12 +691,12 @@ class system:
                 ScheduleRequest.order_type=="imaging",
                 ScheduleRequest.order_id==ImageOrder.id
             )
-        ).all()
+        ).filter(ImageOrder.schedule_id==self.schedule_id).all()
 
         self.orders = []
         for index, order in enumerate(image_orders):
             length, width = get_image_dimensions(order.image_type)
-            self.unscheduleRequest(order.request_id)
+            self.unscheduleRequest(order.request_id, ScheduledImaging)
             self.orders.append({
                 "Latitude": order.latitude,
                 "Longitude": order.longitude,
@@ -694,7 +707,7 @@ class system:
                 "DeliveryTime": order.delivery_deadline.strftime("%Y-%m-%dT%H:%M:%S"),
                 "Length": length,
                 "Width": width,
-                "Transfer Time": order.duration,
+                "Transfer Time": order.duration.seconds,
                 "Storage": order.downlink_size*1024*1024,
                 "Completed": False,
                 "Sources": {},
@@ -729,7 +742,7 @@ class system:
         ).filter(MaintenanceOrder.schedule_id==self.schedule_id).all()
 
         for maintenance in image_orders:
-            self.unscheduleRequest(maintenance.request_id)
+            self.unscheduleRequest(maintenance.request_id, ScheduledMaintenance)
             maintenance_order_dict = {
                 "Target": maintenance.asset_name,
                 "Activity": maintenance.description,
@@ -737,7 +750,7 @@ class system:
                     "Start": order.window_start.strftime("%Y-%m-%dT%H:%M:%S"),
                     "End": order.window_end.strftime("%Y-%m-%dT%H:%M:%S"),
                 },
-                "Duration": order.duration,
+                "Duration": order.duration.seconds,
                 "RepeatCycle": {
                     "Frequency": {
                         "MinimumGap": 1,
@@ -751,12 +764,11 @@ class system:
             if maintenance.asset_name in self.satellites_map:
                 self.satellites_map[maintenance.asset_name].maint.append(maintenance_order_dict)
     
-    def unscheduleRequest(self, request_id):
+    def unscheduleRequest(self, request_id, event_table):
         session = get_db_session()
-        scheduled_events = session.query(ScheduledEvent).filter_by(request_id=request_id).all()
+        scheduled_events = session.query(event_table).filter_by(request_id=request_id).all()
         for event in scheduled_events:
             session.delete(event)
-        session.commit()
 
         request = session.query(ScheduleRequest).filter_by(id=request_id).first()
         request.status = "received"
@@ -810,20 +822,6 @@ class system:
 
         for sat in self.Satellites:
             sat.process_images_final(self.orders, self.end_sky)
-
-    def __init__(self):
-
-        self.eph = get_ephemeris()
-        self.loadGS()
-        self.loadSat()
-        self.loadOrders()
-        self.loadMaint()
-
-        self.ts = load.timescale() # Create timescale object for TLE computation
-        self.optimizer = RLoptimizer()
-        self.schedId = 0
-        self.imageID = 0
-        self.maintID = 0
 
     def strToTm(self, Str):        
         dt = datetime.strptime(Str, "%Y-%m-%dT%H:%M:%S")
@@ -1187,8 +1185,9 @@ class system:
             self.schedId = self.schedId + 1
 
 
-
-sys = system()
+session = get_db_session()
+schedule = session.query(Schedule).filter_by(name="test_single_sat_single_gs_valid_schedule").first()
+sys = System(schedule_id=schedule.id)
 schedule = sys.run(start_time, end_time)
 print(schedule)
 
