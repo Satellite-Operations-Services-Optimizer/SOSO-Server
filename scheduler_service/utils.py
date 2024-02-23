@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column
+from sqlalchemy import Column, column, func, case, or_, union, text
 from sqlalchemy.sql.expression import BinaryExpression
 from dataclasses import dataclass
 from app_config.database.mapping import Schedule
-from typing import Optional, TypedDict, List
+from typing import Optional, TypedDict, List, Callable
 from datetime import timedelta
 from app_config.database.mapping import ScheduledEvent
 from app_config import get_db_session
@@ -73,3 +73,137 @@ def get_image_dimensions(image_type: str):
         return 40, 20
     elif image_type == "low":
         return 40, 20
+
+def query_gaps(
+        start_time: datetime,
+        end_time: Optional[datetime],
+        source_subquery,
+        range_column: column,
+        partition_columns: List[str],
+        range_constructor: Callable = func.tstzrange
+    ):
+    if start_time >= end_time:
+        return []
+
+    session = get_db_session()
+
+    if start_time is None:
+        start_time = datetime.min
+    if end_time is None:
+        end_time = datetime.max
+
+    main_time_range = range_constructor(start_time, end_time, '[]')
+    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
+    processing_blocks = session.query(
+        *table_partition_columns,
+        range_column.label('time_range'),
+        func.lag(range_column).over(
+            partition_by=partition_columns,
+            order_by=range_column
+        ).label('prev_time_range')
+    ).subquery()
+
+
+    # Get the gap between the current block and previous block (bounded by the start_time and end_time)
+    # Produces zero-width time ranges if there exists no gap between the current block and the previous block within start_time and end_time
+    prev_block_end = func.coalesce(func.upper(processing_blocks.c.prev_time_range), start_time)
+    curr_block_start = func.lower(processing_blocks.c.time_range)
+    preceding_gap_time_range = range_constructor(
+        func.least(func.greatest(prev_block_end, start_time), end_time),
+        func.greatest(func.least(curr_block_start, end_time), start_time)
+    ).label('time_range')
+
+    subquery_partition_columns = [processing_blocks.c[column.name] for column in partition_columns]
+    gaps_query_main = session.query(
+        *subquery_partition_columns,
+        preceding_gap_time_range.label('time_range')
+    ).filter(
+        preceding_gap_time_range.op('&&')(main_time_range),
+        func.lower(column('time_range')) < func.upper(column('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
+    )
+
+    # We did not consider the gaps that come after the last processing block.
+    # Let us include all those 'trailing' gaps
+    last_processing_block_end = func.max(func.upper(processing_blocks.c.time_range)) # make sure to group by partition columns
+    trailing_gap_time_range = range_constructor(
+        func.least(func.greatest(last_processing_block_end, start_time), end_time),
+        end_time
+    ).label('time_range')
+    trailing_gaps_query = session.query(
+        *subquery_partition_columns,
+        trailing_gap_time_range.label('time_range')
+    ).filter(
+        func.lower(column('time_range')) < func.upper(column('time_range'))
+    ).group_by(*subquery_partition_columns)
+
+
+    unfiltered_processing_gaps = union(gaps_query_main, trailing_gaps_query).subquery()
+    # Some zero-width time ranges might have been created, so we need to filter them out
+    processing_gaps_query = session.query(unfiltered_processing_gaps).filter(
+        ~func.isempty(unfiltered_processing_gaps.c.time_range)
+    )
+    return processing_gaps_query
+
+def query_islands(
+        source_subquery,
+        range_column: column,
+        partition_columns: List[str] = [],
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        range_constructor: Callable = func.tstzrange
+    ):
+    """
+    A *hopefully* efficient solution to the gaps and islands problem.
+    Creates non-overlapping time ranges (islands) from potentially overlapping time ranges,
+    within each partition.
+    """
+
+    session = get_db_session()
+
+    if start_time is None:
+        start_time = datetime.min
+    if end_time is None:
+        end_time = datetime.max
+
+    main_time_range = range_constructor(start_time, end_time)
+    table_range_column = source_subquery.c[range_column.name]
+    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
+
+    prev_island_end_time = func.max(func.upper(table_range_column)).over(
+        order_by=table_range_column, partition_by=table_partition_columns, rows=(None, -1)
+    ).label('prev_island_end_time')
+    next_time_range = func.lead(range_column).over(order_by=range_column, partition_by=partition_columns)
+
+    island_markers_subquery = session.query(
+        *table_partition_columns,
+        prev_island_end_time,
+        source_subquery.c[range_column.name],
+        case(
+            (prev_island_end_time==None, True),
+            (prev_island_end_time<func.lower(range_column), True),
+            else_=False
+        ).label('is_new_island_start'),
+        case((next_time_range==None, True), else_=False).label('is_last_row')
+    ).filter(
+        range_column.op('&&')(main_time_range)
+    ).subquery()
+
+    current_island_end_time = func.lead(island_markers_subquery.c.prev_island_end_time).over(
+        order_by=range_column, partition_by=partition_columns+[column('is_new_island_start')]
+    )
+    islands_query = session.query(
+        *[island_markers_subquery.c[column.name] for column in partition_columns],
+        range_constructor(
+            func.lower(range_column),
+            case(
+                (island_markers_subquery.c.is_last_row, func.upper(range_column)),
+                else_=current_island_end_time
+            )
+        ).label(range_column.name)
+    ).filter(
+        or_(
+            island_markers_subquery.c.is_new_island_start==True,
+            island_markers_subquery.c.is_last_row==True
+        ),
+    )
+    return islands_query
