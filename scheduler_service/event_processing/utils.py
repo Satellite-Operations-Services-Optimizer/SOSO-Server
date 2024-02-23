@@ -1,6 +1,6 @@
 from typing import List, Optional, Any, Union, Callable, Type
 from datetime import datetime
-from sqlalchemy import Column, func, union, insert, and_, not_, select, text
+from sqlalchemy import Column, func, union, insert, and_, not_, select, column
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import Alias
 import time
@@ -15,45 +15,46 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time: datetime,
         end_time: datetime,
         processing_block_table: Any, # orm-mapped table class
-        partition_columns: List[str],
+        partition_column_names: List[str],
         valid_partition_values_subquery
 ):
     """
-    WARNING: This function locks some rows in the database and doesn't release the lock until the transaction is committed.
-    It retrieves unprocessed blocks from the database if they exist, and creates them if they don't
+    Retrieves unprocessed blocks from the database if they exist, and creates them if they don't
+    WARNING: This function locks some rows in the database and doesn't release the lock until the transaction is committed. Make sure to commit to the database soon after calling this function to release lock.
     """
 
-    if partition_columns and type(partition_columns[0]) != str:
-        partition_columns = [col.name for col in partition_columns]
-    partition_columns_text = [text(col_name) for col_name in partition_columns]
+    if partition_column_names and type(partition_column_names[0]) != str:
+        partition_column_names = [col.name for col in partition_column_names]
+    partition_columns = [column(col_name) for col_name in partition_column_names]
 
-    gaps_query = query_processing_gaps(
+    session = get_db_session()
+    processing_gaps_query = query_time_gaps(
         start_time,
         end_time,
-        processing_block_table,
+        session.query(processing_block_table).subquery(),
+        column('time_range'),
         partition_columns
     )
 
-    session = get_db_session()
     # Define the subquery that selects rows from processing_block_table that match the partition_columns
     processing_block_subquery = session.query(processing_block_table).filter(
-        and_(*(valid_partition_values_subquery.c[column_name] == processing_block_table.__table__.c[column_name] for column_name in partition_columns))
+        and_(*(valid_partition_values_subquery.c[column_name] == processing_block_table.__table__.c[column_name] for column_name in partition_column_names))
     ).exists()
 
     # Define the query that selects rows from valid_partition_values_subquery where there's no match in processing_block_table
     missing_partitions = select(
-        *partition_columns_text,
+        *partition_columns,
         func.tstzrange(start_time, end_time).label('time_range')
     ).select_from(valid_partition_values_subquery).where(
         not_(processing_block_subquery)
     )
 
-    blocks_to_process = union(gaps_query, missing_partitions)
+    blocks_to_process = union(processing_gaps_query, missing_partitions)
 
 
     # There is an exclusive constraint to prevent overlapping time range for same partition.
     # If two processes query
-    columns_to_insert = partition_columns + ['time_range']
+    columns_to_insert = partition_column_names + ['time_range']
     while True:
         try:
             insert_stmt = insert(processing_block_table).from_select(columns_to_insert, blocks_to_process)
@@ -77,21 +78,26 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
     ).with_for_update().all()
     return blocks_to_process
 
-def query_processing_gaps(start_time: datetime, end_time: Optional[datetime], processing_block_table, partition_columns: List[str]):
+def query_time_gaps(
+        start_time: datetime,
+        end_time: Optional[datetime],
+        source_subquery,
+        time_range_column: column,
+        partition_columns: List[str]
+    ):
     if start_time >= end_time:
         return []
-    
 
     session = get_db_session()
 
     main_time_range = func.tstzrange(start_time, end_time)
-    table_partition_columns = [processing_block_table.__table__.c[column_name] for column_name in partition_columns]
+    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
     processing_blocks = session.query(
         *table_partition_columns,
-        processing_block_table.time_range,
-        func.lag(processing_block_table.time_range).over(
+        time_range_column.label('time_range'),
+        func.lag(time_range_column).over(
             partition_by=partition_columns,
-            order_by=processing_block_table.time_range
+            order_by=time_range_column
         ).label('prev_time_range')
     ).subquery()
 
@@ -105,13 +111,13 @@ def query_processing_gaps(start_time: datetime, end_time: Optional[datetime], pr
         func.greatest(func.least(curr_block_start, end_time), start_time)
     ).label('time_range')
 
-    subquery_partition_columns = [processing_blocks.c[column_name] for column_name in partition_columns]
+    subquery_partition_columns = [processing_blocks.c[column.name] for column in partition_columns]
     gaps_query_main = session.query(
         *subquery_partition_columns,
         preceding_gap_time_range.label('time_range')
     ).filter(
         preceding_gap_time_range.op('&&')(main_time_range),
-        func.lower(text('time_range')) < func.upper(text('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
+        func.lower(column('time_range')) < func.upper(column('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
     )
 
     # We did not consider the gaps that come after the last processing block.
@@ -125,7 +131,7 @@ def query_processing_gaps(start_time: datetime, end_time: Optional[datetime], pr
         *subquery_partition_columns,
         trailing_gap_time_range.label('time_range')
     ).filter(
-        func.lower(text('time_range')) < func.upper(text('time_range'))
+        func.lower(column('time_range')) < func.upper(column('time_range'))
     ).group_by(*subquery_partition_columns)
 
 

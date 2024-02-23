@@ -10,7 +10,7 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time, end_time,
         EclipseProcessingBlock,
-        partition_columns=[EclipseProcessingBlock.satellite_id],
+        partition_column_names=[EclipseProcessingBlock.satellite_id],
         valid_partition_values_subquery=session.query(Satellite.id.label('satellite_id')).subquery()
     )
 
@@ -25,7 +25,7 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
         state_generator = state_generators[block.satellite_id]
         eclipse_time_ranges = state_generator.eclipse_events(block.time_range.lower, block.time_range.upper)
 
-        # merge eclipses in case there are other eclipses that overlap (more specifically are continuous) with you. otherwise, create a new eclipse
+        # merge eclipses in case there are other eclipses that overlap (or, more specifically are continuous) with you. otherwise, create a new eclipse
         for eclipse_start, eclipse_end in eclipse_time_ranges:
             eclipse_start = eclipse_start.utc_datetime().replace(tzinfo=None) # remove time zone info to compare with utc_time_range column which is tsrange type (doesn't have timezone info)
             eclipse_end = eclipse_end.utc_datetime().replace(tzinfo=None)
@@ -34,15 +34,15 @@ def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
                 SatelliteEclipse.asset_id == block.satellite_id,
                 or_(
                     SatelliteEclipse.utc_time_range.op('&&')(func.tsrange(eclipse_start, eclipse_end)), # if the eclipse overlaps with our eclipse
-                    func.lower(SatelliteEclipse.utc_time_range) == eclipse_end, # if the eclipse starts where our eclipse ends
+                    func.lower(SatelliteEclipse.utc_time_range) == eclipse_end, # if the eclipse starts where our eclipse ends. TODO: Make this a tolerance of a few seconds, not exact match
                     func.upper(SatelliteEclipse.utc_time_range) == eclipse_start # if the eclipse ends where our eclipse starts
                 )
             ).all()
 
             # first delete overlapping eclipses
             if overlapping_eclipses:
-                min_overlapping_start = min([eclipse.utc_time_range.lower for eclipse in overlapping_eclipses])
-                max_overlapping_end = max([eclipse.utc_time_range.upper for eclipse in overlapping_eclipses])
+                min_overlapping_start = min([event.utc_time_range.lower for event in overlapping_eclipses])
+                max_overlapping_end = max([event.utc_time_range.upper for event in overlapping_eclipses])
 
                 for eclipse in overlapping_eclipses:
                     session.delete(eclipse)

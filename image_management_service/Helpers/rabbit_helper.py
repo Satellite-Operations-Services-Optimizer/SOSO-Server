@@ -1,8 +1,8 @@
 from app_config import rabbit
 from rabbit_wrapper import Publisher
 from fastapi.encoders import jsonable_encoder
-from Models.RequestModel import RequestDetails
-from Models.IMSProducerEventData import IMSProducerEventData
+from image_management_service.models.RequestModel import RequestDetails
+from image_management_service.models.IMSProducerEventData import IMSProducerEventData
 
 def publish_message_to_queue(data, request_type, destination):
     
