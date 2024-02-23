@@ -1,15 +1,14 @@
 from typing import List, Optional, Any, Union, Callable, Type
 from datetime import datetime
-from sqlalchemy import Column, func, union, insert, and_, not_, select, column
+from sqlalchemy import Column, func, union, insert, and_, not_, select, column, Window, case, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import Alias
 import time
 
 from app_config import get_db_session
-
-
 from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
 from ..satellite_state.state_generator import SatelliteStateGenerator
+from ..utils import query_gaps, query_islands
 
 def retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time: datetime,
@@ -28,7 +27,7 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
     partition_columns = [column(col_name) for col_name in partition_column_names]
 
     session = get_db_session()
-    processing_gaps_query = query_time_gaps(
+    processing_gaps_query = query_gaps(
         start_time,
         end_time,
         session.query(processing_block_table).subquery(),
@@ -77,67 +76,3 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
         processing_block_table.status == 'processing'
     ).with_for_update().all()
     return blocks_to_process
-
-def query_time_gaps(
-        start_time: datetime,
-        end_time: Optional[datetime],
-        source_subquery,
-        time_range_column: column,
-        partition_columns: List[str]
-    ):
-    if start_time >= end_time:
-        return []
-
-    session = get_db_session()
-
-    main_time_range = func.tstzrange(start_time, end_time)
-    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
-    processing_blocks = session.query(
-        *table_partition_columns,
-        time_range_column.label('time_range'),
-        func.lag(time_range_column).over(
-            partition_by=partition_columns,
-            order_by=time_range_column
-        ).label('prev_time_range')
-    ).subquery()
-
-
-    # Get the gap between the current block and previous block (bounded by the start_time and end_time)
-    # Produces zero-width time ranges if there exists no gap between the current block and the previous block within start_time and end_time
-    prev_block_end = func.coalesce(func.upper(processing_blocks.c.prev_time_range), start_time)
-    curr_block_start = func.lower(processing_blocks.c.time_range)
-    preceding_gap_time_range = func.tstzrange(
-        func.least(func.greatest(prev_block_end, start_time), end_time),
-        func.greatest(func.least(curr_block_start, end_time), start_time)
-    ).label('time_range')
-
-    subquery_partition_columns = [processing_blocks.c[column.name] for column in partition_columns]
-    gaps_query_main = session.query(
-        *subquery_partition_columns,
-        preceding_gap_time_range.label('time_range')
-    ).filter(
-        preceding_gap_time_range.op('&&')(main_time_range),
-        func.lower(column('time_range')) < func.upper(column('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
-    )
-
-    # We did not consider the gaps that come after the last processing block.
-    # Let us include all those 'trailing' gaps
-    last_processing_block_end = func.max(func.upper(processing_blocks.c.time_range)) # make sure to group by partition columns
-    trailing_gap_time_range = func.tstzrange(
-        func.least(func.greatest(last_processing_block_end, start_time), end_time),
-        end_time
-    ).label('time_range')
-    trailing_gaps_query = session.query(
-        *subquery_partition_columns,
-        trailing_gap_time_range.label('time_range')
-    ).filter(
-        func.lower(column('time_range')) < func.upper(column('time_range'))
-    ).group_by(*subquery_partition_columns)
-
-
-    unfiltered_processing_gaps = union(gaps_query_main, trailing_gaps_query).subquery()
-    # Some zero-width time ranges might have been created, so we need to filter them out
-    processing_gaps_query = session.query(unfiltered_processing_gaps).filter(
-        ~func.isempty(unfiltered_processing_gaps.c.time_range)
-    )
-    return processing_gaps_query
