@@ -172,15 +172,15 @@ def query_islands(
     prev_island_end_time = func.max(func.upper(table_range_column)).over(
         order_by=table_range_column, partition_by=table_partition_columns, rows=(None, -1)
     ).label('prev_island_end_time')
-    next_time_range = func.lead(range_column).over(order_by=range_column, partition_by=partition_columns)
+    next_time_range = func.lead(range_column).over(order_by=table_range_column, partition_by=partition_columns)
 
     island_markers_subquery = session.query(
         *table_partition_columns,
         prev_island_end_time,
-        source_subquery.c[range_column.name],
+        table_range_column,
         case(
             (prev_island_end_time==None, True),
-            (prev_island_end_time<func.lower(range_column), True),
+            (prev_island_end_time<func.lower(table_range_column), True),
             else_=False
         ).label('is_new_island_start'),
         case((next_time_range==None, True), else_=False).label('is_last_row')
@@ -188,11 +188,23 @@ def query_islands(
         range_column.op('&&')(main_time_range)
     ).subquery()
 
+    # we need to get the end of the current island by looking at the *next* island, not the next row.
+    # that's why we oroder by is_new_island_start, because we want lead over the rows where is_new_island_start is true.
+    # We will filter all other rows later, except for the last rows of each partition 
+    # (because they are the only ones that can be the end of an island without being the start of a new island.
+    # NOTE: This assumes, as is the case in postgresql, that boolean rows are ordered with True coming before False
     current_island_end_time = func.lead(island_markers_subquery.c.prev_island_end_time).over(
-        order_by=range_column, partition_by=partition_columns+[column('is_new_island_start')]
+        order_by=[
+            island_markers_subquery.c.is_new_island_start, # perform the lead over the rows where is_new_island_start is true. we will filter false ones later
+            island_markers_subquery.c[range_column.name]
+        ],
+        partition_by=partition_columns
     )
+
+    island_partitions = [island_markers_subquery.c[column.name] for column in partition_columns]
+    island_marker_range_column = island_markers_subquery.c[range_column.name]
     islands_query = session.query(
-        *[island_markers_subquery.c[column.name] for column in partition_columns],
+        *island_partitions,
         range_constructor(
             func.lower(range_column),
             case(
