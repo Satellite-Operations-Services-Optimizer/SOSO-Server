@@ -51,7 +51,7 @@ def test_single_input_range():
     assert islands[0] == expected_islands[0]
 
 
-# Test case 3: One island verlapping input ranges
+# Test case 3: One island overlapping input ranges
 def test_overlapping_input_ranges():
     input_ranges = [
         (datetime(2022, 1, 1), datetime(2022, 1, 5)),
@@ -64,7 +64,7 @@ def test_overlapping_input_ranges():
     assert islands[0] == expected_islands[0]
 
 
-# Test case 4: 3 islands Middle spanning island item input ranges
+# Test case 4: 3 islands, item in middle of island spans whole island and defines its end
 def test_middle_spanning_island_item_input_ranges():
     input_ranges = [
         (datetime(2022, 1, 1), datetime(2022, 1, 5)),
