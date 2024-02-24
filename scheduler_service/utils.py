@@ -184,44 +184,43 @@ def query_islands(
             else_=False
         ).label('is_new_island_start'),
         case((next_time_range==None, True), else_=False).label('is_last_row')
-    ).filter(
+    ).order_by(table_range_column).filter(
         range_column.op('&&')(main_time_range)
     ).subquery()
 
-    # This optimization is using the assumption that with assumption that the "LEAD" clause (func.lead) is computed before the filter "WHERE" clause in postgresql
+    # This optimization is using the assumption that with assumption that the "LEAD" clause (func.lead) is computed after the filter "WHERE" clause in postgresql.
+    # Check git commit history for the optimization I made for the wrong assumption that "LEAD" clause is computed before the "WHERE" clause, in case it is needed in the future
+
     # we need to get the end of the current island by looking at the *next* island, not the next row.
-    # that's why we order by is_new_island_start, because we want lead over the rows where is_new_island_start is true (let's call those rows the island_start_markers).
-    # The last rows within a partition can be the end of an island without being the start of a new island.
-    # So we want to put them right after all the island_start_marker rows.
-    # We only care about island_start_marker rows, and the last rows of the partitions because they are the ones where we
-    # get our island's range from since they have the most up-to-date island end time (that is why we order by them, so they come frist in our result set, saving computation).
-    # The other rows will be filtered out in our query.
+
     ending_island_end_time = case(
         (island_markers_subquery.c.is_new_island_start==True, island_markers_subquery.c.prev_island_end_time),
         else_=func.greatest(func.upper(range_column), island_markers_subquery.c.prev_island_end_time)
     )
-    current_island_end_time = func.lead(ending_island_end_time).over(
-        order_by=[
-            island_markers_subquery.c.is_new_island_start.desc(),  # perform the lead over the rows where is_new_island_start is true in descending order
-            island_markers_subquery.c.is_last_row.desc(), # we want the ending rows to come right after the island start markers.
-            island_markers_subquery.c[range_column.name]
-        ],
-        partition_by=partition_columns
-    )
 
-    # In the query below, the expression `func.greatest(current_island_end_time, func.upper(range_column))`
-    # handles two edge cases: 
-    #   1. case when nothing comes after this row (and thus current_island_end_time is null) and
-    #   2. case when markers that are not island start markers, and are also not last rows,
-    #      start to show up in the order. (we don't want to consider these rows, because 
-    #      they give us incorrect data)
-    # in both cases, we set the end time to upper(range_column)
+    current_island_end_time = func.lead(ending_island_end_time).over(partition_by=partition_columns)
+    # This query includes items that are not island start markers, but are last rows. 
+    # We need these to get the correct island end times (using the lead function in 
+    # variable `current_island_end_time`) but we don't want them in the result set, so we want to filter them from the result set.
+    # Since postgresql seems to perform the filter BEFORE the LEAD, that helps us with getting the correct island end time,
+    # but that means that we can't directly filter these rows out using the where clause, because it will affect our "LEAD" clause
+    # and make it return incorrect data. That is why we have to first subquery, then filter (even though this is not very ideal)
     island_partitions = [island_markers_subquery.c[column.name] for column in partition_columns]
-    islands_query = session.query(
-        *island_partitions,
+    unfiltered_islands_query = session.query(
+        *partition_columns,
+        island_markers_subquery.c.is_new_island_start,
         range_constructor(
             func.lower(range_column),
-            func.greatest(current_island_end_time, func.upper(range_column))
+            func.coalesce(current_island_end_time, func.upper(range_column))
         ).label(range_column.name)
-    ).filter(island_markers_subquery.c.is_new_island_start==True)
+    ).filter(
+        or_(
+            island_markers_subquery.c.is_new_island_start==True,
+            island_markers_subquery.c.is_last_row==True
+        )
+    ).subquery()
+    islands_query = session.query(
+        *partition_columns,
+        range_column
+    ).filter(unfiltered_islands_query.c.is_new_island_start==True)
     return islands_query

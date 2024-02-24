@@ -83,8 +83,39 @@ def test_middle_spanning_island_item_input_ranges():
     assert len(islands) == len(expected_islands)
     assert islands == expected_islands
 
+# Test case 5: Last range in island is contained within the island
+def test_last_range_contained_within_island():
+    input_ranges = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 3), datetime(2022, 1, 20)),
+        (datetime(2022, 1, 12), datetime(2022, 1, 15))
+    ]
+    expected_islands = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 20))
+    ]
+    islands = compute_islands(input_ranges)
+    assert len(islands) == len(expected_islands)
+    assert islands == expected_islands
+
+
+# Test case 6: Last range in island extends the island
+def test_last_range_extends_island():
+    input_ranges = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 7), datetime(2022, 1, 10)),
+        (datetime(2022, 1, 9), datetime(2022, 1, 15))
+    ]
+    expected_islands = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 7), datetime(2022, 1, 15))
+    ]
+    islands = compute_islands(input_ranges)
+    assert len(islands) == len(expected_islands)
+    assert islands == expected_islands
 
 test_no_input_ranges()
 test_single_input_range()
 test_overlapping_input_ranges()
 test_middle_spanning_island_item_input_ranges()
+test_last_range_contained_within_island()
+test_last_range_extends_island()
