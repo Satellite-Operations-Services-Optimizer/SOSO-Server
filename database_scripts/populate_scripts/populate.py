@@ -13,7 +13,7 @@ def populate_database():
     populate_sample_satellites()
     populate_sample_groundstations()
     populate_sample_image_orders()
-    populate_scheduled_events()
+    # populate_scheduled_events()
 
     # populate_random_ground_stations()
     # populate_random_image_orders()

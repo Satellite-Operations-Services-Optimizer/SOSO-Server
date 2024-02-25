@@ -5,7 +5,7 @@ from sqlalchemy.sql.expression import literal_column
 from typing import List, Tuple
 from datetime import datetime
 
-from scheduler_service.utils import query_islands
+from scheduler_service.schedulers.utils import query_islands
 import pytest
 from datetime import datetime
 

@@ -38,7 +38,7 @@ def create_maintenence_request(db: Session, request: ActivityRequest):
         end_time=datetime.fromisoformat(request.Window.End),
         duration=timedelta(seconds = int(request.Duration)),
         revisit_frequency=request.RepeatCycle.Repetition,
-        revisit_frequency_min=request.RepeatCycle.Frequency.MinimumGap,
+        revisit_frequency=request.RepeatCycle.Frequency.MinimumGap,
         revisit_frequency_max=request.RepeatCycle.Frequency.MaximumGap,        
         operations_flag=request.PayloadOutage
     )

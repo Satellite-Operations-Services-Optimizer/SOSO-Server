@@ -8,7 +8,7 @@ import time
 from app_config import get_db_session
 from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
 from ..satellite_state.state_generator import SatelliteStateGenerator
-from ..utils import query_gaps, query_islands
+from ..schedulers.utils import query_gaps, query_islands
 
 def retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time: datetime,

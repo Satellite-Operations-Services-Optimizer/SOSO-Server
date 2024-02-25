@@ -14,7 +14,7 @@ import numpy as np
 from math import atan, degrees
 from skyfield.api import Topos
 from haversine import haversine
-from scheduler_service.utils import get_image_dimensions
+from scheduler_service.schedulers.utils import get_image_dimensions
 
 # This class extends the database table 'satellite'
 class SatelliteStateGenerator:
