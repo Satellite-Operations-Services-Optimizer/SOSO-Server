@@ -86,7 +86,7 @@ EXECUTE FUNCTION set_default_name('satellite');
 -- ================== End of Asset Tables ==================
 
 -- ================== Order Tables ==================
-CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'gs_outage', 'sat_outage');
+CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'outage');
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS system_order (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS transmitted_order (
     CONSTRAINT valid_downlink_size CHECK (downlink_size >= 0)
 ) INHERITS (system_order);
 
-CREATE TYPE image_type AS ENUM ('low_res', 'medium_res', 'high_res');
+CREATE TYPE image_type AS ENUM ('low', 'medium', 'spotlight');
 CREATE TABLE IF NOT EXISTS image_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
@@ -133,21 +133,21 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.downlink_size IS NULL THEN
         CASE NEW.image_type 
-            WHEN 'low_res' THEN 
+            WHEN 'low' THEN 
 				NEW.downlink_size := 128.0; -- size in MB
-            WHEN 'medium_res' THEN 
+            WHEN 'medium' THEN 
                 NEW.downlink_size := 256.0; -- size in MB
-            WHEN 'high_res' THEN 
+            WHEN 'spotlight' THEN 
                 NEW.downlink_size := 512.0; -- size in MB
         END CASE;
     END IF;
     IF NEW.duration IS NULL THEN
         CASE NEW.image_type 
-            WHEN 'low_res' THEN 
+            WHEN 'low' THEN 
                 NEW.duration := '20 seconds'::interval;
-            WHEN 'medium_res' THEN 
+            WHEN 'medium' THEN 
                 NEW.duration := '45 seconds'::interval;
-            WHEN 'high_res' THEN 
+            WHEN 'spotlight' THEN 
                 NEW.duration := '120 seconds'::interval;
         END CASE;
     END IF;
@@ -166,25 +166,24 @@ CREATE TABLE IF NOT EXISTS maintenance_order (
     schedule_id integer REFERENCES schedule (id),
     operations_flag boolean,
     description text,
-    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL,
     asset_id integer NOT NULL REFERENCES satellite (id), -- maintenance orders must be performed on a specific asset. TODO: My assumption is that we don't have maintenance orders for groundstations. veryfy with tsa.
+    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL,
     CONSTRAINT valid_order_type CHECK (order_type = 'maintenance')
 ) INHERITS (transmitted_order);
 
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    schedule_id integer REFERENCES schedule (id),
-    order_type order_type,
-    asset_id integer NOT NULL -- outage orders must be performed on a specific asset, whether satellite or groundstation
-    CONSTRAINT valid_order_type CHECK (order_type = 'gs_outage' OR order_type = 'sat_outage')
+    asset_id integer NOT NULL,
+    asset_type asset_type NOT NULL,
+    order_type order_type DEFAULT 'outage'::order_type NOT NULL CHECK (order_type = 'outage')
 ) INHERITS (system_order);
 
 CREATE TABLE IF NOT EXISTS groundstation_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
-    order_type order_type DEFAULT 'gs_outage'::order_type NOT NULL,
-    asset_id integer NOT NULL REFERENCES ground_station (id) CHECK (order_type = 'gs_outage')
+    asset_id integer NOT NULL REFERENCES ground_station (id),
+    asset_type asset_type DEFAULT 'groundstation'::asset_type NOT NULL CHECK (asset_type = 'groundstation')
 ) INHERITS (outage_order);
 
 CREATE INDEX IF NOT EXISTS groundstation_outage_order_start_time_index ON groundstation_outage_order (start_time);
@@ -193,24 +192,25 @@ CREATE INDEX IF NOT EXISTS groundstation_outage_order_end_time_index ON groundst
 CREATE TABLE IF NOT EXISTS satellite_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
-    order_type order_type DEFAULT 'sat_outage'::order_type NOT NULL,
-    asset_id integer NOT NULL REFERENCES satellite (id) CHECK (order_type = 'sat_outage')
+    asset_id integer NOT NULL REFERENCES satellite (id),
+    asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
 ) INHERITS (outage_order);
 
 CREATE INDEX IF NOT EXISTS satellite_outage_order_start_time_index ON satellite_outage_order (start_time);
 CREATE INDEX IF NOT EXISTS satellite_outage_order_end_time_index ON satellite_outage_order (end_time);
 
 
--- These tables are for tracking what time periods in which we have completely processed the observation or contact opportunities
+-- These tables are for tracking what time periods in which we have completely processed the capture or contact opportunities
 -- This is necessary as we have the requirement that we should be able to accomodate for changing reference time (which will mean we have to compute past contacts potentially)
 -- so tracking this allows us to be able to do that without having to recompute everything from scratch or do redundant work
 CREATE TYPE processing_status AS ENUM ('processing', 'processed');
-CREATE TABLE IF NOT EXISTS observation_processing_block (
+CREATE TABLE IF NOT EXISTS capture_processing_block (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, -- only here so we will be able to automap the table in sqlalchemy. a key is not really needed.
-    satellite_id integer REFERENCES satellite (id),
-    latitude double precision,
-    longitude double precision,
-    time_range tstzrange,
+    satellite_id integer REFERENCES satellite (id) NOT NULL,
+    image_type image_type NOT NULL,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
+    time_range tstzrange NOT NULL,
 	status processing_status DEFAULT 'processing'::processing_status NOT NULL,
     CONSTRAINT valid_time_range CHECK (lower(time_range) < upper(time_range)),
     EXCLUDE USING gist (satellite_id WITH =, latitude WITH =, longitude WITH =, time_range WITH &&) -- no overlapping time ranges
@@ -218,9 +218,9 @@ CREATE TABLE IF NOT EXISTS observation_processing_block (
 
 CREATE TABLE IF NOT EXISTS contact_processing_block (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, -- only here so we will be able to automap the table in sqlalchemy. a key is not really needed.
-    satellite_id integer REFERENCES satellite (id),
-    groundstation_id integer REFERENCES ground_station (id),
-    time_range tstzrange,
+    satellite_id integer REFERENCES satellite (id) NOT NULL,
+    groundstation_id integer REFERENCES ground_station (id) NOT NULL,
+    time_range tstzrange NOT NULL,
 	status processing_status DEFAULT 'processing'::processing_status NOT NULL,
     CONSTRAINT valid_time_range CHECK (lower(time_range) < upper(time_range)),
 	EXCLUDE USING gist (satellite_id WITH =, groundstation_id WITH =, time_range WITH &&) -- no overlapping time ranges
@@ -228,8 +228,8 @@ CREATE TABLE IF NOT EXISTS contact_processing_block (
 
 CREATE TABLE IF NOT EXISTS eclipse_processing_block (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY, -- only here so we will be able to automap the table in sqlalchemy. a key is not really needed.
-    satellite_id integer REFERENCES satellite (id),
-    time_range tstzrange,
+    satellite_id integer REFERENCES satellite (id) NOT NULL,
+    time_range tstzrange NOT NULL,
 	status processing_status DEFAULT 'processing'::processing_status NOT NULL,
     CONSTRAINT valid_time_range CHECK (lower(time_range) < upper(time_range)),
     EXCLUDE USING gist (satellite_id WITH =, time_range WITH &&) -- no overlapping time ranges
@@ -253,8 +253,10 @@ CREATE TABLE IF NOT EXISTS schedule_request (
     order_id integer,
     order_type order_type, -- needed because order_id is not unique across the different order types
     asset_id integer DEFAULT NULL, -- it is null in the case where we don't care what asset it is performed on
+    asset_type asset_type DEFAULT NULL,
     window_start timestamptz,
     window_end timestamptz CHECK (window_end >= window_start),
+    utc_window_time_range tsrange GENERATED ALWAYS AS (tsrange(window_start AT TIME ZONE 'UTC', window_end AT TIME ZONE 'UTC')) STORED,
     duration interval NOT NULL,
     delivery_deadline timestamptz CHECK (delivery_deadline >= window_end), -- can be null if there is nothing to be delivered back, e.g. it is null for maintenance requests
     uplink_size double precision NOT NULL CHECK (uplink_size >= 0), -- there are some things we don't uplink/downlink, they will just have the default value of 0 for their uplink/downlink data size
@@ -266,7 +268,7 @@ CREATE TABLE IF NOT EXISTS schedule_request (
     UNIQUE (order_type, order_id, window_start)
 );
 
-CREATE TYPE event_type AS ENUM ('imaging', 'maintenance', 'gs_outage', 'sat_outage', 'contact', 'eclipse', 'observation');
+CREATE TYPE event_type AS ENUM ('imaging', 'maintenance', 'outage', 'contact', 'eclipse', 'capture');
 
 -- ================== Abstract tables for Scheduled Events ==================
 -- NOTE: Do not define constraints on these tables (including primary/foreign key constraints), as it won't be inherited by the children
@@ -309,10 +311,11 @@ BEFORE INSERT ON windowed_event
 FOR EACH ROW
 EXECUTE FUNCTION set_default_event_window();
 
-CREATE TABLE IF NOT EXISTS fixed_event (
+CREATE TABLE IF NOT EXISTS static_events (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    request_id integer DEFAULT NULL CHECK (request_id IS NULL),
 	window_start timestamptz DEFAULT NULL CHECK (window_start IS NULL),
-	window_end timestamptz DEFAULT NULL CHECK (window_start IS NULL)
+	window_end timestamptz DEFAULT NULL CHECK (window_end IS NULL)
 ) INHERITS (scheduled_event);
 -- ================== End of Abstract tables for Scheduled Events ==================
 
@@ -332,27 +335,31 @@ CREATE TABLE IF NOT EXISTS contact_event (
     -- the fields below are autogenerated by the database. don't worry about them.
     event_type event_type DEFAULT 'contact'::event_type NOT NULL CHECK (event_type = 'contact'),
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
-) INHERITS (fixed_event);
+) INHERITS (static_events);
 
 CREATE INDEX IF NOT EXISTS contact_event_start_time_index ON contact_event (start_time);
 CREATE INDEX IF NOT EXISTS contact_event_asset_index ON contact_event (asset_id);
 
--- This table is for tracking the observation opportunities - when a location of interest is in view of a satellite.
+-- This table is for tracking the capture opportunities - when a location of interest is in view of a satellite.
 -- Useful for finding potential opportunities for imaging
-CREATE TABLE IF NOT EXISTS observation_opportunity (
+CREATE TABLE IF NOT EXISTS capture_opportunity (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
     asset_id integer REFERENCES satellite (id),
+    image_type image_type,
     latitude double precision NOT NULL, -- TODO: Use PostGIS to store the coordinates as a point in the future
     longitude double precision NOT NULL,
     -- the fields below are autogenerated by the database. don't worry about them.
-    event_type event_type DEFAULT 'observation'::event_type NOT NULL CHECK (event_type = 'observation'),
+    event_type event_type DEFAULT 'capture'::event_type NOT NULL CHECK (event_type = 'capture'),
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
-) INHERITS (fixed_event);
+) INHERITS (static_events);
 
 CREATE TABLE IF NOT EXISTS scheduled_outage (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY
-) INHERITS (fixed_event);
+    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+	window_start timestamptz DEFAULT NULL CHECK (window_start IS NULL),
+	window_end timestamptz DEFAULT NULL CHECK (window_end IS NULL),
+    event_type event_type DEFAULT 'outage'::event_type NOT NULL CHECK (event_type = 'outage')
+) INHERITS (scheduled_event);
 
 CREATE TABLE IF NOT EXISTS groundstation_outage (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -360,7 +367,6 @@ CREATE TABLE IF NOT EXISTS groundstation_outage (
     asset_id integer REFERENCES ground_station(id),
     request_id integer NOT NULL REFERENCES schedule_request(id),
     -- the fields below are autogenerated by the database. don't worry about them.
-    event_type event_type DEFAULT 'gs_outage'::event_type NOT NULL CHECK (event_type = 'gs_outage'),
     asset_type asset_type DEFAULT 'groundstation'::asset_type NOT NULL CHECK (asset_type = 'groundstation')
 ) INHERITS (scheduled_outage);
 
@@ -373,7 +379,6 @@ CREATE TABLE IF NOT EXISTS satellite_outage (
     asset_id integer REFERENCES satellite (id),
     request_id integer NOT NULL REFERENCES schedule_request (id),
     -- the fields below are autogenerated by the database. don't worry about them.
-    event_type event_type DEFAULT 'sat_outage'::event_type NOT NULL CHECK (event_type = 'sat_outage'),
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
 ) INHERITS (scheduled_outage);
 
@@ -387,7 +392,7 @@ CREATE TABLE IF NOT EXISTS satellite_eclipse(
     -- the fields below are autogenerated by the database. don't worry about them.
     event_type event_type DEFAULT 'eclipse'::event_type NOT NULL CHECK (event_type = 'eclipse'),
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
-) INHERITS (fixed_event);
+) INHERITS (static_events);
 
 CREATE INDEX IF NOT EXISTS satellite_eclipse_start_time_index ON satellite_eclipse (start_time);
 CREATE INDEX IF NOT EXISTS satellite_eclipse_asset_index ON satellite_eclipse (asset_id);

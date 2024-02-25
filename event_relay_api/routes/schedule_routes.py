@@ -2,9 +2,10 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 import logging
 from app_config import get_db_session
-from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest
+from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation
 from fastapi.encoders import jsonable_encoder
 from fastapi import Query
+from sqlalchemy import case
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -27,14 +28,19 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
         ScheduledEvent.id,
         ScheduledEvent.start_time,
         ScheduledEvent.duration,
-        ScheduledEvent.asset_type,
         ScheduledEvent.asset_id,
         Asset.name.label("asset_name"),
+        GroundStation.id.label("groundstation_id"),
+        GroundStation.name.label("groundstation_name"),
         ScheduleRequest.order_id
     ).join(
         Asset, (ScheduledEvent.asset_type==Asset.asset_type) & (ScheduledEvent.asset_id==Asset.id)
-    ).join(
-        ScheduleRequest, ScheduledEvent.request_id==ScheduleRequest.id, isouter=True
+    ).outerjoin(
+        ScheduleRequest, ScheduledEvent.request_id==ScheduleRequest.id
+    ).outerjoin(
+        ContactEvent, (ScheduledEvent.event_type==ContactEvent.event_type) & (ScheduledEvent.id==ContactEvent.id)
+    ).outerjoin(
+        GroundStation, ContactEvent.groundstation_id==GroundStation.id
     ).filter(ScheduledEvent.schedule_id==id).order_by(ScheduledEvent.start_time)
     
     if event_types:

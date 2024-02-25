@@ -1,7 +1,7 @@
 import json
 import numpy as np
 from datetime import datetime, timedelta
-from scheduler_algorithm_rafael import *
+from scheduler_service.schedulers.deterministic.scheduler_algorithm_rafael import *
 
 # Load image orders, maintenance orders, and outage orders
 image_orders = []

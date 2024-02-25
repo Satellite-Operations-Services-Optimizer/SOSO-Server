@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
 
 import os
 import json
@@ -11,8 +10,12 @@ from datetime import datetime, timedelta
 import math
 import time
 from haversine import haversine
+from app_config import get_db_session
+from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, GroundstationOutageOrder, SatelliteOutageOrder, MaintenanceOrder, ScheduledEvent, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
+from sqlalchemy import case, and_
+from scheduler_service.constants import get_ephemeris
+from scheduler_service.utils import get_image_dimensions
 
-# In[2]:
 
 start_time_str = "2023-10-08 00:00:00"
 end_time_str = "2023-10-08 23:59:59"
@@ -200,8 +203,8 @@ class ground_station:
 class satelite:
 
     # Define satellite parameters
-    def __init__(self, tle):
-
+    def __init__(self, tle, name):
+        self.name = name
         self.loadTLE(tle)
         self.initPower()
         self.StorageCapacityMax = 40*1024*1024*1024
@@ -223,12 +226,16 @@ class satelite:
 
         ts = load.timescale() # Create timescale object for TLE computation
 
-        with open(tle) as f: # For-loop and f-string used to open the TLE files for SOSO-1, SOSO-2, etc.
-            data = json.load(f) # Load the JSON data from the file
-            # print(data)
-            self.name = data['name']
-            line1 = data['line1']
-            line2 = data['line2']
+        if type(tle)!=str:
+            data = tle
+        else:
+            with open(tle) as f:
+                data = json.load(f)
+
+        # print(data)
+        self.name = data.get('name') or self.name
+        line1 = data['line1']
+        line2 = data['line2']
         self.satObj = EarthSatellite(line1, line2, self.name, ts) # Create new satellite object where line 1 = tle[1], line 2 = tle[2], title = tle[0], and ts for timescale
 
     # Define the initialization of power sources
@@ -592,23 +599,185 @@ class RLoptimizer:
 
 
 
-class system:
+class System:
+
+    def __init__(self, schedule_id):
+        self.schedule_id = schedule_id
+
+        self.eph = get_ephemeris()
+        self.loadGS()
+        self.loadSat()
+        self.loadOrders()
+        self.loadMaint()
+
+        self.ts = load.timescale() # Create timescale object for TLE computation
+        self.optimizer = RLoptimizer()
+        self.schedId = 0
+        self.imageID = 0
+        self.maintID = 0
 
     def loadGS(self):
-        
-        self.GroundStations = []
-        
-        self.GroundStations.append(ground_station("Inuvik Northwest Territories", 68.3195, -133.549,
-                                                  102.5, 5, 5, 40*1024, 100*1024*1024))
-        
-        self.GroundStations.append(ground_station("Prince Albert Saskatchewan", 53.2124, -105.934, 490.3,
-                                                  5, 5, 40*1024, 100*1024*1024))
-        
-        self.GroundStations.append(ground_station("Gatineau Quebec", 45.5846, -75.8083, 240.1,
-                                                  5, 5, 40*1024, 100*1024*1024))
+        session = get_db_session()
+        db_groundstations = session.query(GroundStation).all()
+        self.GroundStations = [ground_station(gs.name, gs.latitude, gs.longitude, gs.elevation, gs.receive_mask, gs.send_mask, gs.uplink_rate_mbps, gs.downlink_rate_mbps) for gs in db_groundstations]
+        self.groundstations_map = {gs.Name: gs for gs in self.GroundStations}
 
-    def canDownlink(self, ev, tm, sat):
+    def loadSat(self):
+        session = get_db_session()
+        self.Satellites = [satelite(sat.tle, sat.name) for sat in session.query(Satellite).all()]
+        self.satellites_map = {sat.name: sat for sat in self.Satellites}
+
+    def loadOutages(self):
+        session = get_db_session()
+        outage_orders = session.query(
+            OutageOrder.asset_id,
+            OutageOrder.asset_type,
+            case(
+                (OutageOrder.asset_type == "satellite", Satellite.name),
+                (OutageOrder.asset_type == "groundstation", GroundStation.name)
+            ).label("asset_name"),
+            ScheduleRequest.window_start,
+            ScheduleRequest.window_end,
+            ScheduleRequest.duration,
+            ScheduleRequest.delivery_deadline,
+            ScheduleRequest.uplink_size,
+            ScheduleRequest.downlink_size,
+            ScheduleRequest.priority,
+            ScheduleRequest.id.label("request_id")
+        ).join(
+            OutageOrder,
+            and_(
+                ScheduleRequest.order_type=="outage",
+                OutageOrder.id==ScheduleRequest.order_id
+            )
+        ).join(
+            Satellite, Satellite.id==OutageOrder.asset_id
+        ).join(
+            GroundStation, GroundStation.id==OutageOrder.asset_id
+        ).filter(OutageOrder.schedule_id==self.schedule_id).all()
+
+        for outage in outage_orders:
+            self.unscheduleRequest(outage.request_id, ScheduledOutage)
+            outage_dict = {
+                "Target": outage.asset_name,
+                "Activity": "Outage",
+                "Window": {
+                    "Start": outage.window_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "End": outage.window_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                }
+            }
+            if outage.asset_type=="satellite" and outage.asset_name in self.satellites_map:
+                self.satellites_map[outage.asset_name].outages.append(outage_dict)
+            elif outage.asset_type=="groundstation" and outage.asset_name in self.groundstations_map:
+                pass # need to handle groundstation outages too
+
+    def loadOrders(self):
+        session = get_db_session()
+        image_orders = session.query(
+            ImageOrder.latitude,
+            ImageOrder.longitude,
+            ImageOrder.image_type,
+            ScheduleRequest.id.label("request_id"),
+            ScheduleRequest.window_start,
+            ScheduleRequest.window_end,
+            ScheduleRequest.duration,
+            ScheduleRequest.delivery_deadline,
+            ScheduleRequest.uplink_size,
+            ScheduleRequest.downlink_size,
+            ScheduleRequest.priority
+        ).join(
+            ImageOrder, 
+            and_(
+                ScheduleRequest.order_type=="imaging",
+                ScheduleRequest.order_id==ImageOrder.id
+            )
+        ).filter(ImageOrder.schedule_id==self.schedule_id).all()
+
+        self.orders = []
+        for index, order in enumerate(image_orders):
+            length, width = get_image_dimensions(order.image_type)
+            self.unscheduleRequest(order.request_id, ScheduledImaging)
+            self.orders.append({
+                "Latitude": order.latitude,
+                "Longitude": order.longitude,
+                "Priority": order.priority,
+                "ImageType": order.image_type.capitalize(),
+                "ImageStartTime": order.window_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                "ImageEndTime": order.window_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                "DeliveryTime": order.delivery_deadline.strftime("%Y-%m-%dT%H:%M:%S"),
+                "Length": length,
+                "Width": width,
+                "Transfer Time": order.duration.seconds,
+                "Storage": order.downlink_size*1024*1024,
+                "Completed": False,
+                "Sources": {},
+                "Schedule": None,
+                "Index": index,
+                "RequestID": order.request_id # we need this to know what tables in the database are associated with which produced schedule event, so we can update the database based on the output of your schedule
+            })
+        self.orders = sorted(self.orders, key=lambda d: d['Priority']) 
+
+    def loadMaint(self):
+        session = get_db_session()
+        image_orders = session.query(
+            Satellite.name.label("asset_name"),
+            MaintenanceOrder.asset_id,
+            MaintenanceOrder.description,
+            ScheduleRequest.window_start,
+            ScheduleRequest.window_end,
+            ScheduleRequest.duration,
+            ScheduleRequest.delivery_deadline,
+            ScheduleRequest.uplink_size,
+            ScheduleRequest.downlink_size,
+            ScheduleRequest.priority,
+            ScheduleRequest.id.label("request_id")
+        ).join(
+            MaintenanceOrder,
+            and_(
+                ScheduleRequest.order_type=="maintenance",
+                ScheduleRequest.order_id==MaintenanceOrder.id
+            )
+        ).join(
+            Satellite, Satellite.id==MaintenanceOrder.asset_id
+        ).filter(MaintenanceOrder.schedule_id==self.schedule_id).all()
+
+        for maintenance in image_orders:
+            self.unscheduleRequest(maintenance.request_id, ScheduledMaintenance)
+            maintenance_order_dict = {
+                "Target": maintenance.asset_name,
+                "Activity": maintenance.description,
+                "Window": {
+                    "Start": order.window_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "End": order.window_end.strftime("%Y-%m-%dT%H:%M:%S"),
+                },
+                "Duration": order.duration.seconds,
+                "RepeatCycle": {
+                    "Frequency": {
+                        "MinimumGap": 1,
+                        "MaximumGap": 1
+                    },
+                    "Repetition": 0 # Repeats are handled by another part of the system. You are only provided with individual ScheduleRequests
+                },
+                "PayloadOutage": "TRUE",
+                "RequestID": order.request_id # we need this to know what tables in the database are associated with which produced schedule event, so we can update the database based on the output of your schedule
+            }
+            if maintenance.asset_name in self.satellites_map:
+                self.satellites_map[maintenance.asset_name].maint.append(maintenance_order_dict)
+    
+    def unscheduleRequest(self, request_id, event_table):
+        session = get_db_session()
+        scheduled_events = session.query(event_table).filter_by(request_id=request_id).all()
+        for event in scheduled_events:
+            session.delete(event)
+
+        request = session.query(ScheduleRequest).filter_by(id=request_id).first()
+        request.status = "received"
         
+        session.commit()
+
+        
+    
+    def canDownlink(self, ev, tm, sat):
         for station in self.GroundStations:
             res = station.canDownlink(ev, tm, self.ts, sat.stationVisibility[station.Name]["slots"])
             
@@ -619,87 +788,6 @@ class system:
         print("Can not uplink at time", tm.utc_strftime())
         return [False, tm, {}, None]
         
-    def loadOutages(self):
-        outList = os.listdir('database_scripts/populate_scripts/sample_outage_orders/')
-        
-        for outFile in outList:
-            with open('database_scripts/populate_scripts/sample_outage_orders/'+outFile) as f:
-                outDict = json.load(f)
-                outDict["Start"] = self.strToTm(outDict["Window"]["Start"])
-                outDict["End"] = self.strToTm(outDict["Window"]["End"])
-
-                for sat in self.Satelites:
-                    if sat.name == outDict['Target']:
-                        sat.outages.append(outDict)
-                        break
-
-    def loadSat(self):
-
-        self.Satelites = []
-
-        satTLEs = os.listdir("database_scripts/populate_scripts/sample_satellites/TLEs_json/")
-
-        for TLE in satTLEs:
-            self.Satelites.append(satelite("database_scripts/populate_scripts/sample_satellites/TLEs_json/"+TLE))
-
-
-    def loadEPH(self):
-
-        ## Step 2: (Maintenance) Is the satellite in eclipse or in sunlight?
-        self.eph = load('scheduler_service/constants/de421.bsp')  # Load the JPL ephemeris DE421
-
-    def loadOrders(self):
-        orderList = os.listdir('database_scripts/populate_scripts/sample_image_orders/')
-
-        self.orders = []
-
-        ind = 0
-        for orderFile in orderList:
-
-            with open('database_scripts/populate_scripts/sample_image_orders/'+orderFile) as f:
-                ordDict = json.load(f)
-                ordDict["Completed"] = False
-                ordDict["Sources"] = {}
-                ordDict["Schedule"] = None
-                ordDict["Index"] = ind
-
-                for recurrence in ordDict["Recurrence"]:
-                    if isinstance(recurrence, str):
-                        print(f"'recurrence' is a string: {recurrence}")
-                    elif 'Revisit' in recurrence and recurrence["Revisit"] == 'True':
-                        print(ordDict)
-                
-
-                if ordDict['ImageType'] == 'Low':
-                    ordDict['Length'] = 40
-                    ordDict['Width'] = 20
-                    ordDict['Transfer Time'] = 20
-                    ordDict['Storage'] = 128*1024*1024
-                    
-                elif ordDict['ImageType'] == 'Medium':
-                    ordDict['Length'] = 40
-                    ordDict['Width'] = 20
-                    ordDict['Transfer Time'] = 45
-                    ordDict['Storage'] = 256*1024*1024
-                    
-                elif ordDict['ImageType'] == 'Spotlight':
-                    ordDict['Length'] = 10
-                    ordDict['Width'] = 10
-                    ordDict['Transfer Time'] = 120
-                    ordDict['Storage'] = 512*1024*1024
-                    
-                elif ordDict['ImageType'] == 'High':
-                    ordDict['Length'] = 10
-                    ordDict['Width'] = 10
-                    ordDict['Transfer Time'] = 120
-                    ordDict['Storage'] = 512*1024*1024
-
-                self.orders.append(ordDict)
-                
-            ind = ind + 1
-            
-        self.orders = sorted(self.orders, key=lambda d: d['Priority']) 
-
     def simulate(self, start, end):
         
         # Convert the datetime objects to skyfield Time objects
@@ -727,42 +815,13 @@ class system:
         tm = self.start_sky
         while tm.tt < self.end_sky.tt:  # Compare Julian dates
 
-            for sat in self.Satelites:
+            for sat in self.Satellites:
                 sat.update(tm, self.eph, self.orders, self.ts, self.GroundStations)
 
             tm = self.ts.utc(tm.utc_datetime() + timedelta(seconds=60)) # Print all variables every minute from start and end times.
 
-        for sat in self.Satelites:
+        for sat in self.Satellites:
             sat.process_images_final(self.orders, self.end_sky)
-
-    def loadMaint(self):
-        maintList = os.listdir('database_scripts/populate_scripts/sample_maintenance_orders/')
-
-        for maintFile in maintList:
-            
-            with open('database_scripts/populate_scripts/sample_maintenance_orders/'+maintFile) as f:
-                maintDict = json.load(f)
-                maintDict['Completed'] = False
-
-                if maintDict['PayloadOutage']:
-                    for sat in self.Satelites:
-                        if sat.name == maintDict['Target']:
-                            sat.maint.append(maintDict)
-                            break
-        
-    def __init__(self):
-
-        self.loadGS()
-        self.loadSat()
-        self.loadEPH()
-        self.loadOrders()
-        self.loadMaint()
-
-        self.ts = load.timescale() # Create timescale object for TLE computation
-        self.optimizer = RLoptimizer()
-        self.schedId = 0
-        self.imageID = 0
-        self.maintID = 0
 
     def strToTm(self, Str):        
         dt = datetime.strptime(Str, "%Y-%m-%dT%H:%M:%S")
@@ -780,6 +839,7 @@ class system:
         self.initOptimization()
         self.optimize()
         self.satelliteActivitySchedule()
+        return self.activitySchedules
 
     def ev_overlap(self, ev1, ev_begin, ev_end):        
         
@@ -881,7 +941,7 @@ class system:
         return valid, overlap 
     
     def initOptimization(self):
-        for sat in self.Satelites:
+        for sat in self.Satellites:
             for maintItem in sat.maint:
                 # print(maintItem)
                 ev = {}
@@ -929,7 +989,7 @@ class system:
 
             for order in self.orders:
                 consumed = False
-                for sat in self.Satelites:
+                for sat in self.Satellites:
 
                     if sat.name not in order['Sources'].keys():
                         continue
@@ -1003,7 +1063,7 @@ class system:
                 if not consumed:
                     continue
 
-                for sat in self.Satelites:
+                for sat in self.Satellites:
 
                     if sat.name not in order['Sources'].keys():
                         continue
@@ -1030,7 +1090,7 @@ class system:
 
         self.activitySchedules = []
 
-        for sat in sys.Satelites:
+        for sat in sys.Satellites:
 
             sched = {}
             sched["Satellite Name"] = sat.name
@@ -1060,6 +1120,7 @@ class system:
                 imActivity['Image ID'] = self.imageID
                 imActivity['Type'] = im[2]['Ref']['ImageType']
                 imActivity['Priority'] = im[2]['Ref']['Priority']
+                imActivity['RequestID'] = im[2]['Ref']['RequestID']
                 imActivity['Image Time'] = im[0].utc_strftime("%Y-%m-%dT%H:%M:%S")
 
                 sched['Image Activities'].append(imActivity)
@@ -1093,6 +1154,7 @@ class system:
                 mtActivity['Activity Time'] = event['Start'].utc_strftime("%Y-%m-%dT%H:%M:%S")
                 mtActivity['Payload Flag'] = event['Ref']['PayloadOutage']
                 mtActivity['Duration'] = event['Ref']['Duration']
+                mtActivity['RequestID'] = event['Ref']['RequestID']
                 sched['Maintenance Activities'].append(mtActivity)
 
                 self.maintID = self.maintID + 1
@@ -1106,6 +1168,7 @@ class system:
                     mtActivity['Activity Time'] = event['Start'].utc_strftime("%Y-%m-%dT%H:%M:%S")
                     mtActivity['Payload Flag'] = event['Ref']['PayloadOutage']
                     mtActivity['Duration'] = event['Ref']['Duration']
+                    mtActivity['RequestID'] = event['Ref']['RequestID']
                     sched['Maintenance Activities'].append(mtActivity)
 
                     self.maintID = self.maintID + 1
@@ -1122,17 +1185,17 @@ class system:
             self.schedId = self.schedId + 1
 
 
-# In[7]:
+session = get_db_session()
+schedule = session.query(Schedule).filter_by(name="test_single_sat_single_gs_valid_schedule").first()
+sys = System(schedule_id=schedule.id)
+schedule = sys.run(start_time, end_time)
+print(schedule)
 
-sys = system()
-sys.run(start_time, end_time)
-
-# In[8]:
 
 def genGroundStationRequest(self):
     for activity in self.activitySchedules:
         
-        for sat in sys.Satelites:
+        for sat in sys.Satellites:
             if sat.name == activity['Satellite Name']:
                 break
                 
@@ -1170,7 +1233,7 @@ genGroundStationRequest(sys)
 
 
 
-for sat in sys.Satelites:
+for sat in sys.Satellites:
     for ev in sat.Events:
         if ev["Type"] == "Image Order":        
             print(ev["Type"])
@@ -1217,7 +1280,7 @@ for order in sys.orders:
 
 
 
-for sat in sys.Satelites:
+for sat in sys.Satellites:
     
     print()
     print()
@@ -1274,7 +1337,7 @@ print("Storage Usage:")
 print()
 print("Sattelite      Storage Left")
 print("__________________________")
-for sat in sys.Satelites:
+for sat in sys.Satellites:
     
     print(sat.name, "     ", end = " | ")
     
@@ -1321,7 +1384,7 @@ print()
 print("Ground Station Visibility")
 print()
 
-for sat in sys.Satelites:
+for sat in sys.Satellites:
     print(sat.name)
     for station in sat.stationVisibility:
         print()

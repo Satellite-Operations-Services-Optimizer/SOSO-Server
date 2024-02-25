@@ -34,7 +34,7 @@ def create_valid_image_order_schedule(start_time: datetime):
         schedule_id=schedule.id,
         latitude=0.0,
         longitude=0.0,
-        image_type='medium_res',
+        image_type='medium',
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,

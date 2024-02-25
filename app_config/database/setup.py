@@ -19,6 +19,7 @@ def setup_database(use_localhost=False):
     user = os.environ['DB_USER']
     password = os.environ['DB_PASS']
     host = os.environ['DB_HOST'] if use_localhost is False else 'localhost'
+    port = os.environ['DB_PORT']
     db_name = os.environ['DB_NAME']
     schema = os.environ['DB_SCHEMA']
     schema = schema if len(schema) > 0 else None
@@ -26,7 +27,7 @@ def setup_database(use_localhost=False):
     # Create database endine
     # We need to specify search path because sqlalchemy_utils.register_composites cannot see the schema we are using
     # https://stackoverflow.com/questions/59298580/how-to-specify-schema-in-psycopg2-connection-method
-    _db_url = f"{driver}://{user}:{password}@{host}/{db_name}?options=-csearch_path%3D{schema},public"
+    _db_url = f"{driver}://{user}:{password}@{host}:{port}/{db_name}?options=-csearch_path%3D{schema},public"
     engine = create_engine(_db_url)
 
 _global_session = None

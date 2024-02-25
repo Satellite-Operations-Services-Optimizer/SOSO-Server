@@ -1,17 +1,37 @@
 import pytest
 from datetime import datetime, timedelta, timezone
-from scheduler_service.fixed_event_processing.contact_events import ensure_contact_events_populated
+from scheduler_service.event_processing.contact_events import ensure_contact_events_populated
 from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 from app_config import get_db_session
 from app_config.database.mapping import Satellite, SatelliteEclipse, GroundStation, ContactEvent
 from sqlalchemy import func
 from collections import deque
+import time
 
 def test_accurate_contact_event_population(test_satellite: Satellite, test_groundstation: GroundStation):
-    start_time = datetime(2024, 2, 14, 2, 20, 45, 772453)# + timedelta(hours=5.3)
-    # start_time = datetime.utcnow()
-    end_time = start_time + timedelta(days=1)
+    # start_time = datetime(2024, 2, 14, 2, 20, 45, 772453)# + timedelta(hours=5.3)
+    start_time = datetime.utcnow()
+    end_time = start_time + timedelta(days=20)
+
+    # populate contact events across the time range and mark time range as processed
+    log_start = time.time()
     ensure_contact_events_populated(start_time, end_time)
+    elapsed_time = time.time() - log_start
+    print(f"ensure_contact_events_populated took {elapsed_time} seconds.")
+
+
+    # Iterate over time and calculate contact at each time step
+    log_start = time.time()
+    sat_state_generator = SatelliteStateGenerator(test_satellite)
+    ts = sat_state_generator._get_timescale()
+    skyfield_end_time = sat_state_generator._ensure_skyfield_time(end_time)
+    current_time = sat_state_generator._ensure_skyfield_time(start_time)
+    while current_time.tt < skyfield_end_time.tt:
+        sat_state_generator.is_in_contact_with(test_groundstation, current_time)
+        current_time = ts.utc(current_time.utc_datetime() + timedelta(minutes=1))
+
+    elapsed_time = time.time() - log_start
+    print(f"Iterating state took {elapsed_time} seconds.")
     return
 
     session = get_db_session()
@@ -26,6 +46,13 @@ def test_accurate_contact_event_population(test_satellite: Satellite, test_groun
     prev_contact_end = None
 
     state_generator = SatelliteStateGenerator(test_satellite)
+
+    log_start = time.time()
+    for satellite_state in state_generator.track(start_time, end_time):
+        pass
+    elapsed_time = time.time() - log_start
+    print(f"Iterating state took {elapsed_time} seconds.")
+
     for satellite_state in state_generator.track(start_time, end_time):
         move_to_next_contact = satellite_state.time > current_contact.upper.replace(tzinfo=timezone.utc) if current_contact else False
         if move_to_next_contact:
