@@ -1,7 +1,7 @@
 import unittest
 from unittest import IsolatedAsyncioTestCase
 from app_config import *
-from scheduler_service.fixed_event_processing.eclipse_events import ensure_eclipse_events_populated
+from scheduler_service.event_processing.eclipse_events import ensure_eclipse_events_populated
 import json
 from datetime import datetime 
 import csv 
