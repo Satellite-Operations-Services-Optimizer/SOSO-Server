@@ -1,7 +1,8 @@
-from scheduler_service.schedulers.genetic.populator.create_schedule_population import query_available_satellite_schedule_slots
+from scheduler_service.schedulers.genetic.populator.create_schedule_population import query_satellite_available_time_slots
 from app_config import get_db_session
-from app_config.database.mapping import ScheduleRequest, ScheduledImaging, Schedule, Satellite, ContactEvent, GroundStation
+from app_config.database.mapping import ScheduleRequest, Schedule, Satellite
 from datetime import datetime, timedelta
+from helpers import create_dummy_imaging_event
 
 def test_query_available_satellite_schedule_slots():
     session = get_db_session()
@@ -51,50 +52,14 @@ def test_query_available_satellite_schedule_slots():
     session.add(request)
     session.flush()
     
-    slots = query_available_satellite_schedule_slots(request.id, schedule.id).all()
-    print(slots)
-    print("pass")
+    slots = query_satellite_available_time_slots(request.id, schedule.id).all()
+    assert len(slots) == 1
+    assert slots[0].start_time == slots.time_range.lower
+    assert slots[0].duration == slots.time_range.upper - slots.time_range.lower
+    assert slots[0].schedule_id == schedule.id
+    assert slots[0].asset_id == satellite.id
 
-def create_dummy_imaging_event(schedule_id, satellite_id, start_time, duration):
-    session = get_db_session()
-    groundstation = session.query(GroundStation).first()
-    request = ScheduleRequest(
-        schedule_id=schedule_id,
-        asset_id=satellite_id,
-        asset_type="satellite",
-        order_type="imaging",
-        priority=1,
-        window_start=start_time,
-        window_end=start_time+duration,
-        duration=duration,
-        delivery_deadline=start_time+duration,
-        status="scheduled"
-    )
-    contact = ContactEvent(
-        schedule_id=schedule_id,
-        asset_id=satellite_id,
-        groundstation_id=groundstation.id,
-        start_time=request.window_start - timedelta(minutes=10),
-        duration=timedelta(minutes=5)
-    )
-    session.add_all([request, contact])
-    session.flush()
+    session.rollback()
 
-    imaging = ScheduledImaging(
-        schedule_id=schedule_id,
-        asset_id=satellite_id,
-        request_id=request.id,
-        start_time=start_time,
-        duration=duration,
-        window_start=start_time,
-        window_end=start_time+duration,
-        uplink_contact_id=contact.id,
-        uplink_size=request.uplink_size,
-        downlink_size=request.downlink_size,
-        priority=request.priority
-    )
-    session.add(imaging)
-    session.flush()
-    return imaging
 
 test_query_available_satellite_schedule_slots()

@@ -34,7 +34,7 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
     )
 
     # Define the subquery that selects rows from processing_block_table that match the partition_columns
-    processing_block_subquery = session.query(processing_block_table).filter(
+    processing_block_already_exists = session.query(processing_block_table).filter(
         and_(*(valid_partition_values_subquery.c[column_name] == processing_block_table.__table__.c[column_name] for column_name in partition_column_names))
     ).exists()
 
@@ -43,7 +43,7 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
         *partition_columns,
         func.tstzrange(start_time, end_time).label('time_range')
     ).select_from(valid_partition_values_subquery).where(
-        not_(processing_block_subquery)
+        not_(processing_block_already_exists)
     )
 
     blocks_to_process = union(processing_gaps_query, missing_partitions)

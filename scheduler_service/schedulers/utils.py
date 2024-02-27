@@ -97,9 +97,10 @@ def query_gaps(
         column(partition_column) if type(partition_column)==str else column(partition_column.name)
         for partition_column in partition_columns
     ]
-    main_time_range = range_constructor(start_time, end_time, '[]')
+
+    window_time_range = range_constructor(start_time, end_time)
     table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
-    processing_blocks = session.query(
+    blocks = session.query(
         *table_partition_columns,
         range_column.label('time_range'),
         func.lag(range_column).over(
@@ -111,25 +112,25 @@ def query_gaps(
 
     # Get the gap between the current block and previous block (bounded by the start_time and end_time)
     # Produces zero-width time ranges if there exists no gap between the current block and the previous block within start_time and end_time
-    prev_block_end = func.coalesce(func.upper(processing_blocks.c.prev_time_range), start_time)
-    curr_block_start = func.lower(processing_blocks.c.time_range)
+    prev_block_end = func.coalesce(func.upper(blocks.c.prev_time_range), start_time)
+    curr_block_start = func.lower(blocks.c.time_range)
     preceding_gap_time_range = range_constructor(
         func.least(func.greatest(prev_block_end, start_time), end_time),
         func.greatest(func.least(curr_block_start, end_time), start_time)
     ).label('time_range')
 
-    subquery_partition_columns = [processing_blocks.c[column.name] for column in partition_columns]
+    subquery_partition_columns = [blocks.c[column.name] for column in partition_columns]
     gaps_query_main = session.query(
         *subquery_partition_columns,
         preceding_gap_time_range.label('time_range')
     ).filter(
-        preceding_gap_time_range.op('&&')(range_column),
+        preceding_gap_time_range.op('&&')(window_time_range),
         func.lower(column('time_range')) < func.upper(column('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
     )
 
     # We did not consider the gaps that come after the last processing block.
     # Let us include all those 'trailing' gaps
-    last_processing_block_end = func.max(func.upper(processing_blocks.c.time_range)) # make sure to group by partition columns
+    last_processing_block_end = func.max(func.upper(blocks.c.time_range)) # make sure to group by partition columns
     trailing_gap_time_range = range_constructor(
         func.least(func.greatest(last_processing_block_end, start_time), end_time),
         end_time
