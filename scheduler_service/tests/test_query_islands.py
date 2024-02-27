@@ -5,26 +5,14 @@ from sqlalchemy.sql.expression import literal_column
 from typing import List, Tuple
 from datetime import datetime
 
-from scheduler_service.schedulers.utils import query_islands
-import pytest
 from datetime import datetime
+from scheduler_service.schedulers.utils import query_islands
+from scheduler_service.tests.helpers import create_timeline_subquery
 
 def compute_islands(input_ranges: List[Tuple[datetime, datetime]]):
-    session = get_db_session()
-    if len(input_ranges)==0:
-        time_ranges = session.query(
-            literal_column("NULL").label("partition"),
-            func.tsrange('infinity', 'infinity').label("time_range")
-        ).filter(false()).subquery() # empty result set
-    else:
-        datetime_range_objects = [session.execute(select(func.tsrange(input_range[0], input_range[1]))).scalar() for input_range in input_ranges]
-        time_ranges = session.query(
-            literal_column('1').label('partition'),  # TODO:  all the same partition for now. Will test partitioning in the future
-            func.unnest(datetime_range_objects).label('time_range') 
-        ).subquery()
-
+    timeline = create_timeline_subquery(input_ranges)
     islands = query_islands(
-        source_subquery=time_ranges,
+        source_subquery=timeline,
         range_column=column('time_range'),
         partition_columns=[column('partition')],
         range_constructor=func.tsrange
