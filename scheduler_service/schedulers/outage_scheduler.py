@@ -1,5 +1,6 @@
 from app_config import get_db_session
 from app_config.database.mapping import SatelliteOutage, GroundStationOutage, TransmittedEvent, ScheduleRequest, ContactEvent
+from sqlalchemy import or_
 
 def schedule_outage(outage_request, unscheduled_items_state):
     """

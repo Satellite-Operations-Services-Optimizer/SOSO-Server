@@ -1,14 +1,12 @@
 from typing import List, Optional, Any, Union, Callable, Type
 from datetime import datetime
-from sqlalchemy import Column, func, union, insert, and_, not_, select, column, Window, case, or_
+from sqlalchemy import Column, func, union, insert, and_, not_, select, column, case, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql import Alias
 import time
 
 from app_config import get_db_session
-from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
-from ..satellite_state.state_generator import SatelliteStateGenerator
-from ..schedulers.utils import query_gaps, query_islands
+from ..schedulers.utils import query_gaps
 
 def retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time: datetime,
@@ -28,11 +26,11 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
 
     session = get_db_session()
     processing_gaps_query = query_gaps(
-        start_time,
-        end_time,
-        session.query(processing_block_table).subquery(),
-        column('time_range'),
-        partition_columns
+        source_subquery=session.query(processing_block_table).subquery(),
+        range_column=column('time_range'),
+        start_time=start_time,
+        end_time=end_time,
+        partition_columns=partition_columns
     )
 
     # Define the subquery that selects rows from processing_block_table that match the partition_columns
