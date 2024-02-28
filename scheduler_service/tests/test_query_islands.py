@@ -5,7 +5,7 @@ from sqlalchemy.sql.expression import literal_column
 from typing import List, Tuple
 from datetime import datetime
 
-from scheduler_service.utils import query_islands
+from scheduler_service.schedulers.utils import query_islands
 import pytest
 from datetime import datetime
 
@@ -51,7 +51,7 @@ def test_single_input_range():
     assert islands[0] == expected_islands[0]
 
 
-# Test case 3: Overlapping input ranges
+# Test case 3: One island overlapping input ranges
 def test_overlapping_input_ranges():
     input_ranges = [
         (datetime(2022, 1, 1), datetime(2022, 1, 5)),
@@ -64,7 +64,7 @@ def test_overlapping_input_ranges():
     assert islands[0] == expected_islands[0]
 
 
-# Test case 4: Middle spanning island item input ranges
+# Test case 4: 3 islands, item in middle of island spans whole island and defines its end
 def test_middle_spanning_island_item_input_ranges():
     input_ranges = [
         (datetime(2022, 1, 1), datetime(2022, 1, 5)),
@@ -83,8 +83,39 @@ def test_middle_spanning_island_item_input_ranges():
     assert len(islands) == len(expected_islands)
     assert islands == expected_islands
 
+# Test case 5: Last range in island is contained within the island
+def test_last_range_contained_within_island():
+    input_ranges = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 3), datetime(2022, 1, 20)),
+        (datetime(2022, 1, 12), datetime(2022, 1, 15))
+    ]
+    expected_islands = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 20))
+    ]
+    islands = compute_islands(input_ranges)
+    assert len(islands) == len(expected_islands)
+    assert islands == expected_islands
+
+
+# Test case 6: Last range in island extends the island
+def test_last_range_extends_island():
+    input_ranges = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 7), datetime(2022, 1, 10)),
+        (datetime(2022, 1, 9), datetime(2022, 1, 15))
+    ]
+    expected_islands = [
+        (datetime(2022, 1, 1), datetime(2022, 1, 5)),
+        (datetime(2022, 1, 7), datetime(2022, 1, 15))
+    ]
+    islands = compute_islands(input_ranges)
+    assert len(islands) == len(expected_islands)
+    assert islands == expected_islands
 
 test_no_input_ranges()
 test_single_input_range()
 test_overlapping_input_ranges()
 test_middle_spanning_island_item_input_ranges()
+test_last_range_contained_within_island()
+test_last_range_extends_island()

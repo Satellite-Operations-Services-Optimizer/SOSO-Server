@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, column, func, case, or_, union, text
+from sqlalchemy import Column, column, func, case, or_, union, text, not_
 from sqlalchemy.sql.expression import BinaryExpression
 from dataclasses import dataclass
 from app_config.database.mapping import Schedule
@@ -75,11 +75,11 @@ def get_image_dimensions(image_type: str):
         return 40, 20
 
 def query_gaps(
-        start_time: datetime,
-        end_time: Optional[datetime],
         source_subquery,
         range_column: column,
         partition_columns: List[str],
+        start_time: Optional[datetime],
+        end_time: Optional[datetime],
         range_constructor: Callable = func.tstzrange
     ):
     if start_time >= end_time:
@@ -92,6 +92,11 @@ def query_gaps(
     if end_time is None:
         end_time = datetime.max
 
+    range_column = column(range_column.name)
+    partition_columns = [
+        column(partition_column) if type(partition_column)==str else column(partition_column.name)
+        for partition_column in partition_columns
+    ]
     main_time_range = range_constructor(start_time, end_time, '[]')
     table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
     processing_blocks = session.query(
@@ -118,7 +123,7 @@ def query_gaps(
         *subquery_partition_columns,
         preceding_gap_time_range.label('time_range')
     ).filter(
-        preceding_gap_time_range.op('&&')(main_time_range),
+        preceding_gap_time_range.op('&&')(range_column),
         func.lower(column('time_range')) < func.upper(column('time_range')) # TODO: maybe not needed. guaranteed by the above logic I believe
     )
 
@@ -165,45 +170,65 @@ def query_islands(
     if end_time is None:
         end_time = datetime.max
 
-    main_time_range = range_constructor(start_time, end_time)
-    table_range_column = source_subquery.c[range_column.name]
-    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
+    range_column = column(range_column.name)
+    partition_columns = [
+        column(partition_column) if type(partition_column)==str else column(partition_column.name)
+        for partition_column in partition_columns
+    ]
 
-    prev_island_end_time = func.max(func.upper(table_range_column)).over(
-        order_by=table_range_column, partition_by=table_partition_columns, rows=(None, -1)
+    prev_island_end_time = func.max(func.upper(range_column)).over(
+        order_by=range_column, partition_by=partition_columns, rows=(None, -1)
     ).label('prev_island_end_time')
     next_time_range = func.lead(range_column).over(order_by=range_column, partition_by=partition_columns)
 
+    window_time_range = range_constructor(start_time, end_time)
+    table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]
     island_markers_subquery = session.query(
         *table_partition_columns,
         prev_island_end_time,
-        source_subquery.c[range_column.name],
+        range_column,
         case(
             (prev_island_end_time==None, True),
             (prev_island_end_time<func.lower(range_column), True),
             else_=False
         ).label('is_new_island_start'),
         case((next_time_range==None, True), else_=False).label('is_last_row')
-    ).filter(
-        range_column.op('&&')(main_time_range)
+    ).order_by(range_column).filter(
+        range_column.op('&&')(window_time_range)
     ).subquery()
 
-    current_island_end_time = func.lead(island_markers_subquery.c.prev_island_end_time).over(
-        order_by=range_column, partition_by=partition_columns+[column('is_new_island_start')]
+    # This optimization is using the assumption that with assumption that the "LEAD" clause (func.lead) is computed after the filter "WHERE" clause in postgresql.
+    # Check git commit history for the optimization I made for the wrong assumption that "LEAD" clause is computed before the "WHERE" clause, in case it is needed in the future
+
+    # we need to get the end of the current island by looking at the *next* island, not the next row.
+
+    ending_island_end_time = case(
+        (island_markers_subquery.c.is_new_island_start==True, island_markers_subquery.c.prev_island_end_time),
+        else_=func.greatest(func.upper(range_column), island_markers_subquery.c.prev_island_end_time)
     )
-    islands_query = session.query(
-        *[island_markers_subquery.c[column.name] for column in partition_columns],
+
+    current_island_end_time = func.lead(ending_island_end_time).over(partition_by=partition_columns)
+    # This query includes items that are not island start markers, but are last rows. 
+    # We need these to get the correct island end times (using the lead function in 
+    # variable `current_island_end_time`) but we don't want them in the result set, so we want to filter them from the result set.
+    # Since postgresql seems to perform the filter BEFORE the LEAD, that helps us with getting the correct island end time,
+    # but that means that we can't directly filter these rows out using the where clause, because it will affect our "LEAD" clause
+    # and make it return incorrect data. That is why we have to first subquery, then filter (even though this is not very ideal)
+    unfiltered_islands_subquery = session.query(
+        *partition_columns,
+        island_markers_subquery.c.is_new_island_start,
         range_constructor(
             func.lower(range_column),
-            case(
-                (island_markers_subquery.c.is_last_row, func.upper(range_column)),
-                else_=current_island_end_time
-            )
+            func.coalesce(current_island_end_time, func.upper(range_column))
         ).label(range_column.name)
     ).filter(
         or_(
             island_markers_subquery.c.is_new_island_start==True,
             island_markers_subquery.c.is_last_row==True
-        ),
-    )
+        )
+    ).subquery()
+    islands_query = session.query(
+        *partition_columns,
+        range_column
+    ).filter(unfiltered_islands_subquery.c.is_new_island_start==True)
     return islands_query
