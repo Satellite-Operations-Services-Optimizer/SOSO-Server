@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, column, func, case, or_, union, text, not_
+from sqlalchemy import Column, column, func, case, or_, union, text, not_, select, and_, or_
 from sqlalchemy.sql.expression import BinaryExpression
 from dataclasses import dataclass
 from app_config.database.mapping import Schedule
@@ -80,7 +80,8 @@ def query_gaps(
         partition_columns: List[str],
         start_time: Optional[datetime],
         end_time: Optional[datetime],
-        range_constructor: Callable = func.tstzrange
+        range_constructor: Callable = func.tstzrange,
+        valid_partition_values_subquery = None
     ):
     if start_time >= end_time:
         return []
@@ -143,12 +144,29 @@ def query_gaps(
     ).group_by(*subquery_partition_columns)
 
 
-    unfiltered_processing_gaps = union(gaps_query_main, trailing_gaps_query).subquery()
+    gaps_subqueries = [gaps_query_main, trailing_gaps_query]
+    if valid_partition_values_subquery is not None:
+        # Handle the case wher there is no anchor block in the partition to compute the gap from
+        # (the time range for the partition is empty).
+        # In such a case, mark the whole range as a gap
+
+        missing_partitions = session.query(
+            *[valid_partition_values_subquery.c[partition_column.name] for partition_column in partition_columns],
+            func.tstzrange(start_time, end_time).label('time_range')
+        ).outerjoin(
+            source_subquery,
+            and_(*[source_subquery.c[partition_column.name]==valid_partition_values_subquery.c[partition_column.name] for partition_column in partition_columns])
+        ).filter(
+            source_subquery.c.time_range == None # remove rows where the partition exists in the source subquery
+        )
+        gaps_subqueries.append(missing_partitions)
+
+    unfiltered_gaps = union(*gaps_subqueries).subquery()
     # Some zero-width time ranges might have been created, so we need to filter them out
-    processing_gaps_query = session.query(unfiltered_processing_gaps).filter(
-        ~func.isempty(unfiltered_processing_gaps.c.time_range)
+    gaps_query = session.query(unfiltered_gaps).filter(
+        ~func.isempty(unfiltered_gaps.c.time_range)
     )
-    return processing_gaps_query
+    return gaps_query
 
 def query_islands(
         source_subquery,

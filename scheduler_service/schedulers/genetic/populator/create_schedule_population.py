@@ -5,9 +5,7 @@ from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOuta
 from sqlalchemy import or_, exists
 from scheduler_service.schedulers.outage_scheduler import schedule_outage
 from scheduler_service.schedulers.utils import query_gaps, query_islands, union
-from sqlalchemy import func, column, or_, and_, false
-from sqlalchemy.orm import aliased
-from sqlalchemy import select
+from sqlalchemy import func, column, or_, and_, false, case, literal
 
 def create_schedule_population(start_time: datetime, end_time: datetime, schedule_id: int, max_population_size: int, branching_factor: int = 5):
     """
@@ -96,6 +94,7 @@ def calculate_best_schedule_slots(request_id: int, schedule_id: int, contact_his
     Calculates the best schedule slots to place the request in.
     """
     valid_slots = query_valid_slots_to_schedule_request(request_id, schedule_id, contact_history_start)
+
 
 def query_valid_slots_to_schedule_request(request_id: int, schedule_id: int, contact_history_start: datetime):
     session = get_db_session()
@@ -241,7 +240,13 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
         satellite_outage_query = satellite_outage_query.filter(SatelliteOutage.asset_id==request.asset_id)
     
 
-    blocking_events_query = union(transmitted_event_query, satellite_outage_query)
+    blocking_events_queries = [transmitted_event_query, satellite_outage_query]
+
+    valid_partition_values_subquery = session.query(
+        literal(schedule_id).label('schedule_id'),
+        Satellite.id.label('asset_id'),
+        Satellite.asset_type.label('asset_type')
+    ).subquery()
 
     # Handle imaging opportunities if the request is for imaging - get all areas that are not available for imaging
     if request.order_type == "imaging":
@@ -250,16 +255,17 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
             source_subquery=candidate_capture_opportunities,
             range_column=candidate_capture_opportunities.c.time_range,
             partition_columns=[
-                CaptureOpportunity.schedule_id.label('schedule_id'),
-                CaptureOpportunity.asset_id.label('asset_id'),
-                CaptureOpportunity.asset_type.label('asset_type')
+                candidate_capture_opportunities.c.schedule_id.label('schedule_id'),
+                candidate_capture_opportunities.c.asset_id.label('asset_id'),
+                candidate_capture_opportunities.c.asset_type.label('asset_type')
             ],
             start_time=request.window_start,
-            end_time=request.window_end
+            end_time=request.window_end,
+            valid_partition_values_subquery=valid_partition_values_subquery
         )
-        blocking_events_query = blocking_events_query.union(unimageable_time_ranges_query)
+        blocking_events_queries.append(unimageable_time_ranges_query)
     
-    blocking_events_subquery = blocking_events_query.subquery()
+    blocking_events_subquery = union(*blocking_events_queries).subquery()
 
     event_blocked_regions_query = session.query(
         blocking_events_subquery
@@ -302,18 +308,10 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
             islands_subquery.c.asset_type
         ],
         start_time=request.window_start,
-        end_time=request.window_end
+        end_time=request.window_end,
+        valid_partition_values_subquery=valid_partition_values_subquery
     ).filter(
         slot_duration >= request.duration
-    )
-
-    # TODO: Handle missing slots - where there are no invalid regions, no gaps are detected, so we need to account for that
-    all_assumed_available_slots = session.query(
-
-        Satellite.id.label('asset_id'),
-        Satellite.asset_type.label('asset_type'),
-        func.tstzrange(request.window_start, request.window_end).label('time_range')
-    ).filter(Schedule.id==schedule_id)
     )
 
     return available_slots_query
@@ -328,13 +326,22 @@ def query_candidate_capture_opportunities(request_id: int, schedule_id: int):
     capture_time_range = func.tstzrange(CaptureOpportunity.start_time, CaptureOpportunity.start_time+CaptureOpportunity.duration).label('time_range')
     capture_window = capture_time_range.op('*')(func.tstzrange(request.window_start, request.window_end))
     candidate_capture_opportunities = session.query(
-        CaptureOpportunity.scheudle_id.label('schedule_id'),
+        literal(schedule_id).label('schedule_id'),
         CaptureOpportunity.asset_id.label('asset_id'),
         CaptureOpportunity.asset_type.label('asset_type'),
         capture_window.label('time_range')
+    ).join(
+        ImageOrder,
+        and_(
+            ImageOrder.id==request.order_id,
+            request.order_type=="imaging"
+        )
     ).filter(
         CaptureOpportunity.schedule_id==schedule_id,
-        (func.upper(capture_window)-func.lower(capture_window)) >= request.duration
+        CaptureOpportunity.latitude==ImageOrder.latitude,
+        CaptureOpportunity.longitude==ImageOrder.longitude,
+        CaptureOpportunity.image_type==ImageOrder.image_type,
+        (func.upper(capture_window)-func.lower(capture_window)) >= request.duration # make sure the capture opportunity is long enough to capture the image
     )
     if request.asset_id is not None:
         candidate_capture_opportunities = candidate_capture_opportunities.filter(CaptureOpportunity.asset_id==request.asset_id)
