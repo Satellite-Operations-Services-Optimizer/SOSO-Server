@@ -120,7 +120,7 @@ def query_gaps(
         func.greatest(func.least(curr_block_start, end_time), start_time)
     ).label('time_range')
 
-    subquery_partition_columns = [blocks.c[column.name] for column in partition_columns]
+    subquery_partition_columns = [blocks.c[column.name].label(column.name) for column in partition_columns]
     gaps_query_main = session.query(
         *subquery_partition_columns,
         preceding_gap_time_range.label('time_range')
@@ -144,7 +144,7 @@ def query_gaps(
     ).group_by(*subquery_partition_columns)
 
 
-    gaps_subqueries = [gaps_query_main, trailing_gaps_query]
+    gaps_query_list = [gaps_query_main, trailing_gaps_query]
     if valid_partition_values_subquery is not None:
         # Handle the case wher there is no anchor block in the partition to compute the gap from
         # (the time range for the partition is empty).
@@ -159,14 +159,18 @@ def query_gaps(
         ).filter(
             source_subquery.c.time_range == None # remove rows where the partition exists in the source subquery
         )
-        gaps_subqueries.append(missing_partitions)
+        gaps_query_list.append(missing_partitions)
 
-    unfiltered_gaps = union(*gaps_subqueries).subquery()
+    gaps_subquery = union(*gaps_query_list).subquery()
+
     # Some zero-width time ranges might have been created, so we need to filter them out
-    gaps_query = session.query(unfiltered_gaps).filter(
-        ~func.isempty(unfiltered_gaps.c.time_range)
+    filtered_gaps_query = session.query(
+        *[gaps_subquery.c[partition_column.name] for partition_column in partition_columns],
+        gaps_subquery.c.time_range
+    ).filter(
+        ~func.isempty(gaps_subquery.c.time_range)
     )
-    return gaps_query
+    return filtered_gaps_query
 
 def query_islands(
         source_subquery,
@@ -195,7 +199,8 @@ def query_islands(
         for partition_column in partition_columns
     ]
 
-    prev_island_end_time = func.max(func.upper(range_column)).over(
+    # This value is only valid in rows that are the start of a new island. It is a rolling computation of the previous island's end time, so it will only be accurate once we *just* enter a new island.
+    prev_island_end_time = func.max(func.upper(source_subquery.c[range_column.name])).over(
         order_by=range_column, partition_by=partition_columns, rows=(None, -1)
     ).label('prev_island_end_time')
     next_time_range = func.lead(range_column).over(order_by=range_column, partition_by=partition_columns)
@@ -216,7 +221,7 @@ def query_islands(
         range_column.op('&&')(window_time_range)
     ).subquery()
 
-    # This optimization is using the assumption that with assumption that the "LEAD" clause (func.lead) is computed after the filter "WHERE" clause in postgresql.
+    # This optimization is using the assumption that the "LEAD" clause (func.lead) is computed after the filter "WHERE" clause in postgresql.
     # Check git commit history for the optimization I made for the wrong assumption that "LEAD" clause is computed before the "WHERE" clause, in case it is needed in the future
 
     # we need to get the end of the current island by looking at the *next* island, not the next row.
@@ -226,21 +231,24 @@ def query_islands(
         else_=func.greatest(func.upper(range_column), island_markers_subquery.c.prev_island_end_time)
     )
 
-    current_island_end_time = func.lead(ending_island_end_time).over(partition_by=partition_columns)
+    current_island_end_time = func.lead(ending_island_end_time).over(partition_by=partition_columns, order_by=range_column)
     # This query includes items that are not island start markers, but are last rows. 
     # We need these to get the correct island end times (using the lead function in 
     # variable `current_island_end_time`) but we don't want them in the result set, so we want to filter them from the result set.
     # Since postgresql seems to perform the filter BEFORE the LEAD, that helps us with getting the correct island end time,
     # but that means that we can't directly filter these rows out using the where clause, because it will affect our "LEAD" clause
     # and make it return incorrect data. That is why we have to first subquery, then filter (even though this is not very ideal)
-    unfiltered_islands_subquery = session.query(
+    unfiltered_islands_subquery = select(
         *partition_columns,
         island_markers_subquery.c.is_new_island_start,
+        island_markers_subquery.c.time_range.label('original_range'),
+        func.lead(island_markers_subquery.c.time_range).over(partition_by=partition_columns).label('next_row_time_range'),
+        current_island_end_time.label('curr_island_end'),
         range_constructor(
             func.lower(range_column),
             func.coalesce(current_island_end_time, func.upper(range_column))
         ).label(range_column.name)
-    ).filter(
+    ).where(
         or_(
             island_markers_subquery.c.is_new_island_start==True,
             island_markers_subquery.c.is_last_row==True
