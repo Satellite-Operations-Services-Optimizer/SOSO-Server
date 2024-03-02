@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from app_config import logging
 from app_config.database import get_session
-from .populate_orders import populate_sample_image_orders
+from .populate_image_orders import populate_sample_image_orders
 from .populate_satellites import populate_sample_satellites
 from .populate_groundstations import populate_sample_groundstations
 from .populate_scheduled_events import populate_scheduled_events
@@ -13,7 +13,7 @@ def populate_database():
     populate_sample_satellites()
     populate_sample_groundstations()
     populate_sample_image_orders()
-    populate_scheduled_events()
+    # populate_scheduled_events()
 
     # populate_random_ground_stations()
     # populate_random_image_orders()

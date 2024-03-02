@@ -62,6 +62,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                 duration=order.duration,
                 uplink_size=order.uplink_size,
                 downlink_size=order.downlink_size,
+                power_usage=order.power_usage,
                 delivery_deadline=order.delivery_deadline,
                 priority=order.priority
             )
@@ -122,6 +123,7 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                     uplink_size=request.uplink_size,
                     downlink_contact_id=None, # we are soon going to create this
                     downlink_size=request.downlink_size,
+                    power_usage=request.power_usage,
                     priority=request.priority
                 )
             )

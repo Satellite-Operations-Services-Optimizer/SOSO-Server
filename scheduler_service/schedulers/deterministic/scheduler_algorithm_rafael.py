@@ -11,10 +11,11 @@ import math
 import time
 from haversine import haversine
 from app_config import get_db_session
-from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, GroundstationOutageOrder, SatelliteOutageOrder, MaintenanceOrder, ScheduledEvent, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
+from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, MaintenanceOrder, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
 from sqlalchemy import case, and_
 from scheduler_service.constants import get_ephemeris
-from scheduler_service.utils import get_image_dimensions
+from scheduler_service.schedulers.utils import get_image_dimensions
+from scheduler_service.order_processing.main import ensure_orders_requested
 
 
 start_time_str = "2023-10-08 00:00:00"
@@ -1186,8 +1187,12 @@ class System:
 
 
 session = get_db_session()
-schedule = session.query(Schedule).filter_by(name="test_single_sat_single_gs_valid_schedule").first()
-sys = System(schedule_id=schedule.id)
+
+# Process all the orders into schedule requests
+ensure_orders_requested()
+
+default_schedule_id = int(os.getenv("DEFAULT_SCHEDULE_ID"))
+sys = System(schedule_id=default_schedule_id)
 schedule = sys.run(start_time, end_time)
 print(schedule)
 

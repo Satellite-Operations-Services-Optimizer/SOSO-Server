@@ -19,7 +19,7 @@ def schedule_activity(satellite_id: int , maintenence_request: MaintenanceOrder)
     #                      minutes=int(maintenence_request.duration.minute), 
     #                      seconds=int(maintenence_request.duration.second))
     duration = maintenence_request.duration
-    min_frequencey = maintenence_request.revisit_frequency_min
+    min_frequencey = maintenence_request.revisit_frequency
     max_frequencey = maintenence_request.revisit_frequency_max
     
     # **********to be tested with realdata*********

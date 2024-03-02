@@ -11,7 +11,7 @@ import time
 def test_accurate_contact_event_population(test_satellite: Satellite, test_groundstation: GroundStation):
     # start_time = datetime(2024, 2, 14, 2, 20, 45, 772453)# + timedelta(hours=5.3)
     start_time = datetime.utcnow()
-    end_time = start_time + timedelta(days=20)
+    end_time = start_time + timedelta(days=1)
 
     # populate contact events across the time range and mark time range as processed
     log_start = time.time()

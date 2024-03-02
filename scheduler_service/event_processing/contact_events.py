@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from tokenize import String
 from skyfield.api import load, Topos, EarthSatellite
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, true
 from app_config import get_db_session
 from app_config.database.mapping import ContactProcessingBlock, ContactEvent, Satellite, GroundStation
 from .utils import retrieve_and_lock_unprocessed_blocks_for_processing
@@ -12,7 +12,7 @@ def ensure_contact_events_populated(start_time: datetime, end_time: datetime):
     all_satellite_groundstation_combinations_subquery = session.query(
         Satellite.id.label("satellite_id"),
         GroundStation.id.label("groundstation_id")
-    ).subquery()
+    ).join(GroundStation, true()).subquery()
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time, end_time,
         ContactProcessingBlock,
