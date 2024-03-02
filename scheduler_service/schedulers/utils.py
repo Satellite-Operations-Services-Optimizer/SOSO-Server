@@ -37,29 +37,24 @@ class CopyOptions(TypedDict, total=False):
     copied_schedule_request_types: List[str]
     lookback_duration: Optional[timedelta]
 
-def copy_schedule(self, schedule: Schedule, time_range: TimeHorizon = TimeHorizon(None, None),  **options: Optional[dict]):
-    """
+def copy_requests_into_schedule(schedule_id: int, requests_subquery):
+    new_to_old_request_ids = {}
+    session = get_db_session()
 
+    session.query(requests_subquery)
+    return new_to_old_request_ids
+
+def copy_schedule(schedule_id: int, start_time: datetime, end_time: datetime, time_range: TimeHorizon = TimeHorizon(None, None),  **options: Optional[dict]):
+    """
+    Copies the events of the provided schedule_id, within the specified time bounds, into a new schedule
     """
     session = get_db_session()
-    new_schedule = Schedule(name=f"{schedule.name} - Copy_{datetime.now()}")
+    old_schedule = session.query(Schedule).filter_by(id=schedule_id).one()
+    new_schedule = Schedule(name=f"{old_schedule.name} - Copy_{datetime.now()}")
     session.add(new_schedule)
+    session.flush()
 
-    copy_options = {
-        'copied_schedule_request_types': ['received'],
-        'context_duration': None,
-        'context_event_types': ['outage', 'contact', 'eclipse'],
-        'backpopulate_contact_events': True
-    }
-    copy_options.update(options)
-    if time_range.start is None:
-        copy_options['lookback_duration'] = None
-    
-    if copy_options['lookback_duration'] is not None:
-        fixed_event_lookback_time_range = TimeHorizon(time_range.start - copy_options['lookback_duration'])
-        fixed_event_lookback_constraint = (ScheduledEvent.event_type=='fixed')
-
-
+    # Copy the events of `schedule_id` into a new schedule
 
     # Copy ScheduleRequest instances that overlap with our span
     schedule_requests_in_span = session.query()

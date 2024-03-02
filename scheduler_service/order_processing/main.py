@@ -64,6 +64,7 @@ def create_request(order):
             duration=order.duration,
             uplink_size=order.uplink_size,
             downlink_size=order.downlink_size,
+            power_usage=order.power_usage,
             delivery_deadline=order.delivery_deadline,
             priority=order.priority
         )

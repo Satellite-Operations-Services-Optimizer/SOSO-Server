@@ -1,6 +1,6 @@
 from scheduler_service.schedulers.genetic.populator.create_schedule_population import query_satellite_available_time_slots
 from app_config import get_db_session
-from app_config.database.mapping import ScheduleRequest, Schedule, Satellite, CaptureOpportunity, ImageOrder
+from app_config.database.mapping import ScheduleRequest, Schedule, Satellite, CaptureOpportunity, ImageOrder, SatelliteOutage
 from datetime import datetime, timedelta
 from helpers import create_dummy_imaging_event
 from sqlalchemy import column
@@ -53,10 +53,23 @@ def test_query_available_satellite_schedule_slots():
     invalid_gap_start = undersized_opportunity_start + undersized_opportunity_duration
     invalid_gap_duration = imaging_duration - timedelta(seconds=3)
 
+    # satellite outage
+    sat_outage_start = invalid_gap_start + invalid_gap_duration
+    outage_duration = imaging_duration
+    sat_outage = SatelliteOutage(
+        schedule_id=schedule.id,
+        asset_id=satellite_1.id,
+        start_time=sat_outage_start,
+        duration=outage_duration
+    )
+    session.add(sat_outage)
+    session.flush()
+
     # make a capture opportunity that is long enough to schedule imaging to test if this is included in the available slots.
-    # This will be the only capture opportunity that is long enough to schedule imaging, so the query should return this time slot alone (minus the time in which this opportunity overlaps with another scheduled event)
-    sat_1_valid_opportunity_start = invalid_gap_start + invalid_gap_duration
+    # This will be the only capture opportunity that is long enough to schedule imaging, so the query should return this time slot alone (minus the time in which this opportunity overlaps with another scheduled event and the time it overlaps with the outage)
+    outage_overlap_duration = timedelta(seconds=10)
     event_overlap_buffer = timedelta(seconds=10)
+    sat_1_valid_opportunity_start = sat_outage.start_time + sat_outage.duration - outage_overlap_duration
     sat_1_valid_opportunity = CaptureOpportunity(
         schedule_id=schedule.id,
         asset_id=satellite_1.id,
@@ -64,7 +77,7 @@ def test_query_available_satellite_schedule_slots():
         latitude=latitude,
         longitude=longitude,
         start_time=sat_1_valid_opportunity_start,
-        duration=imaging_duration + event_overlap_buffer
+        duration=outage_overlap_duration + imaging_duration + event_overlap_buffer
     )
     session.add(sat_1_valid_opportunity)
     session.flush()
@@ -90,7 +103,7 @@ def test_query_available_satellite_schedule_slots():
     session.add(sat_2_valid_opportunity)
     session.flush()
 
-    # Make order window span the time between the first and the last event (imaging1 and the sat_2_valid_opportunity event)
+    # Make order window span the time between the first and the last event (imaging1 and the sat_2_valid_opportunity)
     # plus a little buffer that's not large enough to schedule the event,
     # to test that the query returns the correct time slot - the gaps
     # between imaging1 and sat_2_valid_opportunity, and the gap
@@ -131,7 +144,7 @@ def test_query_available_satellite_schedule_slots():
     assert len(slots) == 2
 
     # Make timezone info the same for comparison
-    sat_1_valid_time_range_start = sat_1_valid_opportunity.start_time.replace(tzinfo=slots[0].time_range.lower.tzinfo)
+    sat_1_valid_time_range_start = sat_1_valid_opportunity.start_time.replace(tzinfo=slots[0].time_range.lower.tzinfo) + outage_overlap_duration
     sat_1_valid_time_range_end = overlapping_event.start_time.replace(tzinfo=slots[0].time_range.upper.tzinfo)
     assert slots[0].time_range.lower == sat_1_valid_time_range_start
     assert slots[0].time_range.upper == sat_1_valid_time_range_end

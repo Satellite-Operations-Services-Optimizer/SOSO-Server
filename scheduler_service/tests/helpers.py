@@ -84,6 +84,7 @@ def create_dummy_imaging_event(schedule_id, satellite_id, start_time, contact_st
         uplink_contact_id=contact.id,
         uplink_size=request.uplink_size,
         downlink_size=request.downlink_size,
+        power_usage=request.power_usage,
         priority=request.priority
     )
     session.add(imaging)
