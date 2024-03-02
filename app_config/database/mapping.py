@@ -128,7 +128,9 @@ for db_class in Base.classes:
     globals()[db_class.__name__] = db_class
     globals()['db_classes'].append(db_class.__name__)
 # ===== End of export the tables to the global namespace =====
+print("Database tables automapped and exported to global namespace")
 
+# scrap testing code. delete later.
 if __name__ == '__main__':
     from app_config import get_db_session
     from sqlalchemy import func, cast, tuple_, text
@@ -139,13 +141,12 @@ if __name__ == '__main__':
 
     # session.query(state1).all()
 
-    query = session.query(func.soso_schema.add_asset_states(
-        text("(1.0, 2.0, 3.0, 4.0, 5.0)::asset_state"),
-        text("(4.0, 5.0, 6.0, 7.0, 8.0)::asset_state")
-    ))
+    # query = session.query(func.soso_schema.add_asset_states(
+    #     text("(1.0, 2.0, 3.0, 4.0, 5.0)::asset_state"),
+    #     text("(4.0, 5.0, 6.0, 7.0, 8.0)::asset_state")
+    # ))
 
-    print(query.statement)
+    # print(query.statement)
+    # print('breakpoint')
 
 
-
-print("Database tables automapped and exported to global namespace")
