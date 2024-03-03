@@ -42,4 +42,4 @@ app.include_router(schedule_router, tags=["Schedule Retrieval"], prefix="/schedu
 app.include_router(maintenance_router, tags=["Maintenence Activities"], prefix="/maintenance")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=4000)
+    uvicorn.run(app, host="0.0.0.0", port=6000)
