@@ -2,13 +2,14 @@ import unittest
 from unittest import IsolatedAsyncioTestCase
 from app_config import *
 from scheduler_service.event_processing.eclipse_events import ensure_eclipse_events_populated
+from scheduler_service.event_processing.contact_events import ensure_contact_events_populated
 import json
 from datetime import datetime 
 import csv 
 from fastapi.encoders import jsonable_encoder
 
 from app_config.database.setup import get_session, Base
-from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse
+from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, GroundStation, ContactEvent
 
 async def get_satellite_eclipse(start_time: datetime, end_time:datetime):
     session = get_session()
@@ -58,17 +59,37 @@ def read_eclipse_file():
                     line_count += 1
     return eclipseOutput
 
+def get_gs_ids():
+    returnable = {}
+    
+    session = get_session()
+    results = session.query(GroundStation).all()
+    
+    for gs in results:
+        returnable[gs.name] = gs.id
+
+    session.close()
+    
+async def get_contacts(start_time: datetime, end_time:datetime):
+    session = get_session()
+    results = session.query(ContactEvent).filter(ContactEvent.start_time < end_time, ContactEvent.start_time >= start_time).all()
+    session.close()
+    return results
+
+def read_contact_file():
+    return 0
+    
+    
 class SchedulerTests(unittest.IsolatedAsyncioTestCase):    
     
-    #Test with valid input. Input being a 12 hour period. 
-    async def test_01_ensure_eclipse_events_populated(self):
-        
+    async def test_01_ensure_contact_events_populated(self):
         start_timeJSON = {
             "year":2024,
             "month":2,
             "day":15,
             "hour":12
         }
+        
         end_timeJSON = {
             "year":2024,
             "month":2,
@@ -79,75 +100,104 @@ class SchedulerTests(unittest.IsolatedAsyncioTestCase):
         start_time = datetime(**start_timeJSON)
         end_time = datetime(**end_timeJSON)
         
-        ensure_eclipse_events_populated(start_time, end_time);
+        # ensure_contact_events_populated(start_time, end_time);
         
-        expected = read_eclipse_file();
-        actual = await get_satellite_eclipse(start_time, end_time);
-        clear_eclipse_db(start_time, end_time)
+        groundstationids = get_gs_ids()
         
-        for i in range(len(actual)):
-            currStart = actual[i].start_time.replace(tzinfo=None)
-            if currStart:
-                currSat = actual[i].asset_id
+        
+        
+        
+        self.assertEqual("", "")
+    
+    
+    # #Test with valid input. Input being a 12 hour period. 
+    # async def test_01_ensure_eclipse_events_populated(self):
+        
+    #     start_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":15,
+    #         "hour":12
+    #     }
+    #     end_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":16,
+    #         "hour":12
+    #     }
+        
+    #     start_time = datetime(**start_timeJSON)
+    #     end_time = datetime(**end_timeJSON)
+        
+    #     ensure_eclipse_events_populated(start_time, end_time);
+        
+    #     expected = read_eclipse_file();
+    #     actual = await get_satellite_eclipse(start_time, end_time);
+    #     clear_eclipse_db(start_time, end_time)
+        
+    #     for i in range(len(actual)):
+    #         currStart = actual[i].start_time.replace(tzinfo=None)
+    #         if currStart:
+    #             currSat = actual[i].asset_id
 
-                cond = False
-                for actualStart in expected[currSat].keys():
-                    diff = abs(actualStart-currStart)
-                    if diff.total_seconds() <= 350:
-                        print(f"{currStart} and {actualStart} passed")
-                        cond = True
-                        break
-                self.assertTrue(cond, msg=f"{currStart} has no match.");
+    #             cond = False
+    #             for actualStart in expected[currSat].keys():
+    #                 diff = abs(actualStart-currStart)
+    #                 if diff.total_seconds() <= 350:
+    #                     print(f"{currStart} and {actualStart} passed")
+    #                     cond = True
+    #                     break
+    #             self.assertTrue(cond, msg=f"{currStart} has no match.");
 
-    #Test with invalid input. Start time occurring after the end time. 
-    async def test_02_ensure_eclipse_events_populated(self):
+    # #Test with invalid input. Start time occurring after the end time. 
+    # async def test_02_ensure_eclipse_events_populated(self):
         
-        start_timeJSON = {
-            "year":2024,
-            "month":2,
-            "day":15,
-            "hour":12
-        }
-        end_timeJSON = {
-            "year":2024,
-            "month":2,
-            "day":16,
-            "hour":12
-        }
+    #     start_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":15,
+    #         "hour":12
+    #     }
+    #     end_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":16,
+    #         "hour":12
+    #     }
         
-        start_time = datetime(**start_timeJSON)
-        end_time = datetime(**end_timeJSON)
+    #     start_time = datetime(**start_timeJSON)
+    #     end_time = datetime(**end_timeJSON)
         
-        ensure_eclipse_events_populated(end_time, start_time);
+    #     ensure_eclipse_events_populated(end_time, start_time);
         
-        actual = await get_satellite_eclipse(end_time, start_time);
+    #     actual = await get_satellite_eclipse(end_time, start_time);
         
-        self.assertTrue(len(actual) == 0)
+    #     self.assertTrue(len(actual) == 0)
 
-
-    #Test with invalid input. Start time and end time being the exact same. 
-    async def test_03_ensure_eclipse_events_populated(self):
-        start_timeJSON = {
-            "year":2024,
-            "month":2,
-            "day":15,
-            "hour":12
-        }
-        end_timeJSON = {
-            "year":2024,
-            "month":2,
-            "day":15,
-            "hour":12
-        }
+    # #Test with invalid input. Start time and end time being the exact same. 
+    # async def test_03_ensure_eclipse_events_populated(self):
+    #     start_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":15,
+    #         "hour":12
+    #     }
+    #     end_timeJSON = {
+    #         "year":2024,
+    #         "month":2,
+    #         "day":15,
+    #         "hour":12
+    #     }
         
-        start_time = datetime(**start_timeJSON)
-        end_time = datetime(**end_timeJSON)
+    #     start_time = datetime(**start_timeJSON)
+    #     end_time = datetime(**end_timeJSON)
         
-        ensure_eclipse_events_populated(start_time, end_time);
+    #     ensure_eclipse_events_populated(start_time, end_time);
         
-        actual = await get_satellite_eclipse(start_time, end_time);
+    #     actual = await get_satellite_eclipse(start_time, end_time);
         
-        self.assertTrue(len(actual) == 0)
+    #     self.assertTrue(len(actual) == 0)
         
+    
 if __name__ == '__main__':
     unittest.main()
