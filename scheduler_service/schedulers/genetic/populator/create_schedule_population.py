@@ -5,8 +5,9 @@ from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOuta
 from sqlalchemy import or_, exists
 from scheduler_service.schedulers.outage_scheduler import schedule_outage
 from scheduler_service.schedulers.utils import query_gaps, query_islands, union
-from sqlalchemy import func, column, or_, and_, false, case, literal
+from sqlalchemy import func, column, or_, and_, false, case, literal, true
 from sqlalchemy.orm import aliased
+from typing import Union
 import random
 
 def create_schedule_population(start_time: datetime, end_time: datetime, schedule_id: int, max_population_size: int, branching_factor: int = 5):
@@ -147,7 +148,13 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
             candidate_uplink_id = asset_candidates.uplink_ids.pop(0)
             candidate_downlink_id = asset_candidates.downlink_ids.pop(0)
 
-            chosen_candidate = (asset_candidates.schedule_id, asset_candidates.asset_id, candidate_time_range, candidate_uplink_id, candidate_downlink_id) # TODO: make sure this is the correct format
+            chosen_candidate = session.query(
+                func.literal(asset_candidates.schedule_id).label('schedule_id'),
+                func.literal(asset_candidates.asset_id).label('asset_id'),
+                func.literal(candidate_time_range).label('time_range'),
+                func.literal(candidate_uplink_id).label('uplink_contact_id'),
+                func.literal(candidate_downlink_id).label('downlink_contact_id')
+            ).one()
         else:
             chosen_candidate = random.choice(punctuality_ordered_candidates).pop(0)
         
@@ -407,11 +414,24 @@ def filter_out_candidate_plans_causing_invalid_state(request_id, schedule_id, ca
     # the request is being performed to past when the delivery deadline is, then we need to make sure we have enough power to sustain the event until the eclipse ends, but we don't.
     # We only consider till the delivery deadline. This is a good enough estimate for now though.
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+
+    state_window_start = request.start_time
+    state_window_end = request.delivery_deadline
+    overflowing_eclipse_end = session.query(
+        func.max(SatelliteEclipse.start_time+SatelliteEclipse.duration)
+    ).filter(
+        SatelliteEclipse.asset_id==candidates_subquery.c.asset_id,
+        SatelliteEclipse.asset_type==candidates_subquery.c.asset_type,
+        func.tstzrange(SatelliteEclipse.start_time, SatelliteEclipse.start_time+SatelliteEclipse.duration).op('&&')(state_window_end),
+        SatelliteEclipse.start_time + SatelliteEclipse.duration > state_window_end
+    ).first()
+    state_window_end = state_window_end if overflowing_eclipse_end is None else overflowing_eclipse_end
+
     state_timeline_subquery = query_state_timeline(
         request_id,
         schedule_id,
-        start_time=request.start_time,
-        end_time=request.delivery_deadline
+        start_time=state_window_start,
+        end_time=state_window_end
     )
 
     eclipse_time_range = func.tstzrange(SatelliteEclipse.start_time, SatelliteEclipse.start_time+SatelliteEclipse.duration)
@@ -423,9 +443,9 @@ def filter_out_candidate_plans_causing_invalid_state(request_id, schedule_id, ca
     ).join(
         ScheduleRequest,
         ScheduleRequest.id==candidates_subquery.request_id
-    ).join(
-        uplink_event,
-        candidates_subquery.uplink_contact_id == uplink_event.id
+    # ).join(
+    #     uplink_event,
+    #     candidates_subquery.uplink_contact_id == uplink_event.id
     ).join(
         downlink_event,
         candidates_subquery.downlink_contact_id == downlink_event.id
@@ -458,7 +478,7 @@ def filter_out_candidate_plans_causing_invalid_state(request_id, schedule_id, ca
 
 
 
-def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[datetime, Column], end_time: Union[datetime, Column]):
+def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[datetime, column], end_time: Union[datetime, column]):
     """
     query the state timeline
     """
@@ -487,7 +507,17 @@ def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[da
         SatelliteStateChange.asset_id,
         SatelliteStateChange.asset_type,
         SatelliteStateChange.snapshot_time,
-        (func.checkpoint_state.state + func.sum(thing)).label('snapshot_time')
+        checkpoint_state.c.state + func.sum(
+            SatelliteStateChange.delta
+        ).over(
+            partition_by=[
+                SatelliteStateChange.schedule_id,
+                SatelliteStateChange.asset_id,
+                SatelliteStateChange.asset_type
+            ],
+            order_by=SatelliteStateChange.snapshot_time,
+            rows=(None, 0)
+        ).label('state')
     ).join(
         checkpoint_state,
         and_(

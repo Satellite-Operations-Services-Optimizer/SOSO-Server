@@ -519,6 +519,13 @@ CREATE TYPE asset_state AS (
     power_draw double precision
 );
 
+CREATE OR REPLACE FUNCTION default_asset_state()
+RETURNS asset_state AS $$
+BEGIN
+    RETURN (0.0, 0.0, 0.0, 0.0, 0.0)::asset_state;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION add_asset_states(state1 asset_state, state2 asset_state)
 RETURNS asset_state AS $$
 DECLARE
@@ -535,26 +542,19 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION aggregate_asset_states(states asset_state[])
-RETURNS asset_state AS $$
-DECLARE
-    result asset_state;
-    i integer;
-BEGIN
-    result := (0.0, 0.0, 0.0, 0.0, 0.0)::asset_state;
-    FOR i IN 1..array_length(states, 1) LOOP
-        result := add_asset_states(result, states[i]);
-    END LOOP;
-    RETURN result;
-END;
-$$ LANGUAGE plpgsql;
+CREATE AGGREGATE sum (asset_state)
+(
+    sfunc = add_asset_states,
+    stype = asset_state,
+    initcond = '(0.0, 0.0, 0.0, 0.0, 0.0)'
+);
 
-CREATE OR REPLACE FUNCTION default_asset_state()
-RETURNS asset_state AS $$
-BEGIN
-    RETURN (0.0, 0.0, 0.0, 0.0, 0.0)::asset_state;
-END;
-$$ LANGUAGE plpgsql;
+CREATE OPERATOR + (
+    leftarg = asset_state,
+    rightarg = asset_state,
+    function = add_asset_states,
+    commutator = +
+);
 
 -- TODO: This view below can be optimized by turning it into a table, and adding triggers for whenever new relevant events are added, to ensure the data stays consistent. This speeds up the whole scheduling algorithm as the algorithm depends on this table heavily
 CREATE VIEW eventwise_asset_state_change AS
