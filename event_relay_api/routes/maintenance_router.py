@@ -15,17 +15,17 @@ router = APIRouter()
 async def create_maintenance_request(maintenance_request: ActivityRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ActivityRequest))):
     session = get_db_session()
     
-    satellite = session.query(Satellite).filter_by(name=maintenance_request["Target"])
     maintenance = MaintenanceOrder(
-        description = maintenance_request["Activity"],
-        end_time = maintenance_request["Window"]["End"],
-        start_time = maintenance_request["Window"]["Start"],
-        duration = maintenance_request["Duration"],
-        revisit_frequency = maintenance_request["RepeatCycle"]["Frequency"],
-        visits_remaining = maintenance_request["RepeatCycle"]["Repetition"],
-        operations_flag = maintenance_request["PayloadOutage"],
-        asset_id = satellite.id,
-        asset_type = "satellite"
+        asset_id = maintenance_request.Target,
+        description = maintenance_request.Activity,
+        start_time = maintenance_request.Window.Start,
+        end_time = maintenance_request.Window.End,
+        duration = maintenance_request.Duration,
+        revisit_frequency_min = maintenance_request.RepeatCycle.Frequency.MinimumGap,
+        revisit_frequency_max = maintenance_request.RepeatCycle.Frequency.MaximumGap,
+        visits_remaining = maintenance_request.RepeatCycle.Repetition,
+        operations_flag = maintenance_request.PayloadOutage,
+        #asset_type = "satellite" 
     )
     session.add(maintenance)
     session.commit()

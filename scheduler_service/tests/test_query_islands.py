@@ -5,26 +5,15 @@ from sqlalchemy.sql.expression import literal_column
 from typing import List, Tuple
 from datetime import datetime
 
-from scheduler_service.schedulers.utils import query_islands
-import pytest
 from datetime import datetime
+from scheduler_service.schedulers.utils import query_islands
+from scheduler_service.tests.helpers import create_timeline_subquery
+import itertools
 
 def compute_islands(input_ranges: List[Tuple[datetime, datetime]]):
-    session = get_db_session()
-    if len(input_ranges)==0:
-        time_ranges = session.query(
-            literal_column("NULL").label("partition"),
-            func.tsrange('infinity', 'infinity').label("time_range")
-        ).filter(false()).subquery() # empty result set
-    else:
-        datetime_range_objects = [session.execute(select(func.tsrange(input_range[0], input_range[1]))).scalar() for input_range in input_ranges]
-        time_ranges = session.query(
-            literal_column('1').label('partition'),  # TODO:  all the same partition for now. Will test partitioning in the future
-            func.unnest(datetime_range_objects).label('time_range') 
-        ).subquery()
-
+    timeline = create_timeline_subquery(input_ranges)
     islands = query_islands(
-        source_subquery=time_ranges,
+        source_subquery=timeline,
         range_column=column('time_range'),
         partition_columns=[column('partition')],
         range_constructor=func.tsrange
@@ -113,9 +102,30 @@ def test_last_range_extends_island():
     assert len(islands) == len(expected_islands)
     assert islands == expected_islands
 
+def test_permutation_invariance():
+    input_ranges = [
+        (datetime(2022, 5, 14, 23, 59, 37), datetime(2022, 5, 15, 0, 2, 54)),
+        (datetime(2022, 5, 15, 0, 0, 0), datetime(2022, 5, 15, 0, 0, 45)),
+        (datetime(2022, 5, 15, 0, 3, 39), datetime(2022, 5, 15, 0, 4, 24)),
+        (datetime(2022, 5, 15, 0, 3, 49), datetime(2022, 5, 15, 0, 5, 19))
+    ]
+    expected_islands = [
+        (datetime(2022, 5, 14, 23, 59, 37), datetime(2022, 5, 15, 0, 2, 54)),
+        (datetime(2022, 5, 15, 0, 3, 39), datetime(2022, 5, 15, 0, 5, 19))
+    ]
+
+    # Generate all permutations of input_ranges to test if result is order invariant
+    permutations = list(itertools.permutations(input_ranges))
+    
+    for perm in permutations:
+        islands = compute_islands(list(perm))
+        assert len(islands) == len(expected_islands)
+        assert islands == expected_islands
+    
 test_no_input_ranges()
 test_single_input_range()
 test_overlapping_input_ranges()
 test_middle_spanning_island_item_input_ranges()
 test_last_range_contained_within_island()
 test_last_range_extends_island()
+test_permutation_invariance()

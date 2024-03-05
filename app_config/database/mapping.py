@@ -36,6 +36,7 @@ Base = automap_base(metadata=metadata)
 from sqlalchemy_utils import CompositeType
 from sqlalchemy_utils.types.pg_composite import CompositeElement
 from sqlalchemy.types import to_instance
+from sqlalchemy import func
 
 # Fix for sqlalchemy_utils bug preventing querying with composite fields
 # https://github.com/kvesteri/sqlalchemy-utils/issues/319#issuecomment-917180248
