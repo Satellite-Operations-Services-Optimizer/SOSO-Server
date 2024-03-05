@@ -3,7 +3,6 @@ from rabbit_wrapper import Consumer, TopicConsumer
 from app_config.rabbit import rabbit, ServiceQueues
 from ground_station_out_bound_service.Services.handler import handle_maintenance, handle_imaging, handle_message
 from ground_station_out_bound_service.Services.routine_send import send_upcoming_contacts
-from ground_station_out_bound_service.test import schedule_send
 import logging
 
 logger = logging.getLogger(__name__)
