@@ -4,7 +4,12 @@ import json
 
 def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], filename_match: str="*.json"):
     jsons = dict()
-    pathlist = Path(path).glob(filename_match)
+    pathlist = []
+    path = Path(path)
+    if path.is_file():
+        pathlist.append(path)
+    else:
+        pathlist = path.glob(filename_match)
     for path in pathlist:
         with path.open('r') as file:
             data = json.load(file)

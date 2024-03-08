@@ -7,11 +7,11 @@ from database_scripts.utils import get_data_from_json_files
 
 logger = logging.getLogger(__name__)
 
-def populate_sample_satellites(generage_missing_satellite_info: bool = True):
+def populate_satellites(path, generage_missing_satellite_info: bool = True):
     logger.info("Populating `satellite` table with sample data...")
 
     sat_info_jsons = get_data_from_json_files(
-        Path(__file__).parent / 'sample_satellites', 
+        path, 
         expected_keys=[
             "name",
             "storage_capacity",
@@ -20,7 +20,7 @@ def populate_sample_satellites(generage_missing_satellite_info: bool = True):
         ],
         filename_match="*_sat.json",
     )
-    satellite_tles = _get_sample_satellite_tles()
+    satellite_tles = _get_sample_satellite_tles(path / "tles")
     satellite_infos = {json["name"]: json for json in sat_info_jsons.values()}
 
     satellites = []
@@ -58,6 +58,7 @@ def populate_sample_satellites(generage_missing_satellite_info: bool = True):
     for satellite_name in satellite_infos:
         sat_info_path = satellite_infos[satellite_name].pop('file_path', None)
         if "tle" not in satellite_infos[satellite_name] or 'line1' not in satellite_infos[satellite_name]['tle'] or 'line2' not in satellite_infos[satellite_name]['tle']:
+            print(f"thinggggg: {satellite_infos[satellite_name]}")
             raise Exception(f"Missing tle information for sample_satellite file at{sat_info_path}. Add a 'tle' key to the json file with line1 and line2 defined, or create a separate tle file with the same satellite name in the 'sample_satellites/tles' folder")
         satellites.append(
             Satellite(
@@ -72,8 +73,7 @@ def populate_sample_satellites(generage_missing_satellite_info: bool = True):
     session.commit()
 
 
-def _get_sample_satellite_tles():
-    path = Path(__file__).parent / 'sample_satellites' / 'tles'
+def _get_sample_satellite_tles(path: Path):
     tles = dict()
     pathlist = Path(path).glob("*.txt")
     for path in pathlist:

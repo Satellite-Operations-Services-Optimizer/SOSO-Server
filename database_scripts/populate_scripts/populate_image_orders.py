@@ -8,10 +8,10 @@ from app_config import logging
 
 logger = logging.getLogger(__name__)
 
-def populate_sample_image_orders():
+def populate_image_orders(path: Path):
     logger.info("Populating `image_orders` table with sample data...")
     image_order_jsons = get_data_from_json_files(
-        Path(__file__).parent / 'sample_image_orders',
+        path,
         expected_keys=[
             "Latitude",
             "Longitude",

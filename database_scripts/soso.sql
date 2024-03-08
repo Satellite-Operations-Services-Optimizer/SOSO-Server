@@ -251,7 +251,7 @@ CREATE TABLE IF NOT EXISTS ground_station_request (
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_acquisition_index ON ground_station_request (signal_acquisition_time);
 CREATE INDEX IF NOT EXISTS ground_station_request_signal_loss_index ON ground_station_request (signal_loss_time);
 
-CREATE TYPE schedule_request_status AS ENUM ('received', 'processing', 'rejected', 'displaced', 'scheduled', 'sent_to_gs');
+CREATE TYPE schedule_request_status AS ENUM ('received', 'processing', 'rejected', 'declined', 'displaced', 'scheduled', 'sent_to_gs');
 CREATE TABLE IF NOT EXISTS schedule_request (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer NOT NULL REFERENCES schedule (id),

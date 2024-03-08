@@ -5,11 +5,11 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def populate_sample_groundstations():
+def populate_groundstations(path: Path):
     logger.info("Populating `groundstation` table with sample data...")
 
     groundstation_jsons = get_data_from_json_files(
-        Path(__file__).parent / 'sample_groundstations', 
+        path, 
         expected_keys=[
             "name",
             "latitude",

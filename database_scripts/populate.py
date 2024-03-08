@@ -1,19 +1,25 @@
 from datetime import datetime, timedelta
 from app_config import logging
 from app_config.database import get_session
-from database_scripts.populate_scripts.populate_image_orders import populate_sample_image_orders
-from database_scripts.populate_scripts.populate_satellites import populate_sample_satellites
-from database_scripts.populate_scripts.populate_groundstations import populate_sample_groundstations
+from database_scripts.populate_scripts.populate_image_orders import populate_image_orders
+from database_scripts.populate_scripts.populate_satellites import populate_satellites
+from database_scripts.populate_scripts.populate_groundstations import populate_groundstations
 from database_scripts.populate_scripts.populate_scheduled_events import populate_scheduled_events
+from database_scripts.populate_scripts.populate_maintenance_orders import populate_maintenance_orders
+from database_scripts.populate_scripts.populate_outage_orders import populate_outage_orders
 import argparse
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
 
+samples_folder = Path(__file__).parent / 'sample_data'
 def populate_database():
-    populate_sample_satellites()
-    populate_sample_groundstations()
-    populate_sample_image_orders()
+    populate_satellites(samples_folder / 'sample_satellites')
+    populate_groundstations(samples_folder / 'sample_groundstations')
+    populate_image_orders(samples_folder / 'sample_image_orders')
+    populate_maintenance_orders(samples_folder / 'sample_maintenance_orders')
+    populate_outage_orders(samples_folder / 'sample_outage_orders')
     # populate_scheduled_events()
 
     # populate_random_ground_stations()
@@ -254,29 +260,44 @@ def format_timedelta(timedelta_obj):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-a", "--assets", action='store_true', default=False, help="Populate all assets (satellites, ground stations) into the database")
-    parser.add_argument("-e", "--events", action='store_true', default=False, help="Populate all sample events (image orders, maintenance orders, outage orders) into the database")
-    parser.add_argument("-i", "--imaging", action='store_true', default=False, help="Populate all sample image orders into the database")
-    parser.add_argument("-m", "--maint", action='store_true', default=False, help="Populate all sample maintenance orders into the database")
-    parser.add_argument("-s", "--schedule", action='store_true', default=False, help="Populate all sample schedules into the database")
-    parser.add_argument("-o", "--outage", action='store_true', default=False, help="Populate all sample outage orders into the database")
-
+    parser.add_argument("-s", "--satellites", nargs='?', default=None, required=False, help="Path to the file containing assets data")
+    parser.add_argument("-g", "--groundstations", nargs='?', default=None, required=False, help="Path to the file containing assets data")
+    parser.add_argument("-i", "--imaging", nargs='?', default=None, required=False, help="Path to the file containing imaging data")
+    parser.add_argument("-m", "--maintenance", nargs='?', default=None, required=False, help="Path to the file containing maintenance data")
+    parser.add_argument("-o", "--outages", nargs='?', default=None, required=False, help="Path to the file containing outage data")
+    # parser.add_argument("-p", "--schedule",action='store_true', default=False, help="Path to the file containing schedule data")
 
     args = parser.parse_args()
 
-    if args.assets:
-        populate_sample_satellites()
-        populate_sample_groundstations()
-    if args.events or args.imaging:
-        populate_sample_image_orders()
-    # if args.events or args.maint:
-    #     populate_sample_maintenance_orders()
-    # if args.events or args.outage:
-    #     populate_sample_outage_orders()
-    if args.schedule:
-    #     populate_sample_schedules()
-        populate_scheduled_events()
+    if args.satellites:
+        if args.satellites == 'sample':
+            populate_satellites(samples_folder / 'sample_satellites')
+        else:
+            populate_satellites(args.satellites)
+    if args.groundstations:
+        if args.groundstations == 'sample':
+            populate_groundstations(samples_folder / 'sample_groundstations')
+        else:
+            populate_groundstations(args.groundstations)
+    if args.imaging:
+        if args.imaging == 'sample':
+            populate_image_orders(samples_folder / 'sample_image_orders')
+        else:
+            populate_image_orders(args.imaging)
+    if args.maintenance:
+        if args.maintenance == 'sample':
+            populate_maintenance_orders(samples_folder / 'sample_maintenance_orders')
+        else:
+            populate_maintenance_orders(args.maintenance)
+    if args.outages:
+        if args.outages == 'sample':
+            populate_outage_orders(samples_folder / 'sample_outage_orders')
+        else:
+            populate_outage_orders(args.outages)
+    # if args.schedule:
+    #     # populate_sample_schedules()
+    #     populate_scheduled_events()
 
-    if not args.assets and not args.events and not args.imaging and not args.maint and not args.outage:
+    if not args.satellites and not args.groundstations and not args.imaging and not args.maintenance and not args.outages:
         populate_database()
     

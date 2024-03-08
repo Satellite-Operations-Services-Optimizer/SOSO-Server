@@ -6,7 +6,7 @@ from sqlalchemy import or_, exists
 from scheduler_service.schedulers.utils import query_gaps, query_islands
 from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union
 from sqlalchemy.orm import aliased
-from typing import Union
+from typing import Union, Optional
 import random
 
 # def create_schedule_population(start_time: datetime, end_time: datetime, schedule_id: int, max_population_size: int, branching_factor: int = 5):
@@ -108,11 +108,17 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     if workload_distribution_factor > 0: workload_distribution_factor = 1.0
     if workload_distribution_factor < 0: workload_distribution_factor = 0.0
 
-    unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time).subquery()
-    # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
-    candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
-
     session = get_db_session()
+    request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+
+    # Get the available slots for the satellite event to occur. start without any priority threshold, then incrementally start allowing it to displace other events of lower priority
+    candidate_plans = []
+    for priority_threshold in range(request.priority+1):
+        unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold).subquery()
+        # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
+        candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
+        if len(priority_threshold)>0: break
+
     punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # it is already ordered by punctuality, so we can just take the top n
     asset_grouped_candidates = session.query(
         candidate_plans.c.schedule_id,
@@ -157,12 +163,12 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     return top_n_candidates
 
 
-def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime):
+def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_threshold: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     # Get the available slots for the satellite event to occur
-    available_time_slots_subquery = query_satellite_available_time_slots(request_id).subquery()
+    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_threshold).subquery()
 
     # Get the candidate uplink and downlink contacts for the request
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
@@ -310,7 +316,7 @@ def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime)
 
     return (candidate_uplink_contact, candidate_downlink_contact)
 
-def query_satellite_available_time_slots(request_id: int):
+def query_satellite_available_time_slots(request_id: int, priority_threshold: Optional[int] = None):
     """
     Queries the schedule for available spots to place the request.
     """
@@ -319,12 +325,19 @@ def query_satellite_available_time_slots(request_id: int):
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     # Get all the invalid spots in the schedule
-    transmitted_event_query = session.query(
+    blocking_transmitted_event_query = session.query(
         TransmittedEvent.schedule_id.label('schedule_id'),
         TransmittedEvent.asset_id.label('asset_id'),
         TransmittedEvent.asset_type.label('asset_type'),
         func.tstzrange(TransmittedEvent.start_time, TransmittedEvent.start_time+TransmittedEvent.duration).label('time_range')
     )
+    if priority_threshold:
+        blocking_transmitted_event_query = blocking_transmitted_event_query.filter(
+            or_(
+                TransmittedEvent.event_type=="maintenance" & request.order_type=="imaging", # imaging events are never allowed to displace maintenance events
+                TransmittedEvent.priority >= priority_threshold
+            )
+        )
     satellite_outage_query = session.query(
         SatelliteOutage.schedule_id.label('schedule_id'),
         SatelliteOutage.asset_id.label('asset_id'),
@@ -332,11 +345,11 @@ def query_satellite_available_time_slots(request_id: int):
         func.tstzrange(SatelliteOutage.start_time, SatelliteOutage.start_time+SatelliteOutage.duration).label('time_range')
     )
     if request.asset_id is not None:
-        transmitted_event_query = transmitted_event_query.filter(TransmittedEvent.asset_id==request.asset_id)
+        blocking_transmitted_event_query = blocking_transmitted_event_query.filter(TransmittedEvent.asset_id==request.asset_id)
         satellite_outage_query = satellite_outage_query.filter(SatelliteOutage.asset_id==request.asset_id)
     
 
-    blocking_events_queries = [transmitted_event_query, satellite_outage_query]
+    blocking_events_queries = [blocking_transmitted_event_query, satellite_outage_query]
 
     valid_partition_values_subquery = session.query(
         literal(request.schedule_id).label('schedule_id'),

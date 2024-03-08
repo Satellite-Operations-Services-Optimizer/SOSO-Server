@@ -25,6 +25,20 @@ def schedule_request(request_id: int):
         schedule_outage_request(request.id)
     else:
         schedule_planned_request(request.id)
+        
+def decline_request(request_id: int):
+    session = get_db_session()
+    request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+
+    event = session.query(TransmittedEvent).filter_by(request_id=request_id).one_or_none()
+    displace_event(event, "")
+    request.status = "declined"
+    request.status_message = "The request was declined by an opertor."
+    session.commit()
+
+    # publish event notifying declined
+    TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish(request.id)
+
 
 def schedule_planned_request(request_id: int):
     session = get_db_session()
@@ -59,6 +73,7 @@ def schedule_planned_request(request_id: int):
     
     session.commit()
     # publish event notifying rejected
+    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish(request.id)
 
 
 def execute_schedule_plan(schedule_plan):
@@ -213,19 +228,6 @@ def schedule_outage_request(request_id):
         # publish event notifying displaced
         TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish(event.request_id)
     
-def decline_request(request_id):
-    session = get_db_session()
-    request = session.query(ScheduleRequest).filter_by(id=request_id).one()
-
-    event = session.query(TransmittedEvent).filter_by(request_id=request_id).one_or_none()
-    displace_event(event, "")
-    request.status = "declined"
-    request.status_message = "The request was declined by an opertor."
-    session.commit()
-
-    # publish event notifying declined
-    TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish(request.id)
-
 def displace_event(event, message):
     session = get_db_session()
     if event.uplink_contact_id is not None:
