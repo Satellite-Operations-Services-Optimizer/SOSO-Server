@@ -68,7 +68,7 @@ class SatelliteStateGenerator:
         if len(states) == 1: return states[0]
         return np.array(states)
 
-    def _create_can_capture_mapper(self, image_order):
+    def _create_can_capture_map_func(self, image_order):
         def can_capture_mapper(satellite_state):
             satellite_position = (satellite_state.latitude, satellite_state.longitude)
             target_latitude, target_longitude = image_order.latitude, image_order.longitude
@@ -109,10 +109,10 @@ class SatelliteStateGenerator:
         elif not isinstance(satellite_states, np.ndarray):
             satellite_states = np.array([satellite_states])
         
-        can_capture_values = np.vectorize(self._create_can_capture_mapper(image_order))
+        can_capture_values = np.vectorize(self._create_can_capture_map_func(image_order))
 
 
-        can_capture_mapper = self._create_can_capture_mapper(image_order)
+        can_capture_mapper = self._create_can_capture_map_func(image_order)
         can_capture_values = np.vectorize(can_capture_mapper)(satellite_states)
 
         if len(can_capture_values)==1: return can_capture_values[0]

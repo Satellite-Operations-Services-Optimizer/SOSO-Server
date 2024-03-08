@@ -12,10 +12,10 @@ import time
 from haversine import haversine
 from app_config import get_db_session
 from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, MaintenanceOrder, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
-from sqlalchemy import case, and_
+from sqlalchemy import case, and_, or_
 from scheduler_service.constants import get_ephemeris
 from scheduler_service.schedulers.utils import get_image_dimensions
-from scheduler_service.order_processing.main import ensure_orders_requested
+from scheduler_service.event_processing.order_processing import ensure_orders_requested
 
 
 start_time_str = "2023-10-08 00:00:00"
@@ -648,8 +648,11 @@ class System:
         ).join(
             OutageOrder,
             and_(
-                ScheduleRequest.order_type=="outage",
-                OutageOrder.id==ScheduleRequest.order_id
+                OutageOrder.id==ScheduleRequest.order_id,
+                or_(
+                    ScheduleRequest.order_type=="gs_outage",
+                    ScheduleRequest.order_type=="sat_outage"
+                )
             )
         ).join(
             Satellite, Satellite.id==OutageOrder.asset_id

@@ -1,9 +1,45 @@
 from datetime import datetime
-from app_config import get_db_session
+from app_config import get_db_session, rabbit
 from app_config.database.mapping import SystemOrder, ScheduleRequest, ImageOrder, MaintenanceOrder, OutageOrder
 from scheduler_service.schedulers.utils import TimeHorizon
 from typing import Optional
 from sqlalchemy import exists
+from multiprocessing import Process
+from rabbit_wrapper import TopicConsumer
+
+
+def register_order_processor_listener():
+    consumer = TopicConsumer(rabbit())
+    consumer.bind("order.*.created")
+    consumer.register_callback(lambda _: ensure_order_processor_running())
+
+order_processing_process = None
+def ensure_order_processor_running():
+    def order_processor_task():
+        while process_earliest_order():
+            pass
+    if order_processing_process is None or not order_processing_process.is_alive():
+        order_processing_process = Process(target=order_processor_task)
+        order_processing_process.start()
+
+def process_earliest_order():
+    session = get_db_session()
+    order = session.query(SystemOrder).filter(
+        SystemOrder.visits_remaining > 0
+    ).order_by(SystemOrder.start_time).first()
+
+    if order is None: return False
+    request = create_request(order)
+    session.add(request)
+
+    order.start_time += order.revisit_frequency
+    order.end_time += order.revisit_frequency
+    order.delivery_deadline += order.revisit_frequency
+    order.visits_remaining -= 1
+    session.commit()
+
+    # publish event order requested
+    return True
 
 def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None):
     """
@@ -68,7 +104,7 @@ def create_request(order):
             delivery_deadline=order.delivery_deadline,
             priority=order.priority
         )
-    elif order.order_type=="outage":
+    elif order.order_type=="sat_outage" or order.order_type=="gs_outage":
         return ScheduleRequest(
             schedule_id=order.schedule_id,
             order_id=order.id,

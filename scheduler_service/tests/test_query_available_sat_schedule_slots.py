@@ -1,4 +1,4 @@
-from scheduler_service.schedulers.genetic.populator.create_schedule_population import query_satellite_available_time_slots
+from scheduler_service.schedulers.scheduler_tools import query_satellite_available_time_slots
 from app_config import get_db_session
 from app_config.database.mapping import ScheduleRequest, Schedule, Satellite, CaptureOpportunity, ImageOrder, SatelliteOutage
 from datetime import datetime, timedelta

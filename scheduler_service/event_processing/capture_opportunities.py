@@ -3,10 +3,11 @@ from scheduler_service.event_processing.utils import retrieve_and_lock_unprocess
 from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 from app_config.database.mapping import Satellite, CaptureProcessingBlock, CaptureOpportunity, ScheduleRequest, ImageOrder
 from app_config import get_db_session
-from sqlalchemy import func, or_, distinct, exists, tuple_
+from sqlalchemy import func, or_, distinct, exists, tuple_, true, and_
 from datetime import datetime, timedelta
 import concurrent.futures
 import loky
+from typing import Optional
 
 class SerializableCaptureProcessingBlock:
     def __init__(self, id: int, satellite_id: int, image_type: str, latitude: float, longitude: float, time_range):
@@ -26,8 +27,17 @@ class SerializableCaptureOpportunity:
         self.start_time = start_time
         self.duration = duration
 
-def ensure_capture_opportunities_populated(start_time: datetime, end_time: datetime):
+def ensure_capture_opportunities_populated(start_time: datetime, end_time: datetime, order_id: Optional[int] = None):
     session = get_db_session()
+
+    processing_block_filters = []
+    if order_id:
+        order = session.query(ImageOrder).filter_by(id=order_id).one()
+        processing_block_filters.append(and_(
+            CaptureProcessingBlock.image_type==order.image_type,
+            CaptureProcessingBlock.latitude==order.latitude,
+            CaptureProcessingBlock.longitude==order.longitude
+        ))
 
     start_time_no_tz = start_time.replace(tzinfo=None)
     end_time_no_tz = end_time.replace(tzinfo=None)
@@ -42,6 +52,8 @@ def ensure_capture_opportunities_populated(start_time: datetime, end_time: datet
         ImageOrder.image_type,
         ImageOrder.latitude,
         ImageOrder.longitude
+    ).filter(
+        ImageOrder.id == order_id if order_id is not None else true()
     ).join(ImageOrder, exists_condition).distinct().subquery()
 
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
@@ -53,34 +65,50 @@ def ensure_capture_opportunities_populated(start_time: datetime, end_time: datet
             CaptureProcessingBlock.latitude,
             CaptureProcessingBlock.longitude
         ],
+        filters=processing_block_filters,
         valid_partition_values_subquery=all_satellite_capture_combinations
     )
-    with loky.ProcessPoolExecutor() as executor:
-        serializable_blocks = [
-            SerializableCaptureProcessingBlock(
-                id=block.id,
-                satellite_id=block.satellite_id,
-                image_type=block.image_type,
-                latitude=block.latitude,
-                longitude=block.longitude,
-                time_range=block.time_range
-            ) for block in blocks_to_process
-        ]
-        result_set = executor.map(calculate_capture_opportunities, serializable_blocks)
-        processed_block_ids = []
-        for block_id, opportunities in result_set:
-            capture_opportunities = [
-                CaptureOpportunity(
-                    asset_id=opportunity.asset_id,
-                    image_type=opportunity.image_type,
-                    latitude=opportunity.latitude,
-                    longitude=opportunity.longitude,
-                    start_time=opportunity.start_time,
-                    duration=opportunity.duration
-                ) for opportunity in opportunities
+
+    processed_block_ids = []
+    if len(blocks_to_process)==0: return
+    if len(blocks_to_process)==1:
+        block_id, opportunities = calculate_capture_opportunities(serializable_blocks[0])
+        capture_opportunities = [CaptureOpportunity(
+            asset_id=opportunity.asset_id,
+            image_type=opportunity.image_type,
+            latitude=opportunity.latitude,
+            longitude=opportunity.longitude,
+            start_time=opportunity.start_time,
+            duration=opportunity.duration
+        ) for opportunity in opportunities]
+        session.add(capture_opportunities)
+        processed_block_ids.append(block_id)
+    else:
+        with loky.ProcessPoolExecutor() as executor:
+            serializable_blocks = [
+                SerializableCaptureProcessingBlock(
+                    id=block.id,
+                    satellite_id=block.satellite_id,
+                    image_type=block.image_type,
+                    latitude=block.latitude,
+                    longitude=block.longitude,
+                    time_range=block.time_range
+                ) for block in blocks_to_process
             ]
-            session.add_all(capture_opportunities)
-            processed_block_ids.append(block_id)
+            result_set = executor.map(calculate_capture_opportunities, serializable_blocks)
+            for block_id, opportunities in result_set:
+                capture_opportunities = [
+                    CaptureOpportunity(
+                        asset_id=opportunity.asset_id,
+                        image_type=opportunity.image_type,
+                        latitude=opportunity.latitude,
+                        longitude=opportunity.longitude,
+                        start_time=opportunity.start_time,
+                        duration=opportunity.duration
+                    ) for opportunity in opportunities
+                ]
+                session.add_all(capture_opportunities)
+                processed_block_ids.append(block_id)
 
     session.query(CaptureProcessingBlock).filter(
         CaptureProcessingBlock.id.in_(processed_block_ids)

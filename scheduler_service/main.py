@@ -1,19 +1,17 @@
-from rabbit_wrapper import Consumer
+from rabbit_wrapper import Consumer, TopicConsumer
 from app_config import rabbit, ServiceQueues
-from satellite_state.stream import setup_state_streaming_event_listeners
+from satellite_state.stream import register_state_streaming_event_listeners
+from scheduler_service.event_processing.order_processing import register_order_processor_listener
+from scheduler_service.schedulers.basic_scheduler import register_request_scheduler_listener
 import logging
-from event_processing.background_jobs import scheduler
 
 
 logger = logging.getLogger(__name__)
 def startup_event():
-    setup_state_streaming_event_listeners()
-    consumer = Consumer(rabbit(), ServiceQueues.SCHEDULER)
-    consumer.register_callback(lambda message: logger.info(f"Received message: {message}"))
-
+    register_state_streaming_event_listeners()
+    register_order_processor_listener()
+    register_request_scheduler_listener()
     rabbit().start_consuming()
-
-scheduler.start()
 
 if __name__ == "__main__":
     startup_event()

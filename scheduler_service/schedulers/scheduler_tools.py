@@ -3,102 +3,104 @@ import uuid
 from app_config import get_db_session
 from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange, AssetState
 from sqlalchemy import or_, exists
-from scheduler_service.schedulers.outage_scheduler import schedule_outage
 from scheduler_service.schedulers.utils import query_gaps, query_islands
 from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union
 from sqlalchemy.orm import aliased
 from typing import Union
 import random
 
-def create_schedule_population(start_time: datetime, end_time: datetime, schedule_id: int, max_population_size: int, branching_factor: int = 5):
-    """
-    Explodes the schedule `schedule_id` into a population of schedules that are feasible within the time range `start_time` to `end_time`.
-    Assumes that all static events have been populated within the provided time range `start_time` to `end_time`.
+# def create_schedule_population(start_time: datetime, end_time: datetime, schedule_id: int, max_population_size: int, branching_factor: int = 5):
+#     """
+#     Explodes the schedule `schedule_id` into a population of schedules that are feasible within the time range `start_time` to `end_time`.
+#     Assumes that all static events have been populated within the provided time range `start_time` to `end_time`.
 
-    Returns the schedule group id of the generated population
-    """
-    population_id = f"generated_population_{uuid.uuid4().hex}"
+#     Returns the schedule group id of the generated population
+#     """
+#     population_id = f"generated_population_{uuid.uuid4().hex}"
 
-    # Handle all outage requests
-    session = get_db_session()
-    outage_requests = session.query(ScheduleRequest).filter(
-        ScheduleRequest.schedule_id==schedule_id,
-        ScheduleRequest.order_type=="outage",
-        ScheduleRequest.status=="processing",
-        ScheduleRequest.window_start >= start_time,
-        ScheduleRequest.window_end <= end_time
-    ).all()
+#     # Handle all outage requests
+#     session = get_db_session()
+#     outage_requests = session.query(ScheduleRequest).filter(
+#         ScheduleRequest.schedule_id==schedule_id,
+#         or_(
+#             ScheduleRequest.order_type=="sat_outage",
+#             ScheduleRequest.order_type=="gs_outage"
+#         ),
+#         ScheduleRequest.status=="processing",
+#         ScheduleRequest.window_start >= start_time,
+#         ScheduleRequest.window_end <= end_time
+#     ).all()
 
-    for outage_request in outage_requests:
-        schedule_outage(outage_request, unscheduled_items_state="processing")
+#     for outage_request in outage_requests:
+#         schedule_outage(outage_request, unscheduled_requests_state="processing")
 
-    requests_to_schedule = session.query(ScheduleRequest).filter(
-        ScheduleRequest.schedule_id==schedule_id,
-        ScheduleRequest.status=="processing",
-        or_(
-            ScheduleRequest.order_type=="imaging",
-            ScheduleRequest.order_type=="maintenance"
-        )
-    ).order_by(ScheduleRequest.priority).all()
+#     requests_to_schedule = session.query(ScheduleRequest).filter(
+#         ScheduleRequest.schedule_id==schedule_id,
+#         ScheduleRequest.status=="processing",
+#         or_(
+#             ScheduleRequest.order_type=="imaging",
+#             ScheduleRequest.order_type=="maintenance"
+#         )
+#     ).order_by(ScheduleRequest.priority).all()
 
-    population = []
-    for request in requests_to_schedule:
-        for schedule in population:
-            # for each current schedule we have in our population, 
-            # enrich population with `branching_factor` possible new 
-            # schedules where this request is scheduled
-            request_schedules = generate_schedule_possibilities(
-                request.id,
-                schedule_id,
-                lookback_cutoff_date=datetime.now+timedelta(minutes=10),
-                branching_factor=branching_factor
-            )
-            for new_schedule in request_schedules:
-                new_schedule.group_name = population_id
-
-
-        if len(request_schedules)==0:
-            pass
-            # change status to rejected, citing no available slots to place it
-        # available_locations = 
+#     population = []
+#     for request in requests_to_schedule:
+#         for schedule in population:
+#             # for each current schedule we have in our population, 
+#             # enrich population with `branching_factor` possible new 
+#             # schedules where this request is scheduled
+#             request_schedules = generate_schedule_possibilities(
+#                 request.id,
+#                 schedule_id,
+#                 lookback_cutoff_date=datetime.now+timedelta(minutes=10),
+#                 branching_factor=branching_factor
+#             )
+#             for new_schedule in request_schedules:
+#                 new_schedule.group_name = population_id
 
 
-    # get all requests in order of scheduling priority
-    schedule_ids = []
-    return population_id
+#         if len(request_schedules)==0:
+#             pass
+#             # change status to rejected, citing no available slots to place it
+#         # available_locations = 
 
-def generate_schedule_possibilities(request_id: int, schedule_id: int, lookback_cutoff_date: datetime, branching_factor: int):
-    """
-    Generates `branching_factor` possible schedules where `request` is scheduled.
-    """
-    session = get_db_session()
-    # verify that request exists in the schedule, and is not already scheduled
-    request_valid = session.query(exists().where(
-        ScheduleRequest.id==request_id,
-        ScheduleRequest.schedule_id==schedule_id,
-        ScheduleRequest.status!="scheduled",
-        ScheduleRequest.status!="sent_to_gs"
-    )).scalar()
-    if not request_valid:
-        raise ValueError(f"Request {request_id} is not valid for scheduling in schedule {schedule_id}. Request must exist in the schedule and not be already scheduled/sent to groundstation.")
+
+#     # get all requests in order of scheduling priority
+#     schedule_ids = []
+#     return population_id
+
+# def generate_schedule_possibilities(request_id: int, schedule_id: int, lookback_cutoff_date: datetime, branching_factor: int):
+#     """
+#     Generates `branching_factor` possible schedules where `request` is scheduled.
+#     """
+#     session = get_db_session()
+#     # verify that request exists in the schedule, and is not already scheduled
+#     request_valid = session.query(exists().where(
+#         ScheduleRequest.id==request_id,
+#         ScheduleRequest.schedule_id==schedule_id,
+#         ScheduleRequest.status!="scheduled",
+#         ScheduleRequest.status!="sent_to_gs"
+#     )).scalar()
+#     if not request_valid:
+#         raise ValueError(f"Request {request_id} is not valid for scheduling in schedule {schedule_id}. Request must exist in the schedule and not be already scheduled/sent to groundstation.")
     
-    top_plans = calculate_top_scheduling_plans(
-        request_id,
-        schedule_id,
-        lookback_cutoff_date,
-        top_n=branching_factor,
-        workload_distribution_factor=0.3
-    )
+#     top_plans = calculate_top_scheduling_plans(
+#         request_id,
+#         schedule_id,
+#         lookback_cutoff_date,
+#         top_n=branching_factor,
+#         workload_distribution_factor=0.3
+#     )
 
-    # get top `branching_factor` available spots in the schedule to place the request
-    for plan in top_plans:
-        schedule = copy_schedule(schedule_id)
+#     # get top `branching_factor` available spots in the schedule to place the request
+#     for plan in top_plans:
+#         schedule = copy_schedule(schedule_id)
 
-        # schedule the request in the spot
+#         # schedule the request in the spot
 
-        # find the corresponding request in the new schedule and update its state
+#         # find the corresponding request in the new schedule and update its state
 
-def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_cutoff_date: datetime, top_n: int, workload_distribution_factor: float):
+def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetime, top_n: int, workload_distribution_factor: float):
     """
     Calculates the best schedule slots to place the request in.
     """
@@ -106,8 +108,9 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
     if workload_distribution_factor > 0: workload_distribution_factor = 1.0
     if workload_distribution_factor < 0: workload_distribution_factor = 0.0
 
-    unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, schedule_id, lookback_cutoff_date).subquery()
-    candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
+    unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time).subquery()
+    # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
+    candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
 
     session = get_db_session()
     punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # it is already ordered by punctuality, so we can just take the top n
@@ -125,9 +128,9 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
 
     top_n_candidates = []
     for _ in range(number_of_candidates):
-        chose_from_asset_list = random.random() < workload_distribution_factor
+        choose_from_asset_list = random.random() < workload_distribution_factor
 
-        if chose_from_asset_list:
+        if choose_from_asset_list:
             for _ in range(number_of_assets): # keep trying to get an asset with a candidate
                 asset_index = int(random.uniform(0, number_of_assets)) # randomly choose an index using uniform distribution for evenly distribted workload chances
                 asset_candidates = asset_grouped_candidates[asset_index]
@@ -154,23 +157,22 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
     return top_n_candidates
 
 
-def query_candidate_scheduling_plans(request_id: int, schedule_id: int, context_start_time: datetime):
+def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     # Get the available slots for the satellite event to occur
-    available_time_slots_subquery = query_satellite_available_time_slots(request_id, schedule_id).subquery()
+    available_time_slots_subquery = query_satellite_available_time_slots(request_id).subquery()
 
     # Get the candidate uplink and downlink contacts for the request
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
-        request_id, schedule_id, uplink_cutoff_time=context_start_time,
+        request_id, uplink_cutoff_time=context_cutoff_time,
     )
     candidate_uplink_subquery = candidate_uplink_contact.subquery()
     candidate_downlink_subquery = candidate_downlink_contact.subquery()
 
-    uplink_required = request.uplink_size > 0
+    uplink_required = True # request.uplink_size > 0 TODO: we should never have a case where we have to model something in our system that doesn't need uplink. we need to uplink for sat to know what to do. verify with csa
     downlink_required = request.downlink_size > 0
-
 
     uplink_time_range = func.tstzrange(candidate_uplink_subquery.c.start_time, candidate_uplink_subquery.c.start_time+candidate_uplink_subquery.c.duration)
     downlink_time_range = func.tstzrange(candidate_downlink_subquery.c.start_time, candidate_downlink_subquery.c.start_time+candidate_downlink_subquery.c.duration)
@@ -222,7 +224,7 @@ def query_candidate_scheduling_plans(request_id: int, schedule_id: int, context_
     ).order_by(candidate_downlink_subquery.c.start_time, column('time_range')) #earlier to downlink, better. next in priority is earlier for event to take place, the better
     return candidate_schedule_plans
 
-def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cutoff_time: datetime):
+def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime):
     """
     Queries the schedule for available contacts to place the request.
     Looks for all contacts that are not in outage, last long enough to
@@ -244,7 +246,7 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cuto
 
     # get all contacts that we can uplink with, where the contact's groundstation is not in outage during the contact period
     gs_in_outage_for_contact_check = exists(GroundStationOutage).where(
-        GroundStationOutage.schedule_id==schedule_id,
+        GroundStationOutage.schedule_id==request.schedule_id,
         GroundStationOutage.asset_id==ContactEvent.groundstation_id,
         GroundStationOutage.utc_time_range.op('&&')(ContactEvent.utc_time_range),
         or_(
@@ -282,7 +284,7 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cuto
         request_uplink_duration = request.uplink_size/ContactEvent.uplink_rate_mbps
         request_uplink_duration = func.make_interval(0, 0, 0, 0, 0, 0, request_uplink_duration)
         candidate_uplink_contact = candidate_uplink_contact.filter(
-            ContactEvent.schedule_id==schedule_id,
+            ContactEvent.schedule_id==request.schedule_id,
             contact_uplink_overlap_duration >= request_uplink_duration,
             ~gs_in_outage_for_contact_check
         )
@@ -296,7 +298,7 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cuto
         request_downlink_duration = request.downlink_size/ContactEvent.downlink_rate_mbps
         request_downlink_duration = func.make_interval(0, 0, 0, 0, 0, 0, request_downlink_duration)
         candidate_downlink_contact = candidate_downlink_contact.filter(
-            ContactEvent.schedule_id==schedule_id,
+            ContactEvent.schedule_id==request.schedule_id,
             contact_downlink_overlap_duration >= request_downlink_duration,
             ~gs_in_outage_for_contact_check,
         )
@@ -308,7 +310,7 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cuto
 
     return (candidate_uplink_contact, candidate_downlink_contact)
 
-def query_satellite_available_time_slots(request_id: int, schedule_id: int):
+def query_satellite_available_time_slots(request_id: int):
     """
     Queries the schedule for available spots to place the request.
     """
@@ -337,7 +339,7 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
     blocking_events_queries = [transmitted_event_query, satellite_outage_query]
 
     valid_partition_values_subquery = session.query(
-        literal(schedule_id).label('schedule_id'),
+        literal(request.schedule_id).label('schedule_id'),
         Satellite.id.label('asset_id'),
         Satellite.asset_type.label('asset_type')
     ).filter(
@@ -346,7 +348,7 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
 
     # Handle imaging opportunities if the request is for imaging - get all areas that are not available for imaging
     if request.order_type == "imaging":
-        candidate_capture_opportunities = query_candidate_capture_opportunities(request_id, schedule_id).subquery()
+        candidate_capture_opportunities = query_candidate_capture_opportunities(request_id).subquery()
         unimageable_time_ranges_query = query_gaps(
             source_subquery=candidate_capture_opportunities,
             range_column=candidate_capture_opportunities.c.time_range,
@@ -366,7 +368,7 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int):
     event_blocked_regions_query = session.query(
         blocking_events_subquery
     ).filter(
-        blocking_events_subquery.c.schedule_id==schedule_id,
+        blocking_events_subquery.c.schedule_id==request.schedule_id,
         blocking_events_subquery.c.time_range.op('&&')(func.tstzrange(request.window_start, request.window_end))
     )
     
@@ -565,7 +567,7 @@ def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[da
 
 
 
-def query_candidate_capture_opportunities(request_id: int, schedule_id: int):
+def query_candidate_capture_opportunities(request_id: int):
     """
     Queries the schedule for available capture opportunities when the imaging can take place
     """
@@ -575,7 +577,7 @@ def query_candidate_capture_opportunities(request_id: int, schedule_id: int):
     capture_time_range = func.tstzrange(CaptureOpportunity.start_time, CaptureOpportunity.start_time+CaptureOpportunity.duration).label('time_range')
     capture_window = capture_time_range.op('*')(func.tstzrange(request.window_start, request.window_end))
     candidate_capture_opportunities = session.query(
-        literal(schedule_id).label('schedule_id'),
+        literal(request.schedule_id).label('schedule_id'),
         CaptureOpportunity.asset_id.label('asset_id'),
         CaptureOpportunity.asset_type.label('asset_type'),
         capture_window.label('time_range')
@@ -586,7 +588,7 @@ def query_candidate_capture_opportunities(request_id: int, schedule_id: int):
             request.order_type=="imaging"
         )
     ).filter(
-        CaptureOpportunity.schedule_id==schedule_id, # TODO: should we remove this from consideration? will CaptureOpportunities be copied over when we copy schedules? I think yes, but not 100% sure yet
+        CaptureOpportunity.schedule_id==request.schedule_id, # TODO: should we remove this from consideration? will CaptureOpportunities be copied over when we copy schedules? I think yes, but not 100% sure yet
         CaptureOpportunity.latitude==ImageOrder.latitude,
         CaptureOpportunity.longitude==ImageOrder.longitude,
         CaptureOpportunity.image_type==ImageOrder.image_type,

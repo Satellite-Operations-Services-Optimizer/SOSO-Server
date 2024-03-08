@@ -79,14 +79,6 @@ def test():
     session.add(test_schedule)
     session.flush()
 
-
-    lat = 48.043
-    long = -179.132
-    lat = -82.609
-    long = 114.816
-
-
-
     lat = -80.0244459881869 
     long = -81.07364979151080
     image_order = ImageOrder(

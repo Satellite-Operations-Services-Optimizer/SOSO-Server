@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest
 from helpers import create_dummy_imaging_event
-from scheduler_service.schedulers.genetic.populator.create_schedule_population import get_candidate_contact_queries
+from scheduler_service.schedulers.scheduler_tools import get_candidate_contact_queries
 
 def test_candidate_contact_queries():
     context_cutoff_time = datetime(2022, 5, 15, 0, 0, 0)

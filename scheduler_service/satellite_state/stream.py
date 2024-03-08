@@ -7,7 +7,7 @@ from .tasks import state_stream_task
 logger = logging.getLogger(__name__)
 
 manager = None
-def setup_state_streaming_event_listeners():
+def register_state_streaming_event_listeners():
     global manager
     if manager is None:
         manager = SatelliteStateStreamManager()

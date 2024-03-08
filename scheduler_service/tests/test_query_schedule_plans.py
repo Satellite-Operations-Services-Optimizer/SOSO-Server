@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest
 from helpers import create_dummy_imaging_event
-from scheduler_service.schedulers.genetic.populator.create_schedule_population import query_candidate_scheduling_plans
+from scheduler_service.schedulers.scheduler_tools import query_candidate_scheduling_plans
 from sqlalchemy import column
 from itertools import product
 

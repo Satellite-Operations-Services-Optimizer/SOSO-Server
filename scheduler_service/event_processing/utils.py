@@ -13,20 +13,26 @@ def retrieve_and_lock_unprocessed_blocks_for_processing(
         end_time: datetime,
         processing_block_table: Any, # orm-mapped table class
         partition_column_names: List[str],
+        filters,
         valid_partition_values_subquery
 ):
     """
     Retrieves unprocessed blocks from the database if they exist, and creates them if they don't
     WARNING: This function locks some rows in the database and doesn't release the lock until the transaction is committed. Make sure to commit to the database soon after calling this function to release lock.
     """
+    session = get_db_session()
 
     if partition_column_names and type(partition_column_names[0]) != str:
         partition_column_names = [col.name for col in partition_column_names]
     partition_columns = [column(col_name) for col_name in partition_column_names]
 
-    session = get_db_session()
+    processing_blocks = session.query(processing_block_table)
+    if len(filters)>0:
+        processing_blocks.filter(*filters)
+    processing_blocks = processing_blocks.subquery()
+
     query_blocks_to_process = query_gaps(
-        source_subquery=session.query(processing_block_table).subquery(),
+        source_subquery=processing_blocks,
         range_column=column('time_range'),
         start_time=start_time,
         end_time=end_time,
