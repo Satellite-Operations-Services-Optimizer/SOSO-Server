@@ -11,15 +11,16 @@ from typing import Optional, Union
 from dataclasses import dataclass, InitVar
 from pydantic import BaseModel
 import numpy as np
-from math import atan, degrees
-from skyfield.api import Topos
-from haversine import haversine
+import math
+from skyfield.api import Topos, wgs84
+from haversine import haversine, Unit
 from scheduler_service.schedulers.utils import get_image_dimensions
 
 # This class extends the database table 'satellite'
 class SatelliteStateGenerator:
-    def __init__(self, db_satellite: Satellite):
+    def __init__(self, db_satellite: Satellite, precision: timedelta = timedelta(minutes=1)):
         self._db_satellite = db_satellite
+        self.precision = precision
 
     def state_at(self, time: Union[datetime, Time]):
         """
@@ -30,16 +31,16 @@ class SatelliteStateGenerator:
 
         datetime_time = self._ensure_datetime(time)
         skyfield_time = self._ensure_skyfield_time(time)
-        position = satellite.at(skyfield_time).position.km
-        subpoint = satellite.at(skyfield_time).subpoint()
+
+        # alternate method of calculating: https://arc.net/l/quote/bhepahvs
+        geocentric = satellite.at(skyfield_time)
+        subpoint = geocentric.subpoint()
         latitude = subpoint.latitude.degrees
         longitude = subpoint.longitude.degrees
+        altitude = subpoint.elevation.km
 
-        # Calculate altitude from position data
-        semi_major_axis_km = satellite.model.a * EARTH_RADIUS
-        altitude = semi_major_axis_km - EARTH_RADIUS # The constant comes from ./constants.py file
-
-        sunlit_value = self.is_sunlit(skyfield_time)
+        ephemeris = get_ephemeris()
+        sunlit_value = geocentric.is_sunlit(ephemeris)
 
         try:
             len(skyfield_time) # This will raise a TypeError if skyfield_time represents a single time
@@ -60,12 +61,43 @@ class SatelliteStateGenerator:
                 time=datetime_time[i],
                 latitude=latitude[i],
                 longitude=longitude[i],
-                altitude=altitude,
+                altitude=altitude[i],
                 is_sunlit=sunlit_value[i]
             )
         
         if len(states) == 1: return states[0]
         return np.array(states)
+
+    def _create_can_capture_mapper(self, image_order):
+        def can_capture_mapper(satellite_state):
+            satellite_position = (satellite_state.latitude, satellite_state.longitude)
+            target_latitude, target_longitude = image_order.latitude, image_order.longitude
+            image_length, image_width = get_image_dimensions(image_order.image_type)
+
+            dist_subpoint_to_target_x = haversine((target_latitude, satellite_state.longitude), satellite_position, unit=Unit.KILOMETERS)
+            dist_subpoint_to_target_y = haversine((satellite_state.latitude, target_longitude), satellite_position, unit=Unit.KILOMETERS)
+
+
+            dist_x = dist_subpoint_to_target_x + 0.5*image_length
+            dist_y = dist_subpoint_to_target_y + 0.5*image_width
+            required_coverage_dist = (dist_x**2 + dist_y**2)**0.5
+
+            # https://faculty.nps.edu/awashburn/Files/Notes/EARTHCOV.pdf
+            rho = EARTH_RADIUS / (EARTH_RADIUS + satellite_state.altitude)
+
+            fov = math.radians(self._db_satellite.fov)
+            half_fov = 0.5 * fov
+
+            if math.sin(half_fov) > rho: # sensor's field of view is not limiting
+                cap_angle = math.acos(rho * math.cos(0))-0
+            else: # coverage is limited by the sensor's field of view
+                cap_angle = math.asin(math.sin(half_fov) / rho) - half_fov
+            
+            sat_coverage_dist = EARTH_RADIUS * cap_angle
+            
+            image_within_view = required_coverage_dist < sat_coverage_dist
+            return image_within_view
+        return can_capture_mapper
     
     def can_capture(self, image_order: ImageOrder, time: Union[datetime, Time]):
         """
@@ -77,20 +109,11 @@ class SatelliteStateGenerator:
         elif not isinstance(satellite_states, np.ndarray):
             satellite_states = np.array([satellite_states])
         
-        can_capture_values = np.empty(len(satellite_states), dtype=bool)
-        for i, satellite_state in enumerate(satellite_states):
-            satellite_position = (satellite_state.latitude, satellite_state.longitude)
-            target_latitude, target_longitude = image_order.latitude, image_order.longitude
+        can_capture_values = np.vectorize(self._create_can_capture_mapper(image_order))
 
-            distX = haversine((target_latitude, satellite_state.longitude), satellite_position)
-            distY = haversine((satellite_state.latitude, target_longitude), satellite_position)
 
-            image_length, image_width = get_image_dimensions(image_order.image_type)
-
-            sat_fov = self._db_satellite.fov_min
-            
-            image_within_view = distX < (sat_fov - 0.5*image_length) and distY < (sat_fov - 0.5*image_width)
-            can_capture_values[i] = image_within_view
+        can_capture_mapper = self._create_can_capture_mapper(image_order)
+        can_capture_values = np.vectorize(can_capture_mapper)(satellite_states)
 
         if len(can_capture_values)==1: return can_capture_values[0]
         return can_capture_values
@@ -120,14 +143,13 @@ class SatelliteStateGenerator:
         start_time = self._ensure_skyfield_time(start_time)
         end_time = self._ensure_skyfield_time(end_time)
 
-        step_time_minutes = 1
         def is_sunlit_wrapper(time: Time):
             return self.is_sunlit(time)
-        is_sunlit_wrapper.step_days = step_time_minutes / (24 * 60) # convert minutes to days
+        is_sunlit_wrapper.step_days = self.precision.seconds / (24 * 60 * 60) # convert seconds to days
 
-        change_times, sunlit_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
+        change_times, change_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
         prev_time, prev_sunlit = start_time, self.is_sunlit(start_time)
-        for time, is_sunlit in zip(change_times, sunlit_values):
+        for time, is_sunlit in zip(change_times, change_values):
             if not prev_sunlit and is_sunlit:
                 eclipse_events.append((prev_time, time))
             prev_time = time
@@ -149,11 +171,11 @@ class SatelliteStateGenerator:
 
         satellite = self._get_skyfield_satellite()
         groundstation_topos = Topos(groundstation.latitude, groundstation.longitude)
-        change_times, contact_values = satellite.find_events(groundstation_topos, start_time, end_time, altitude_degrees=groundstation.send_mask)
+        change_times, change_values = satellite.find_events(groundstation_topos, start_time, end_time, altitude_degrees=groundstation.send_mask)
 
         event_names = ('rise', 'culminate', 'set')
         prev_rise_time = start_time
-        for time, event in zip(change_times, contact_values):
+        for time, event in zip(change_times, change_values):
             if event_names[event] == 'rise':
                 prev_rise_time = time
             elif event_names[event] == 'set':
@@ -170,20 +192,19 @@ class SatelliteStateGenerator:
         start_time = self._ensure_skyfield_time(start_time)
         end_time = self._ensure_skyfield_time(end_time)
 
-        step_time_minutes = 1
         def can_capture_wrapper(time: Time):
             return self.can_capture(image_order, time)
-        can_capture_wrapper.step_days = step_time_minutes / (24 * 60) # convert minutes to days
+        can_capture_wrapper.step_days = self.precision.seconds / (24 * 60 * 60) # convert seconds to days
 
-        change_times, capture_values = self.manual_find_discrete(start_time, end_time, can_capture_wrapper)
+        change_times, change_values = self.manual_find_discrete(start_time, end_time, can_capture_wrapper)
         prev_time, prev_can_capture = start_time, self.can_capture(image_order, start_time)
-        for time, can_capture in zip(change_times, capture_values):
-            if not prev_can_capture and can_capture:
+        for time, can_capture in zip(change_times, change_values):
+            if prev_can_capture and not can_capture:
                 capture_events.append((prev_time, time))
             prev_time = time
             prev_can_capture = can_capture
 
-        if not prev_can_capture and prev_time.tt < end_time.tt and len(change_times) > 0:
+        if prev_can_capture and prev_time.tt < end_time.tt and len(change_times) > 0:
             capture_events.append((prev_time, end_time))
 
         return capture_events
@@ -195,10 +216,12 @@ class SatelliteStateGenerator:
             yield self.state_at(datetime.now() + time_offset)
 
 
-    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: timedelta=timedelta(minutes=1)):
+    def track(self, start_time: Union[datetime, Time], end_time: Union[datetime, Time], time_delta: Optional[timedelta]):
         """
         This is a generator that iterates through the states of the satelite from `start_time` to `end_time` at intervals of `time_delta`
         """
+        if time_delta is None:
+            time_delta = self.precision
         start_time = self._ensure_skyfield_time(start_time)
         end_time = self._ensure_skyfield_time(end_time)
 

@@ -2,6 +2,5 @@
     "name": "SOSO-2",
     "storage_capacity": 32000,
     "power_capacity": 1300.0,
-    "fov_max": 45.0,
-    "fov_min": -45.0
+    "fov": 45.0
 }

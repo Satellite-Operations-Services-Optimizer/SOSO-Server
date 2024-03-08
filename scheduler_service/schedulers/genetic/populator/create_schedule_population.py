@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta
 import uuid
 from app_config import get_db_session
-from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange
+from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange, AssetState
 from sqlalchemy import or_, exists
 from scheduler_service.schedulers.outage_scheduler import schedule_outage
-from scheduler_service.schedulers.utils import query_gaps, query_islands, union
-from sqlalchemy import func, column, or_, and_, false, case, literal, true
+from scheduler_service.schedulers.utils import query_gaps, query_islands
+from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union
 from sqlalchemy.orm import aliased
 from typing import Union
 import random
@@ -106,27 +106,19 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
     if workload_distribution_factor > 0: workload_distribution_factor = 1.0
     if workload_distribution_factor < 0: workload_distribution_factor = 0.0
 
-    unfiltered_candidate_plans = query_candidate_request_schedule_plans(request_id, schedule_id, lookback_cutoff_date).subquery()
+    unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, schedule_id, lookback_cutoff_date).subquery()
     candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
 
     session = get_db_session()
-    asset_grouped_candidates_query = session.query(
+    punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # it is already ordered by punctuality, so we can just take the top n
+    asset_grouped_candidates = session.query(
         candidate_plans.c.schedule_id,
         candidate_plans.c.asset_id,
         func.array_agg(candidate_plans.c.time_range).limit(top_n).label('time_ranges'),
         func.array_agg(candidate_plans.c.uplink_contact_id).limit(top_n).label('uplink_ids'),
         func.array_agg(candidate_plans.c.downlink_contact_id).limit(top_n).label('downlink_ids')
-    ).group_by(candidate_plans.c.schedule_id, candidate_plans.c.asset_id).order_by(candidate_plans.c.time_range)
+    ).group_by(candidate_plans.c.schedule_id, candidate_plans.c.asset_id).all()
 
-    punctuality_ordered_candidates = session.query(
-        candidate_plans.c.schedule_id,
-        candidate_plans.c.asset_id,
-        candidate_plans.c.time_range,
-        candidate_plans.c.uplink_contact_id,
-        candidate_plans.c.downlink_contact_id
-    ).order_by(candidate_plans.c.time_range).limit(top_n).all()
-
-    asset_grouped_candidates = asset_grouped_candidates_query.all()
 
     number_of_candidates = len(punctuality_ordered_candidates) # we could possibly have less than top_n candidates
     number_of_assets = len(asset_grouped_candidates)
@@ -162,7 +154,7 @@ def calculate_top_scheduling_plans(request_id: int, schedule_id: int, lookback_c
     return top_n_candidates
 
 
-def query_candidate_request_schedule_plans(request_id: int, schedule_id: int, context_start_time: datetime):
+def query_candidate_scheduling_plans(request_id: int, schedule_id: int, context_start_time: datetime):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
@@ -171,7 +163,7 @@ def query_candidate_request_schedule_plans(request_id: int, schedule_id: int, co
 
     # Get the candidate uplink and downlink contacts for the request
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
-        request_id, schedule_id, uplink_start_time=context_start_time,
+        request_id, schedule_id, uplink_cutoff_time=context_start_time,
     )
     candidate_uplink_subquery = candidate_uplink_contact.subquery()
     candidate_downlink_subquery = candidate_downlink_contact.subquery()
@@ -179,36 +171,58 @@ def query_candidate_request_schedule_plans(request_id: int, schedule_id: int, co
     uplink_required = request.uplink_size > 0
     downlink_required = request.downlink_size > 0
 
-    uplink_time_range = func.tstzrange(candidate_uplink_contact.c.start_time, candidate_uplink_contact.c.start_time+candidate_uplink_contact.c.duration)
-    downlink_time_range = func.tstzrange(candidate_downlink_contact.c.start_time, candidate_downlink_contact.c.start_time+candidate_downlink_contact.c.duration)
+
+    uplink_time_range = func.tstzrange(candidate_uplink_subquery.c.start_time, candidate_uplink_subquery.c.start_time+candidate_uplink_subquery.c.duration)
+    downlink_time_range = func.tstzrange(candidate_downlink_subquery.c.start_time, candidate_downlink_subquery.c.start_time+candidate_downlink_subquery.c.duration)
+    uplink_downlink_gap = func.tstzrange(
+        case(
+            (candidate_uplink_subquery!=None, func.upper(uplink_time_range)),
+            else_=func.lower(available_time_slots_subquery.c.time_range)
+        ),
+        case(
+            (candidate_downlink_subquery!=None, func.lower(downlink_time_range)),
+            else_=func.upper(available_time_slots_subquery.c.time_range)
+        )
+    )
+
+    latest_event_start_time = func.upper(available_time_slots_subquery.c.time_range)-ScheduleRequest.duration # the latest possible time we can start the event and still be able to complete it within the available time slot
+    earliest_event_end_time = func.lower(available_time_slots_subquery.c.time_range)+ScheduleRequest.duration
+    event_time_range = uplink_downlink_gap*available_time_slots_subquery.c.time_range
+    event_duration = func.upper(event_time_range)-func.lower(event_time_range)
     candidate_schedule_plans = session.query(
-        func.literal(request.id).label('request_id'),
+        ScheduleRequest.id.label('request_id'),
         available_time_slots_subquery.c.schedule_id,
         available_time_slots_subquery.c.asset_id.label('asset_id'),
-        func.tstzrange(
-            func.greatest(func.upper(uplink_time_range), func.lower(available_time_slots_subquery.c.time_range)),
-            func.least(func.lower(downlink_time_range), func.upper(available_time_slots_subquery.c.time_range)-request.duration)
-        ).label('time_range'),
+        event_time_range.label('time_range'),
         candidate_uplink_subquery.c.id.label('uplink_contact_id'),
         candidate_downlink_subquery.c.id.label('downlink_contact_id'),
+    ).select_from(
+        available_time_slots_subquery
+    ).join(
+        ScheduleRequest,
+        ScheduleRequest.id==request.id
     ).join(
         candidate_uplink_subquery,
         and_(
             available_time_slots_subquery.c.asset_id==candidate_uplink_subquery.c.asset_id,
-            uplink_time_range.op('<<')(request.window_end-request.duration), # uplink must finish before our last possible chance to perform the event
+            func.upper(uplink_time_range) < latest_event_start_time, # uplink must finish before the last possible chance to perform the event within the available time slot
         ),
         isouter=not uplink_required
     ).join(
         candidate_downlink_subquery,
         and_(
             available_time_slots_subquery.c.asset_id==candidate_downlink_subquery.c.asset_id,
-            downlink_time_range.op('<<')(request.delivery_deadline), # downlink must finish before our delivery deadline
+            func.upper(uplink_time_range) < candidate_downlink_subquery.c.start_time,
+            case(
+                (candidate_uplink_subquery==None, func.lower(downlink_time_range) > earliest_event_end_time), # downlink must start after we have had a chance to perform the event
+                else_= event_duration >= ScheduleRequest.duration # enough time between uplink finish and downlink start to actually perform the event
+            )
         ),
         isouter=not downlink_required
-    )
+    ).order_by(candidate_downlink_subquery.c.start_time, column('time_range')) #earlier to downlink, better. next in priority is earlier for event to take place, the better
     return candidate_schedule_plans
 
-def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_start_time: datetime):
+def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_cutoff_time: datetime):
     """
     Queries the schedule for available contacts to place the request.
     Looks for all contacts that are not in outage, last long enough to
@@ -218,10 +232,15 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_star
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
-    if uplink_start_time is None: uplink_start_time = datetime.min
-    uplink_end_time = request.window_end - request.duration
-    downlink_start_time = request.window_end
+    if uplink_cutoff_time is None: uplink_cutoff_time = datetime.min
+    uplink_end_time = request.window_end - request.duration # the uplink must finish in time for the event to be able to start and finish within the window period
+    downlink_start_time = request.window_start + request.duration # the event must have finished before the downlink starts
     downlink_end_time = request.delivery_deadline
+
+    contact_is_scheduled_to_transmit = or_(
+        ContactEvent.total_uplink_size > 0,
+        ContactEvent.total_downlink_size > 0
+    )
 
     # get all contacts that we can uplink with, where the contact's groundstation is not in outage during the contact period
     gs_in_outage_for_contact_check = exists(GroundStationOutage).where(
@@ -235,34 +254,37 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_star
             # for this satellite, because you can just keep on transmitting,
             # without needing to reconfigure the groundstation to transmit to another satellite
             and_( 
+                # if something is scheduled to be transmitted during this contact.
+                # (given we will make sure to place a groundstation outage whenever
+                # something is scheduled to be transmitted during a contact, we can
+                # safely assume that this contact is the only contact that is scheduled
+                # to transmit from this groundstation, thus the groundstation is not in outage
+                # for this contact - in fact, this is the only contact that the groundstation is available for)
                 GroundStationOutage.outage_reason=="transmitting",
-                or_(
-                    # if something is scheduled to be transmitted during this contact.
-                    # (given we will make sure to place a groundstation outage whenever
-                    # something is scheduled to be transmitted during a contact, we can
-                    # safely assume that this contact is the only contact that is scheduled
-                    # to transmit from this groundstation, thus the groundstation is not in outage
-                    # for this contact - in fact, this is the only contact that the groundstation is available for)
-                    ContactEvent.total_uplink_size > 0,
-                    ContactEvent.total_downlink_size > 0
-                )
+                ~contact_is_scheduled_to_transmit,
             ),
         )
     )
     candidate_uplink_contact = session.query(ContactEvent)
     candidate_downlink_contact = session.query(ContactEvent)
 
+    if request.asset_id is not None:
+        candidate_uplink_contact = candidate_uplink_contact.filter(ContactEvent.asset_id==request.asset_id)
+        candidate_downlink_contact = candidate_downlink_contact.filter(ContactEvent.asset_id==request.asset_id)
+
     # Get candidate uplink and downlink contacts if the request has to be either uplinked or downlinked. otherwise, no need to get the contacts (filter by false for empty result set)
-    contact_time_range = func.tstzrange(ContactEvent.start_time+ContactEvent.total_transmission_time, ContactEvent.start_time+ContactEvent.duration)
-    uplink_window = func.tstzrange(uplink_start_time, uplink_end_time)
+    transmission_duration = func.make_interval(0, 0, 0, 0, 0, 0, ContactEvent.total_transmission_time)
+    contact_time_range = func.tstzrange(ContactEvent.start_time + transmission_duration, ContactEvent.start_time + ContactEvent.duration)
+    uplink_window = func.tstzrange(uplink_cutoff_time, uplink_end_time)
     contact_uplink_overlap = contact_time_range * uplink_window
     contact_uplink_overlap_duration = func.upper(contact_uplink_overlap)-func.lower(contact_uplink_overlap)
     if request.uplink_size > 0:
+        request_uplink_duration = request.uplink_size/ContactEvent.uplink_rate_mbps
+        request_uplink_duration = func.make_interval(0, 0, 0, 0, 0, 0, request_uplink_duration)
         candidate_uplink_contact = candidate_uplink_contact.filter(
             ContactEvent.schedule_id==schedule_id,
-            (ContactEvent.duration.seconds - ContactEvent.total_transmition_time) >= (request.uplink_size*ContactEvent.uplink_rate_mbps),
-            ~gs_in_outage_for_contact_check,
-            contact_uplink_overlap_duration >= request.duration,
+            contact_uplink_overlap_duration >= request_uplink_duration,
+            ~gs_in_outage_for_contact_check
         )
     else:
         candidate_uplink_contact = candidate_uplink_contact.filter(false()) # We don't need to uplink anything, so we don't need to consider any uplink contacts
@@ -271,21 +293,22 @@ def get_candidate_contact_queries(request_id: int, schedule_id: int, uplink_star
     contact_downlink_overlap = contact_time_range * downlink_window
     contact_downlink_overlap_duration = func.upper(contact_downlink_overlap)-func.lower(contact_downlink_overlap)
     if request.downlink_size > 0:
+        request_downlink_duration = request.downlink_size/ContactEvent.downlink_rate_mbps
+        request_downlink_duration = func.make_interval(0, 0, 0, 0, 0, 0, request_downlink_duration)
         candidate_downlink_contact = candidate_downlink_contact.filter(
             ContactEvent.schedule_id==schedule_id,
-            (ContactEvent.duration.seconds - ContactEvent.total_transmition_time) >= (request.downlink_size*ContactEvent.downlink_rate_mbps),
+            contact_downlink_overlap_duration >= request_downlink_duration,
             ~gs_in_outage_for_contact_check,
-            contact_downlink_overlap_duration >= request.duration,
         )
     else:
         candidate_downlink_contact = candidate_downlink_contact.filter(false())
 
-    candidate_uplink_contact = candidate_uplink_contact.label('candidate_uplink_contact')
-    candidate_downlink_contact = candidate_downlink_contact.label('candidate_downlink_contact')
+    candidate_uplink_contact = candidate_uplink_contact
+    candidate_downlink_contact = candidate_downlink_contact
 
     return (candidate_uplink_contact, candidate_downlink_contact)
 
-def query_satellite_available_time_slots(request_id: int, schedule_id: int, context_start_time: datetime):
+def query_satellite_available_time_slots(request_id: int, schedule_id: int):
     """
     Queries the schedule for available spots to place the request.
     """
@@ -317,6 +340,8 @@ def query_satellite_available_time_slots(request_id: int, schedule_id: int, cont
         literal(schedule_id).label('schedule_id'),
         Satellite.id.label('asset_id'),
         Satellite.asset_type.label('asset_type')
+    ).filter(
+        Satellite.id==request.asset_id if request.asset_id is not None else true()
     ).subquery()
 
     # Handle imaging opportunities if the request is for imaging - get all areas that are not available for imaging
@@ -449,6 +474,9 @@ def filter_out_candidate_plans_causing_invalid_state(request_id, schedule_id, ca
     ).join(
         downlink_event,
         candidates_subquery.downlink_contact_id == downlink_event.id
+    ).join(
+        Satellite,
+        Satellite.id==candidates_subquery.asset_id
     ).filter(
         ~exists(state_timeline_subquery).where( # storage constraint
             state_timeline_subquery.schedule_id==candidates_subquery.schedule_id,
@@ -470,7 +498,8 @@ def filter_out_candidate_plans_causing_invalid_state(request_id, schedule_id, ca
                 state_timeline_subquery.asset_type==candidates_subquery.asset_type,
                 state_timeline_subquery.c.snapshot_time >= func.greatest(func.lower(eclipse_time_range), func.lower(candidates_subquery.c.time_range)), # From the time the event occurs that increases energy usage (or from the start of the eclipse if the event starts before the eclipse)
                 state_timeline_subquery.c.snapshot_time <= func.upper(eclipse_time_range), # until the eclipse ends (sunlight is available again)
-                state_timeline_subquery.c.state.energy_usage + energy_used_for_request > Satellite.battery_capacity_wh*60 # energy usage must never increase beyond what is needed to perform this event until the sunlight is available again
+                state_timeline_subquery.c.state.energy_usage + energy_used_for_request > Satellite.battery_capacity_wh*3600, # convert to watt-seconds. Explanation: energy usage must never increase beyond what is needed to perform this event until the sunlight is available again
+                state_timeline_subquery.c.power_draw + ScheduleRequest.power_usage > Satellite.power_capacity
             )
         )
     )
@@ -502,34 +531,35 @@ def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[da
         StateCheckpoint.checkpoint_time <= start_time
     ).subquery()
 
+    state_changes = session.query(SatelliteStateChange).subquery()
     state_timeline = session.query(
-        SatelliteStateChange.schedule_id,
-        SatelliteStateChange.asset_id,
-        SatelliteStateChange.asset_type,
-        SatelliteStateChange.snapshot_time,
+        state_changes.c.schedule_id,
+        state_changes.c.asset_id,
+        state_changes.c.asset_type,
+        state_changes.c.snapshot_time,
         checkpoint_state.c.state + func.sum(
             SatelliteStateChange.delta
         ).over(
             partition_by=[
-                SatelliteStateChange.schedule_id,
-                SatelliteStateChange.asset_id,
-                SatelliteStateChange.asset_type
+                state_changes.c.schedule_id,
+                state_changes.c.asset_id,
+                state_changes.c.asset_type
             ],
-            order_by=SatelliteStateChange.snapshot_time,
+            order_by=state_changes.c.snapshot_time,
             rows=(None, 0)
         ).label('state')
     ).join(
         checkpoint_state,
         and_(
-            checkpoint_state.c.schedule_id==SatelliteStateChange.schedule_id,
-            checkpoint_state.c.asset_id==SatelliteStateChange.asset_id,
-            checkpoint_state.c.asset_type==SatelliteStateChange.asset_type
+            checkpoint_state.c.schedule_id==state_changes.c.schedule_id,
+            checkpoint_state.c.asset_id==state_changes.c.asset_id,
+            checkpoint_state.c.asset_type==state_changes.c.asset_type
         )
     ).filter(
-        SatelliteStateChange.schedule_id==schedule_id,
-        SatelliteStateChange.asset_id==request.asset_id if request.asset_id is not None else true(),
-        SatelliteStateChange.snapshot_time > checkpoint_state.c.checkpoint_time,
-        SatelliteStateChange.snapshot_time <= end_time
+        state_changes.c.schedule_id==schedule_id,
+        state_changes.c.asset_id==request.asset_id if request.asset_id is not None else true(),
+        state_changes.c.snapshot_time > checkpoint_state.c.checkpoint_time,
+        state_changes.c.snapshot_time <= end_time
     )
     return state_timeline
 
@@ -567,5 +597,170 @@ def query_candidate_capture_opportunities(request_id: int, schedule_id: int):
     return candidate_capture_opportunities
 
 
+def asset_state_changes_query(events_subquery=None):
+    session = get_db_session()
+    if events_subquery is None:
+        events_subquery = session.query(TransmittedEvent).subquery()
+    
+    uplink_start = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        ContactEvent.start_time.label('snapshot_time'),
+        AssetState(
+            storage=events_subquery.uplink_size,
+            storage_util=0.0,
+            throughput=0.0,
+            energy_usage=0.0,
+            power_draw=0.0
+        ).label('delta'),
+    ).join(
+        ContactEvent,
+        events_subquery.c.uplink_contact_id == ContactEvent.id
+    )
 
+    event_start = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        events_subquery.c.start_time.label('snapshot_time'),
+        AssetState(
+            storage=events_subquery.c.downlink_size - events_subquery.c.uplink_size, # the command data that was uplinked can now be deleted as the command has been executed. The result of executing the command may now takes up space
+            storage_util=0.0,
+            throughput=events_subquery.c.priority,
+            energy_usage=0.0,
+            power_draw=0.0
+        ).label('delta'),
+    )
+
+    downlink_start = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        ContactEvent.start_time.label('snapshot_time'),
+        AssetState(
+            storage=-1*events_subquery.c.downlink_size,
+            storage_util=0.0,
+            throughput=0.0,
+            energy_usage=0.0,
+            power_draw=0.0
+        ).label('delta'),
+    ).join(
+        ContactEvent,
+        events_subquery.c.downlink_contact_id == ContactEvent.id
+    )
+
+    event_eclipse_overlap = events_subquery.c.utc_time_range * func.max(SatelliteEclipse.utc_time_range) # we group eclipses that start at same time (should never happen unless eclipses are copied into new schedule. they never overlap in time in reality)
+    event_eclipse_overlap_duration = func.upper(event_eclipse_overlap)-func.lower(event_eclipse_overlap)
+    energy_usage = events_subquery.c.power_usage * func.extract('epoch', event_eclipse_overlap_duration)
+    event_start_in_eclipse = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        func.greatest(SatelliteEclipse.start_time, events_subquery.c.start_time).label('snapshot_time'),
+        AssetState(
+            storage=0.0,
+            storage_util=0.0,
+            throughput=0.0,
+            energy_usage=energy_usage,
+            power_draw=events_subquery.c.power_usage
+        ).label('delta'),
+    ).join(
+        SatelliteEclipse,
+        and_(
+            SatelliteEclipse.asset_id == events_subquery.c.asset_id,
+            SatelliteEclipse.asset_type == events_subquery.c.asset_type,
+            SatelliteEclipse.utc_time_range.op('&&')(events_subquery.c.utc_time_range)
+        )
+    ).group_by(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        SatelliteEclipse.start_time,
+        SatelliteEclipse.duration
+    )
+
+    event_end_in_eclipse = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        func.least(SatelliteEclipse.start_time+SatelliteEclipse.duration, events_subquery.c.start_time+events_subquery.c.duration).label('snapshot_time'),
+        AssetState(
+            storage=0.0,
+            storage_util=0.0,
+            throughput=0.0,
+            energy_usage=0.0,
+            power_draw=-1*events_subquery.c.power_usage
+        ).label('delta'),
+    ).join(
+        SatelliteEclipse,
+        and_(
+            SatelliteEclipse.asset_id == events_subquery.c.asset_id,
+            SatelliteEclipse.asset_type == events_subquery.c.asset_type,
+            SatelliteEclipse.utc_time_range.op('&&')(events_subquery.c.utc_time_range)
+        )
+    ).group_by(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        SatelliteEclipse.start_time,
+        SatelliteEclipse.duration
+    )
+
+    eclipse_end = session.query(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        func.max(SatelliteEclipse.start_time+SatelliteEclipse.duration).label('snapshot_time'),
+        AssetState(
+            storage=0.0,
+            storage_util=0.0,
+            throughput=0.0,
+            energy_usage=-1*func.sum(energy_usage),
+            power_draw=0.0
+        ).label('delta'),
+    ).join(
+        SatelliteEclipse,
+        and_(
+            SatelliteEclipse.asset_id == events_subquery.c.asset_id,
+            SatelliteEclipse.asset_type == events_subquery.c.asset_type,
+            SatelliteEclipse.utc_time_range.op('&&')(events_subquery.c.utc_time_range)
+        )
+    ).group_by(
+        events_subquery.c.schedule_id,
+        events_subquery.c.asset_id,
+        events_subquery.c.asset_type,
+        SatelliteEclipse.start_time,
+        SatelliteEclipse.duration
+    )
+
+    eventwise_state_changes = union_all(
+        uplink_start,
+        event_start,
+        downlink_start,
+        event_start_in_eclipse,
+        event_end_in_eclipse,
+        eclipse_end
+    ).subquery()
+
+    state_changes = session.query(
+        eventwise_state_changes.c.schedule_id,
+        eventwise_state_changes.c.asset_id,
+        eventwise_state_changes.c.asset_type,
+        eventwise_state_changes.c.snapshot_time,
+        AssetState(
+            func.sum(eventwise_state_changes.c.delta.storage),
+            func.sum(eventwise_state_changes.c.delta.storage) / Satellite.storage_capacity,
+            func.sum(eventwise_state_changes.c.delta.throughput),
+            func.sum(eventwise_state_changes.c.delta.energy_usage),
+            func.sum(eventwise_state_changes.c.delta.power_draw)
+        ).label('delta')
+    ).group_by(
+        eventwise_state_changes.c.schedule_id,
+        eventwise_state_changes.c.asset_id,
+        eventwise_state_changes.c.asset_type,
+        eventwise_state_changes.c.snapshot_time
+    )
+
+    return state_changes
     

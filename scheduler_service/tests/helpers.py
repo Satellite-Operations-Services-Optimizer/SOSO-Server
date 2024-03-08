@@ -67,6 +67,8 @@ def create_dummy_imaging_event(schedule_id, satellite_id, start_time, contact_st
         schedule_id=schedule_id,
         asset_id=satellite_id,
         groundstation_id=groundstation.id,
+        uplink_rate_mbps=groundstation.uplink_rate_mbps,
+        downlink_rate_mbps=groundstation.downlink_rate_mbps,
         start_time=contact_start or (request.window_start - timedelta(minutes=10)),
         duration=timedelta(minutes=5)
     )

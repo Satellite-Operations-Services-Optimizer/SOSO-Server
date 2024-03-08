@@ -1,15 +1,20 @@
 from scheduler_service.event_processing.capture_opportunities import ensure_capture_opportunities_populated
 from datetime import datetime, timedelta
 from app_config import get_db_session
-from app_config.database.mapping import Satellite, CaptureOpportunity, CaptureProcessingBlock, ImageOrder
+from app_config.database.mapping import Satellite, CaptureOpportunity, CaptureProcessingBlock, ImageOrder, Schedule, ScheduleRequest
 from typing import Optional
+import time
 
 
 def test_accurate_capture_opportunity_population(test_satellite: Satellite, image_order: ImageOrder, start_time: Optional[datetime] = None, end_time: Optional[datetime] = None):
     # start_time = datetime(2024, 2, 14, 2, 20, 45, 772453) + timedelta(hours=5.3)
-    start_time = datetime.utcnow() if start_time is None else start_time
-    end_time = start_time + timedelta(days=1) if start_time is None or end_time is None else end_time
+    start_time = image_order.start_time
+    end_time = image_order.delivery_deadline
+
+    start = time.perf_counter()
     ensure_capture_opportunities_populated(start_time, end_time)
+    finish = time.perf_counter()
+    print(f'Finished in {round(finish-start, 2)} second(s)')
     return
 
     session = get_db_session()
@@ -56,10 +61,62 @@ def test_accurate_capture_opportunity_population(test_satellite: Satellite, imag
             assert satellite_state.is_sunlit or is_undersampling_problem
 
 
-session = get_db_session()
-for satellite in session.query(Satellite).all():
-    image_order = session.query(ImageOrder).first()
-    test_accurate_capture_opportunity_population(satellite, image_order)
-    exit()
+def test():
+    session = get_db_session()
 
-print("done")
+    satellite = session.query(Satellite).filter_by(id=1).one()
+    test_schedule_name = "test capture opportunity population schedule"
+
+    test_schedule = session.query(Schedule).filter_by(name=test_schedule_name).first()
+    if test_schedule:
+        image_order = session.query(ImageOrder).filter_by(schedule_id=test_schedule.id).first()
+        if image_order:
+            test_accurate_capture_opportunity_population(satellite, image_order)
+            return
+
+    session.query(ImageOrder)
+    test_schedule = Schedule(name=test_schedule_name)
+    session.add(test_schedule)
+    session.flush()
+
+
+    lat = 48.043
+    long = -179.132
+    lat = -82.609
+    long = 114.816
+
+
+
+    lat = -80.0244459881869 
+    long = -81.07364979151080
+    image_order = ImageOrder(
+        schedule_id=test_schedule.id,
+        latitude=lat,
+        longitude=long,
+        image_type="medium",
+        start_time=datetime(2024, 2, 10, 0, 0),
+        end_time=datetime(2024, 2, 17, 0, 0),
+        delivery_deadline=datetime(2024, 2, 17, 0, 0),
+    )
+    session.add(image_order)
+    session.flush()
+    image_order = session.query(ImageOrder).filter_by(id=image_order.id).one() # refresh to get trigger-populated field values
+
+    request = ScheduleRequest(
+        schedule_id=test_schedule.id,
+        order_type="imaging",
+        order_id=image_order.id,
+        window_start=image_order.start_time,
+        window_end=image_order.end_time,
+        duration=image_order.duration,
+        delivery_deadline=image_order.delivery_deadline,
+        uplink_size=image_order.uplink_size,
+        downlink_size=image_order.downlink_size,
+        status="processing"
+    )
+    session.add(request)
+    session.commit()
+
+    test_accurate_capture_opportunity_population(satellite, image_order)
+
+test()

@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 from app_config import logging
 from app_config.database import get_session
-from .populate_image_orders import populate_sample_image_orders
-from .populate_satellites import populate_sample_satellites
-from .populate_groundstations import populate_sample_groundstations
-from .populate_scheduled_events import populate_scheduled_events
+from database_scripts.populate_scripts.populate_image_orders import populate_sample_image_orders
+from database_scripts.populate_scripts.populate_satellites import populate_sample_satellites
+from database_scripts.populate_scripts.populate_groundstations import populate_sample_groundstations
+from database_scripts.populate_scripts.populate_scheduled_events import populate_scheduled_events
+import argparse
 
 logger = logging.getLogger(__name__)
 
@@ -251,4 +252,31 @@ def format_timedelta(timedelta_obj):
 
 
 if __name__ == '__main__':
-    populate_database()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-a", "--assets", action='store_true', default=False, help="Populate all assets (satellites, ground stations) into the database")
+    parser.add_argument("-e", "--events", action='store_true', default=False, help="Populate all sample events (image orders, maintenance orders, outage orders) into the database")
+    parser.add_argument("-i", "--imaging", action='store_true', default=False, help="Populate all sample image orders into the database")
+    parser.add_argument("-m", "--maint", action='store_true', default=False, help="Populate all sample maintenance orders into the database")
+    parser.add_argument("-s", "--schedule", action='store_true', default=False, help="Populate all sample schedules into the database")
+    parser.add_argument("-o", "--outage", action='store_true', default=False, help="Populate all sample outage orders into the database")
+
+
+    args = parser.parse_args()
+
+    if args.assets:
+        populate_sample_satellites()
+        populate_sample_groundstations()
+    if args.events or args.imaging:
+        populate_sample_image_orders()
+    # if args.events or args.maint:
+    #     populate_sample_maintenance_orders()
+    # if args.events or args.outage:
+    #     populate_sample_outage_orders()
+    if args.schedule:
+    #     populate_sample_schedules()
+        populate_scheduled_events()
+
+    if not args.assets and not args.events and not args.imaging and not args.maint and not args.outage:
+        populate_database()
+    

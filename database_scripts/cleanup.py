@@ -47,7 +47,7 @@ def rebuild_database_schema():
 
 def populate_database():
     logger.info("Populating database...")
-    from populate_scripts.populate import populate_database
+    from database_scripts.populate import populate_database
     populate_database()
 
     
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--drop", action='store_true', default=False, help="Drop database, as well as all tables and data")
-    parser.add_argument("-r", "--rebuild", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
+    parser.add_argument("-b", "--rebuild", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
     parser.add_argument("-p", "--populate", action='store_true', default=False, help="Rebuild and populate database")
 
     args = parser.parse_args()

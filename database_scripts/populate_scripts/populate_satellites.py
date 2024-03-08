@@ -16,8 +16,7 @@ def populate_sample_satellites(generage_missing_satellite_info: bool = True):
             "name",
             "storage_capacity",
             "power_capacity",
-            "fov_min",
-            "fov_max"
+            "fov"
         ],
         filename_match="*_sat.json",
     )

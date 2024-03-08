@@ -76,8 +76,7 @@ CREATE TABLE IF NOT EXISTS satellite (
     storage_capacity double precision,
     power_capacity double precision,
     battery_capacity_wh double precision DEFAULT (6/60), -- Battery capacity in unit of Wh (watt-hours). Default 6 minute limit, assuming (as is currently the case) that every event that draws power only draws 1 watt
-    fov_max double precision,
-    fov_min double precision,
+    fov double precision,
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
 ) INHERITS (asset);
 
@@ -330,11 +329,11 @@ CREATE TABLE IF NOT EXISTS contact_event (
     schedule_id integer NOT NULL REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES satellite (id),
     groundstation_id integer NOT NULL REFERENCES ground_station (id),
-    uplink_rate_mbps double precision DEFAULT 0 NOT NULL CHECK (uplink_rate_mbps>=0),
-    downlink_rate_mbps double precision DEFAULT 0 NOT NULL CHECK (downlink_rate_mbps>=0),
+    uplink_rate_mbps double precision NOT NULL CHECK (uplink_rate_mbps>=0),
+    downlink_rate_mbps double precision NOT NULL CHECK (downlink_rate_mbps>=0),
     total_uplink_size double precision DEFAULT 0 NOT NULL CHECK (total_uplink_size>=0), -- accumulated size of all the transmitted_events that are scheduled to be uplinked during this contact
     total_downlink_size double precision DEFAULT 0 NOT NULL CHECK (total_downlink_size>=0),
-    total_transmition_time double precision GENERATED ALWAYS AS (
+    total_transmission_time double precision GENERATED ALWAYS AS (
         (CASE WHEN uplink_rate_mbps = 0 THEN 0 ELSE total_uplink_size/uplink_rate_mbps END) + 
         (CASE WHEN downlink_rate_mbps = 0 THEN 0 ELSE total_downlink_size/downlink_rate_mbps END)
     ) STORED,
@@ -342,6 +341,30 @@ CREATE TABLE IF NOT EXISTS contact_event (
     event_type event_type DEFAULT 'contact'::event_type NOT NULL CHECK (event_type = 'contact'),
     asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
 ) INHERITS (static_events);
+
+CREATE OR REPLACE FUNCTION populate_contact_event_rates()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.uplink_rate_mbps IS NULL THEN
+        SELECT uplink_rate_mbps INTO NEW.uplink_rate_mbps
+        FROM ground_station
+        WHERE id = NEW.groundstation_id;
+    END IF;
+    
+    IF NEW.downlink_rate_mbps IS NULL THEN
+        SELECT downlink_rate_mbps INTO NEW.downlink_rate_mbps
+        FROM ground_station
+        WHERE id = NEW.groundstation_id;
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER populate_contact_event_rates_trigger
+BEFORE INSERT ON contact_event
+FOR EACH ROW
+EXECUTE FUNCTION populate_contact_event_rates();
 
 CREATE INDEX IF NOT EXISTS contact_event_start_time_index ON contact_event (start_time);
 CREATE INDEX IF NOT EXISTS contact_event_asset_index ON contact_event (asset_id);
