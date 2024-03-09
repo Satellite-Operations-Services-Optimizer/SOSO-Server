@@ -4,7 +4,7 @@ from app_config import get_db_session
 from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange, AssetState
 from sqlalchemy import or_, exists
 from scheduler_service.schedulers.utils import query_gaps, query_islands
-from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union
+from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union, not_
 from sqlalchemy.orm import aliased
 from typing import Union, Optional
 import random
@@ -113,11 +113,20 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
 
     # Get the available slots for the satellite event to occur. start without any priority threshold, then incrementally start allowing it to displace other events of lower priority
     candidate_plans = []
-    for priority_threshold in range(request.priority+1):
+    if request.order_type=="maintenance":
         unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold).subquery()
         # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
         candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
-        if len(priority_threshold)>0: break
+        if len(priority_threshold)==0:
+            unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold, displace_imaging_events=True).subquery()
+            # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
+            candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
+    else:
+        for priority_threshold in range(request.priority+1):
+            unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold).subquery()
+            # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
+            candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
+            if len(priority_threshold)>0: break
 
     punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # it is already ordered by punctuality, so we can just take the top n
     asset_grouped_candidates = session.query(
@@ -163,12 +172,12 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     return top_n_candidates
 
 
-def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_threshold: int):
+def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_threshold: Optional[int] = None, displace_imaging_events=False):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     # Get the available slots for the satellite event to occur
-    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_threshold).subquery()
+    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_threshold, displace_imaging_events).subquery()
 
     # Get the candidate uplink and downlink contacts for the request
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
@@ -316,7 +325,7 @@ def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime)
 
     return (candidate_uplink_contact, candidate_downlink_contact)
 
-def query_satellite_available_time_slots(request_id: int, priority_threshold: Optional[int] = None):
+def query_satellite_available_time_slots(request_id: int, priority_threshold: Optional[int] = None, displace_imaging_events: bool = False):
     """
     Queries the schedule for available spots to place the request.
     """
@@ -331,13 +340,15 @@ def query_satellite_available_time_slots(request_id: int, priority_threshold: Op
         TransmittedEvent.asset_type.label('asset_type'),
         func.tstzrange(TransmittedEvent.start_time, TransmittedEvent.start_time+TransmittedEvent.duration).label('time_range')
     )
-    if priority_threshold:
-        blocking_transmitted_event_query = blocking_transmitted_event_query.filter(
-            or_(
-                TransmittedEvent.event_type=="maintenance" & request.order_type=="imaging", # imaging events are never allowed to displace maintenance events
-                TransmittedEvent.priority >= priority_threshold
-            )
-        )
+
+    ignored_events_filter = false()
+    if request.order_type=="maintenance" and displace_imaging_events:
+        ignored_events_filter |= TransmittedEvent.event_type=="imaging"
+    elif request.order_type=="imaging" and priority_threshold:
+        ignored_events_filter |= (TransmittedEvent.event_type=="imaging"&TransmittedEvent.priority<priority_threshold)
+    
+    blocking_transmitted_event_query.filter(~ignored_events_filter)
+
     satellite_outage_query = session.query(
         SatelliteOutage.schedule_id.label('schedule_id'),
         SatelliteOutage.asset_id.label('asset_id'),
@@ -361,7 +372,7 @@ def query_satellite_available_time_slots(request_id: int, priority_threshold: Op
 
     # Handle imaging opportunities if the request is for imaging - get all areas that are not available for imaging
     if request.order_type == "imaging":
-        candidate_capture_opportunities = query_candidate_capture_opportunities(request_id).subquery()
+        candidate_capture_opportunities = query_valid_imaging_periods(request_id).subquery()
         unimageable_time_ranges_query = query_gaps(
             source_subquery=candidate_capture_opportunities,
             range_column=candidate_capture_opportunities.c.time_range,
@@ -580,7 +591,7 @@ def query_state_timeline(request_id: int, schedule_id: int, start_time: Union[da
 
 
 
-def query_candidate_capture_opportunities(request_id: int):
+def query_valid_imaging_periods(request_id: int):
     """
     Queries the schedule for available capture opportunities when the imaging can take place
     """
@@ -589,11 +600,12 @@ def query_candidate_capture_opportunities(request_id: int):
 
     capture_time_range = func.tstzrange(CaptureOpportunity.start_time, CaptureOpportunity.start_time+CaptureOpportunity.duration).label('time_range')
     capture_window = capture_time_range.op('*')(func.tstzrange(request.window_start, request.window_end))
+    valid_imaging_period = func.tstzrange(func.lower(capture_window), func.upper(capture_window) + ImageOrder.duration) # since capture is instantaneous, as long as the imaging event starts within the capture window, it is valid
     candidate_capture_opportunities = session.query(
         literal(request.schedule_id).label('schedule_id'),
         CaptureOpportunity.asset_id.label('asset_id'),
         CaptureOpportunity.asset_type.label('asset_type'),
-        capture_window.label('time_range')
+        valid_imaging_period.label('time_range')
     ).join(
         ImageOrder,
         and_(
@@ -605,7 +617,7 @@ def query_candidate_capture_opportunities(request_id: int):
         CaptureOpportunity.latitude==ImageOrder.latitude,
         CaptureOpportunity.longitude==ImageOrder.longitude,
         CaptureOpportunity.image_type==ImageOrder.image_type,
-        (func.upper(capture_window)-func.lower(capture_window)) >= request.duration # make sure the capture opportunity is long enough to capture the image
+        (func.upper(capture_window)-func.lower(capture_window)) > 0 # Capture is instantaneous. we just need to make sure that the capture opportunity is within the window. if it is within the window for any amount of time, then it is valid
     )
     if request.asset_id is not None:
         candidate_capture_opportunities = candidate_capture_opportunities.filter(CaptureOpportunity.asset_id==request.asset_id)

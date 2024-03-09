@@ -3,12 +3,13 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config.database.mapping import ImageOrder
-from app_config import logging
+from app_config import logging, rabbit
+from rabbit_wrapper import TopicPublisher
 
 
 logger = logging.getLogger(__name__)
 
-def populate_image_orders(path: Path):
+def populate_image_orders(path: Path, emit=True):
     logger.info("Populating `image_orders` table with sample data...")
     image_order_jsons = get_data_from_json_files(
         path,
@@ -29,6 +30,10 @@ def populate_image_orders(path: Path):
     session = get_db_session()
     session.add_all(orders)
     session.commit()
+
+    if emit:
+        for order in orders:
+            TopicPublisher(rabbit(), f"order.{order.order_type}.created").publish_message(order.id)
 
 
 def image_order_from_json(image_order_json):

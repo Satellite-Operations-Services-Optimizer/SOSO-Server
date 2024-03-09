@@ -140,7 +140,7 @@ def test_query_available_satellite_schedule_slots():
     session.add(request)
     session.flush()
     
-    slots = query_satellite_available_time_slots(request.id, schedule.id).order_by(column('time_range')).all()
+    slots = query_satellite_available_time_slots(request.id).order_by(column('time_range')).all()
     assert len(slots) == 2
 
     # Make timezone info the same for comparison

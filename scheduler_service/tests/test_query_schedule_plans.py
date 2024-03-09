@@ -328,7 +328,7 @@ def test_candidate_contact_queries():
     session.add(request)
     session.flush()
 
-    candidate_plans = query_candidate_scheduling_plans(request.id, schedule.id, context_cutoff_time).all()
+    candidate_plans = query_candidate_scheduling_plans(request.id, context_cutoff_time).all()
 
     # expect all candidates to use the same (only available) capture opportunity
     for plan in candidate_plans:

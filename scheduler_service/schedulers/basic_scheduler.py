@@ -1,7 +1,7 @@
 from app_config import get_db_session, rabbit
-from app_config.database.mapping import ScheduleRequest, ImageOrder, MaintenanceOrder, TransmittedEvent, SatelliteOutage, GroundStationOutage, ContactEvent, ScheduledImaging, ScheduledMaintenance, GroundStation
+from app_config.database.mapping import ScheduleRequest, ImageOrder, MaintenanceOrder, TransmittedEvent, SatelliteOutage, GroundStationOutage, ContactEvent, ScheduledImaging, ScheduledMaintenance, GroundStation, Schedule
 from sqlalchemy import or_, and_
-from scheduler_tools import calculate_top_scheduling_plans
+from .scheduler_tools import calculate_top_scheduling_plans
 from datetime import datetime, timedelta
 from event_processing.capture_opportunities import ensure_capture_opportunities_populated
 from event_processing.contact_events import ensure_contact_events_populated
@@ -9,14 +9,13 @@ from event_processing.eclipse_events import ensure_eclipse_events_populated
 from rabbit_wrapper import TopicConsumer, TopicPublisher
 
 def register_request_scheduler_listener():
-    consumer = TopicConsumer(rabbit())
-    consumer.bind("request.*.created")
-    consumer.bind("request.*.displaced")
-    consumer.register_callback(lambda request_id: schedule_request(request_id))
+    schedule_request_consumer = TopicConsumer(rabbit())
+    schedule_request_consumer.bind("request.*.created")
+    schedule_request_consumer.bind("request.*.displaced")
+    schedule_request_consumer.register_callback(lambda request_id: schedule_request(request_id))
 
-    declined_consumer = TopicConsumer(rabbit())
-    declined_consumer.bind("request.*.declined")
-    declined_consumer.register_callback(lambda request_id: decline_request(request_id))
+    schedule_decline_consumer = TopicConsumer(rabbit(), "request.*.declined")
+    schedule_decline_consumer.register_callback(lambda request_id: decline_request(request_id))
 
 def schedule_request(request_id: int):
     session = get_db_session()
@@ -31,24 +30,32 @@ def decline_request(request_id: int):
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     event = session.query(TransmittedEvent).filter_by(request_id=request_id).one_or_none()
-    displace_event(event, "")
+    displace_event(event, "", emit=False)
     request.status = "declined"
     request.status_message = "The request was declined by an opertor."
     session.commit()
 
     # publish event notifying declined
-    TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish(request.id)
+    TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish_message(request.id)
 
 
 def schedule_planned_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
-    schedule = session.query(ScheduleRequest).filter_by(id=request.schedule_id).one()
+    schedule = session.query(Schedule).filter_by(id=request.schedule_id).one()
 
     enough_time_for_scheduling_and_sending_to_groundstation = timedelta(minutes=10)
     current_time = datetime.now() - schedule.reference_time_offset
 
     context_cutoff = current_time + enough_time_for_scheduling_and_sending_to_groundstation
+    context_cutoff = context_cutoff.replace(tzinfo=request.delivery_deadline.tzinfo)
+
+    if context_cutoff > request.window_end - request.duration:
+        request.status = "rejected"
+        request.status_message = "Not enough time to plan event. Can't uplink and perform event before its end time."
+        session.commit()
+        TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
+        return
 
     ensure_eclipse_events_populated(context_cutoff, request.delivery_deadline) # TODO IMPORTANT!!!: Think of the interaction of this with the state checkpoint and calculating state. if we are only ensuring from this context cutoff, how do we know that the state is correct when we are calculating the state from the last checkpoint?
     ensure_contact_events_populated(context_cutoff, request.delivery_deadline)
@@ -66,14 +73,13 @@ def schedule_planned_request(request_id: int):
     
     prev_status = request.status
     request.status = "rejected"
-    if request.status == "displaced":
-        request.status_message = f"{prev_status} Could not find a new spot to schedule the event."
+    if prev_status == "displaced":
+        request.status_message = f"{request.status_message} Could not find a new spot to schedule the event."
     else:
         request.status_message = f"Could not find a spot to schedule this event."
     
     session.commit()
-    # publish event notifying rejected
-    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish(request.id)
+    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
 
 
 def execute_schedule_plan(schedule_plan):
@@ -153,12 +159,7 @@ def execute_schedule_plan(schedule_plan):
 
 
     # publish event notifying scheduled
-    TopicPublisher(rabbit(), f"request.{event.event_type}.scheduled").publish(event.request_id)
-
-    for event in displaced_events:
-        # publish event notifying displaced
-        TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish(event.request_id)
-
+    TopicPublisher(rabbit(), f"request.{event.event_type}.scheduled").publish_message(event.request_id)
 
 def schedule_outage_request(request_id):
     """
@@ -168,10 +169,7 @@ def schedule_outage_request(request_id):
 
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
     if request.order_type != "gs_outage" and request.order_type != "sat_outage":
-        raise Exception("This function only processes outages.")
-
-    if request.asset_type != "satellite":
-        raise ValueError("This function is only for scheduling satellite outages")
+        raise Exception("This function only scheduling outages.")
 
     # events scheduled to be performed during the outage
     overlapping_events = session.query(TransmittedEvent).filter_by(
@@ -222,13 +220,9 @@ def schedule_outage_request(request_id):
 
 
     # publish event notifying scheduled
-    TopicPublisher(rabbit(), f"request.{outage.event_type}.scheduled").publish(outage.request_id)
+    TopicPublisher(rabbit(), f"request.{outage.event_type}.scheduled").publish_message(outage.request_id)
 
-    for event in displaced_events:
-        # publish event notifying displaced
-        TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish(event.request_id)
-    
-def displace_event(event, message):
+def displace_event(event, message, emit=True):
     session = get_db_session()
     if event.uplink_contact_id is not None:
         uplink_transmission_outage = session.query(GroundStationOutage).join(
@@ -266,3 +260,6 @@ def displace_event(event, message):
         "status_message": message
     })
     session.commit()
+
+    if emit:
+        TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish_message(event.request_id)

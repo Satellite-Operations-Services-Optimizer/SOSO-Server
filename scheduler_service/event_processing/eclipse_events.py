@@ -3,7 +3,7 @@ from sqlalchemy import func, or_
 from app_config import get_db_session
 from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
 from .utils import retrieve_and_lock_unprocessed_blocks_for_processing
-from ..satellite_state.state_generator import SatelliteStateGenerator
+from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 
 def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
     session = get_db_session()

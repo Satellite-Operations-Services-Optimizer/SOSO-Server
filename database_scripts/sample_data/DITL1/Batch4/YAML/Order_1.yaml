@@ -1,0 +1,9 @@
+DeliveryTime: '2023-10-02T13:03:30'
+ImageEndTime: '2023-10-02T08:03:30'
+ImageStartTime: '2023-10-02T08:02:00'
+ImageType: High
+Latitude: -10.138288605969336
+Longitude: 39.239134191156495
+Priority: 2
+Recurrence:
+  Revist: 'False'

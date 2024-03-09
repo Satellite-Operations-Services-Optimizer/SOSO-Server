@@ -79,7 +79,7 @@ def query_gaps(
         valid_partition_values_subquery = None
     ):
     if start_time >= end_time:
-        return []
+        return session.query().filter(False)
 
     session = get_db_session()
 

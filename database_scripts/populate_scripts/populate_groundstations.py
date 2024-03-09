@@ -5,7 +5,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-def populate_groundstations(path: Path):
+def populate_groundstations(path: Path, emit=True):
     logger.info("Populating `groundstation` table with sample data...")
 
     groundstation_jsons = get_data_from_json_files(

@@ -6,15 +6,15 @@ from sqlalchemy.sql import Alias
 import time
 
 from app_config import get_db_session
-from ..schedulers.utils import query_gaps
+from scheduler_service.schedulers.utils import query_gaps
 
 def retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time: datetime,
         end_time: datetime,
         processing_block_table: Any, # orm-mapped table class
         partition_column_names: List[str],
-        filters,
-        valid_partition_values_subquery
+        valid_partition_values_subquery,
+        filters = []
 ):
     """
     Retrieves unprocessed blocks from the database if they exist, and creates them if they don't

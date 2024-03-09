@@ -7,7 +7,7 @@ from database_scripts.utils import get_data_from_json_files
 
 logger = logging.getLogger(__name__)
 
-def populate_satellites(path, generage_missing_satellite_info: bool = True):
+def populate_satellites(path, generage_missing_satellite_info: bool = True, emit=True):
     logger.info("Populating `satellite` table with sample data...")
 
     sat_info_jsons = get_data_from_json_files(

@@ -266,34 +266,35 @@ if __name__ == '__main__':
     parser.add_argument("-m", "--maintenance", nargs='?', default=None, required=False, help="Path to the file containing maintenance data")
     parser.add_argument("-o", "--outages", nargs='?', default=None, required=False, help="Path to the file containing outage data")
     # parser.add_argument("-p", "--schedule",action='store_true', default=False, help="Path to the file containing schedule data")
+    parser.add_argument("--emit",action='store_true', default=True, help="Boolean flag whether to emit events to rabbitmq")
 
     args = parser.parse_args()
 
     if args.satellites:
         if args.satellites == 'sample':
-            populate_satellites(samples_folder / 'sample_satellites')
+            populate_satellites(samples_folder / 'sample_satellites', emit=args.emit)
         else:
-            populate_satellites(args.satellites)
+            populate_satellites(args.satellites, emit=args.emit)
     if args.groundstations:
         if args.groundstations == 'sample':
-            populate_groundstations(samples_folder / 'sample_groundstations')
+            populate_groundstations(samples_folder / 'sample_groundstations', emit=args.emit)
         else:
-            populate_groundstations(args.groundstations)
+            populate_groundstations(args.groundstations, emit=args.emit)
     if args.imaging:
         if args.imaging == 'sample':
-            populate_image_orders(samples_folder / 'sample_image_orders')
+            populate_image_orders(samples_folder / 'sample_image_orders', emit=args.emit)
         else:
-            populate_image_orders(args.imaging)
+            populate_image_orders(args.imaging, emit=args.emit)
     if args.maintenance:
         if args.maintenance == 'sample':
-            populate_maintenance_orders(samples_folder / 'sample_maintenance_orders')
+            populate_maintenance_orders(samples_folder / 'sample_maintenance_orders', emit=args.emit)
         else:
-            populate_maintenance_orders(args.maintenance)
+            populate_maintenance_orders(args.maintenance, emit=args.emit)
     if args.outages:
         if args.outages == 'sample':
-            populate_outage_orders(samples_folder / 'sample_outage_orders')
+            populate_outage_orders(samples_folder / 'sample_outage_orders', emit=args.emit)
         else:
-            populate_outage_orders(args.outages)
+            populate_outage_orders(args.outages, emit=args.emit)
     # if args.schedule:
     #     # populate_sample_schedules()
     #     populate_scheduled_events()

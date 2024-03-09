@@ -5,7 +5,7 @@ from sqlalchemy import func, or_, true
 from app_config import get_db_session
 from app_config.database.mapping import ContactProcessingBlock, ContactEvent, Satellite, GroundStation
 from .utils import retrieve_and_lock_unprocessed_blocks_for_processing
-from ..satellite_state.state_generator import SatelliteStateGenerator
+from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
 
 def ensure_contact_events_populated(start_time: datetime, end_time: datetime):
     session = get_db_session()

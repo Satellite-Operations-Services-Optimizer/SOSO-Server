@@ -89,12 +89,13 @@ EXECUTE FUNCTION set_default_name('satellite');
 -- ================== End of Asset Tables ==================
 
 -- ================== Order Tables ==================
-CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'outage');
+CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'sat_outage', 'gs_outage');
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS system_order (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
 	schedule_id integer NOT NULL DEFAULT 0 REFERENCES schedule (id), -- default schedule has id 0
 	asset_id integer DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
+    asset_type asset_type DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
 	start_time timestamptz NOT NULL, -- maybe rename to make it clear that it is not the actual start/end time of the event, but the window in which it can be scheduled
 	end_time timestamptz NOT NULL,
 	duration interval NOT NULL,
@@ -113,6 +114,8 @@ CREATE TABLE IF NOT EXISTS transmitted_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     uplink_size double precision DEFAULT 0.001 NOT NULL, -- command to transmit to asset is 1KB TODO: replace with actual value in bytes
     downlink_size double precision DEFAULT 0.0 NOT NULL,
+    power_usage double precision DEFAULT 0.0 NOT NULL,
+    asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'),
     CONSTRAINT valid_uplink_size CHECK (uplink_size >= 0),
     CONSTRAINT valid_downlink_size CHECK (downlink_size >= 0)
 ) INHERITS (system_order);
@@ -171,7 +174,6 @@ CREATE TABLE IF NOT EXISTS maintenance_order (
     operations_flag boolean,
     description text,
     asset_id integer NOT NULL REFERENCES satellite (id), -- maintenance orders must be performed on a specific asset. TODO: My assumption is that we don't have maintenance orders for groundstations. veryfy with tsa.
-    power_usage double precision DEFAULT 0.0 NOT NULL,
     order_type order_type DEFAULT 'maintenance'::order_type NOT NULL,
     CONSTRAINT valid_order_type CHECK (order_type = 'maintenance')
 ) INHERITS (transmitted_order);
@@ -180,15 +182,15 @@ CREATE TABLE IF NOT EXISTS maintenance_order (
 CREATE TABLE IF NOT EXISTS outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     asset_id integer NOT NULL,
-    asset_type asset_type NOT NULL,
-    order_type order_type DEFAULT 'outage'::order_type NOT NULL CHECK (order_type = 'outage')
+    asset_type asset_type NOT NULL
 ) INHERITS (system_order);
 
 CREATE TABLE IF NOT EXISTS ground_station_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES ground_station (id),
-    asset_type asset_type DEFAULT 'groundstation'::asset_type NOT NULL CHECK (asset_type = 'groundstation')
+    asset_type asset_type DEFAULT 'groundstation'::asset_type NOT NULL CHECK (asset_type = 'groundstation'),
+    order_type order_type DEFAULT 'gs_outage'::order_type NOT NULL CHECK (order_type = 'gs_outage')
 ) INHERITS (outage_order);
 
 CREATE INDEX IF NOT EXISTS ground_station_outage_order_start_time_index ON ground_station_outage_order (start_time);
@@ -198,11 +200,39 @@ CREATE TABLE IF NOT EXISTS satellite_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES satellite (id),
-    asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite')
+    asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'),
+    order_type order_type DEFAULT 'sat_outage'::order_type NOT NULL CHECK (order_type = 'sat_outage')
 ) INHERITS (outage_order);
 
 CREATE INDEX IF NOT EXISTS satellite_outage_order_start_time_index ON satellite_outage_order (start_time);
 CREATE INDEX IF NOT EXISTS satellite_outage_order_end_time_index ON satellite_outage_order (end_time);
+
+-- Trigger to set delivery_deadline to end_time if not set already
+CREATE OR REPLACE FUNCTION set_default_delivery_deadline()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.delivery_deadline IS NULL THEN
+        NEW.delivery_deadline := NEW.end_time;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_maintenance
+BEFORE INSERT ON maintenance_order
+FOR EACH ROW
+EXECUTE FUNCTION set_default_delivery_deadline();
+
+CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_gs
+BEFORE INSERT ON ground_station_outage_order
+FOR EACH ROW
+EXECUTE FUNCTION set_default_delivery_deadline();
+
+CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_sat
+BEFORE INSERT ON satellite_outage_order
+FOR EACH ROW
+EXECUTE FUNCTION set_default_delivery_deadline();
 
 
 -- These tables are for tracking what time periods in which we have completely processed the capture or contact opportunities

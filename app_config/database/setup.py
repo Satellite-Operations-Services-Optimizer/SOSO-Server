@@ -28,7 +28,12 @@ def setup_database(use_localhost=False):
     # We need to specify search path because sqlalchemy_utils.register_composites cannot see the schema we are using
     # https://stackoverflow.com/questions/59298580/how-to-specify-schema-in-psycopg2-connection-method
     _db_url = f"{driver}://{user}:{password}@{host}:{port}/{db_name}?options=-csearch_path%3D{schema},public"
-    engine = create_engine(_db_url)
+
+    # Database was giving me this error every so often:
+    #   OperationalError: server closed the connection unexpectedly
+	#   This probably means the server terminated abnormally
+    # I found this solution: https://stackoverflow.com/a/60614871
+    engine = create_engine(_db_url, pool_pre_ping=True)
 
 _global_session = None
 def get_session():

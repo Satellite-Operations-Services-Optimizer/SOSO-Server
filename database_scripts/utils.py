@@ -9,7 +9,8 @@ def get_data_from_json_files(path: str|Path, expected_keys: Optional[list], file
     if path.is_file():
         pathlist.append(path)
     else:
-        pathlist = path.glob(filename_match)
+        pathlist = list(path.glob(filename_match))
+        pathlist.extend(path.glob(filename_match.upper()))  # Add matching .JSON files
     for path in pathlist:
         with path.open('r') as file:
             data = json.load(file)

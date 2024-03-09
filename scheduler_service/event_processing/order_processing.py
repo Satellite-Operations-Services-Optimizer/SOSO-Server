@@ -1,44 +1,50 @@
 from datetime import datetime
-from app_config import get_db_session, rabbit
-from app_config.database.mapping import SystemOrder, ScheduleRequest, ImageOrder, MaintenanceOrder, OutageOrder
+from app_config import get_db_session, rabbit, logging
+from app_config.database.mapping import SystemOrder, ScheduleRequest, ImageOrder, MaintenanceOrder, SatelliteOutageOrder, GroundStationOutageOrder
 from scheduler_service.schedulers.utils import TimeHorizon
 from typing import Optional
 from sqlalchemy import exists
 from multiprocessing import Process
-from rabbit_wrapper import TopicConsumer
+from rabbit_wrapper import TopicConsumer, TopicPublisher
 
 
-def register_order_processor_listener():
-    consumer = TopicConsumer(rabbit())
-    consumer.bind("order.*.created")
+logger = logging.getLogger(__name__)
+def register_order_processing_listener():
+    consumer = TopicConsumer(rabbit(), "order.*.created")
     consumer.register_callback(lambda _: ensure_order_processor_running())
 
-order_processing_process = None
+order_processor = None
 def ensure_order_processor_running():
-    def order_processor_task():
-        while process_earliest_order():
-            pass
-    if order_processing_process is None or not order_processing_process.is_alive():
-        order_processing_process = Process(target=order_processor_task)
-        order_processing_process.start()
+    global order_processor
+    if order_processor is None or not order_processor.is_alive():
+        order_processor = Process(target=order_processing_task)
+        order_processor.start()
+        logger.info("Order processor started.")
 
+def order_processing_task():
+    while process_earliest_order():
+        pass
+    logger.info("No more orders to process. Exiting order processor.")
 def process_earliest_order():
     session = get_db_session()
     order = session.query(SystemOrder).filter(
         SystemOrder.visits_remaining > 0
     ).order_by(SystemOrder.start_time).first()
-
     if order is None: return False
-    request = create_request(order)
-    session.add(request)
+    
+    if order.order_type == "imaging":
+        order_table = ImageOrder
+    elif order.order_type == "maintenance":
+        order_table = MaintenanceOrder
+    elif order.order_type == "sat_outage":
+        order_table = SatelliteOutageOrder
+    elif order.order_type == "gs_outage":
+        order_table = GroundStationOutageOrder
+    
+    order = session.query(order_table).filter_by(id=order.id).with_for_update().first()
+    if order.visits_remaining == 0: return True # has been processed by another process
 
-    order.start_time += order.revisit_frequency
-    order.end_time += order.revisit_frequency
-    order.delivery_deadline += order.revisit_frequency
-    order.visits_remaining -= 1
-    session.commit()
-
-    # publish event order requested
+    create_request(order)
     return True
 
 def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None):
@@ -84,38 +90,44 @@ def create_request(order):
         order_class = ImageOrder
     elif order.order_type=="maintenance":
         order_class = MaintenanceOrder
+    elif order.order_type=="gs_outage":
+        order_class = GroundStationOutageOrder
+    elif order.order_type=="sat_outage":
+        order_class = SatelliteOutageOrder
     else:
-        order_class = OutageOrder
+        raise Exception(f"Order with id `{order.id}` has an invalid system order type `{order.order_type}`.")
+    
+    if order.visits_remaining == 0:
+        return None
 
     session = get_db_session()
     # ensure that the order is in its concrete type, not as a polymorphic type
     order = session.query(order_class).filter_by(id=order.id).first()
+    request = ScheduleRequest(
+        schedule_id=order.schedule_id,
+        order_id=order.id,
+        order_type=order.order_type,
+        asset_id=order.asset_id,
+        asset_type=order.asset_type,
+        window_start=order.start_time,
+        window_end=order.end_time,
+        duration=order.duration,
+        delivery_deadline=order.delivery_deadline,
+        priority=order.priority
+    )
     if order.order_type=="imaging" or order.order_type=="maintenance":
-        return ScheduleRequest(
-            schedule_id=order.schedule_id,
-            order_id=order.id,
-            order_type=order.order_type,
-            window_start=order.start_time,
-            window_end=order.end_time,
-            duration=order.duration,
-            uplink_size=order.uplink_size,
-            downlink_size=order.downlink_size,
-            power_usage=order.power_usage,
-            delivery_deadline=order.delivery_deadline,
-            priority=order.priority
-        )
-    elif order.order_type=="sat_outage" or order.order_type=="gs_outage":
-        return ScheduleRequest(
-            schedule_id=order.schedule_id,
-            order_id=order.id,
-            order_type=order.order_type,
-            window_start=order.start_time,
-            window_end=order.end_time,
-            duration=order.duration,
-            uplink_size=0,
-            downlink_size=0,
-            delivery_deadline=order.delivery_deadline,
-            priority=order.priority
-        )
-    else:
-        raise Exception(f"Order with id `{order.id}` has an invalid system order type `{order.order_type}`.")
+        request.uplink_size = order.uplink_size,
+        request.downlink_size=order.downlink_size,
+        request.power_usage=order.power_usage,
+
+    session.add(request)
+
+    order.start_time += order.revisit_frequency
+    order.end_time += order.revisit_frequency
+    order.delivery_deadline += order.revisit_frequency
+    order.visits_remaining -= 1
+    session.commit()
+
+    # publish request created
+    TopicPublisher(rabbit(), f"request.{order.order_type}.created").publish_message(request.id)
+    return request

@@ -3,14 +3,15 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config.database.mapping import MaintenanceOrder, Satellite, GroundStation, SatelliteOutageOrder, GroundStationOutageOrder
-from app_config import logging
+from app_config import logging, rabbit
+from rabbit_wrapper import TopicPublisher
 
 
 logger = logging.getLogger(__name__)
 
-def populate_outage_orders(path: Path):
+def populate_outage_orders(path: Path, emit=True):
     logger.info("Populating `satellite_outage` and `groundstation_outage` tables with sample data...")
-    image_order_jsons = get_data_from_json_files(
+    outage_order_jsons = get_data_from_json_files(
         path,
         expected_keys=[
             "Target",
@@ -19,11 +20,15 @@ def populate_outage_orders(path: Path):
         ]
     )
     orders = []
-    for image_order in image_order_jsons.values():
-        orders.append(outage_order_from_json(image_order))
+    for order in outage_order_jsons.values():
+        orders.append(outage_order_from_json(order))
     session = get_db_session()
     session.add_all(orders)
     session.commit()
+
+    if emit:
+        for order in orders:
+            TopicPublisher(rabbit(), f"order.{order.order_type}.created").publish_message(order.id)
 
 
 def outage_order_from_json(outage_order_json):
@@ -31,6 +36,8 @@ def outage_order_from_json(outage_order_json):
     asset = session.query(Satellite).filter_by(name=outage_order_json["Target"]).one_or_none()
     if asset is None:
         asset = session.query(GroundStation).filter_by(name=outage_order_json["Target"]).one_or_none()
+    if asset is None:
+        raise Exception(f"Asset with name '{outage_order_json['Target']}' not found in database")
 
     start_time= datetime.fromisoformat(outage_order_json["Window"]["Start"])
     end_time= datetime.fromisoformat(outage_order_json["Window"]["End"])

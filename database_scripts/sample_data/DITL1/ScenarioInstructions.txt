@@ -1,0 +1,14 @@
+- Ingest all Batch 1 orders and all maintenance orders except for OrbitMaintenance6 and OrbitMaintenance7
+- Ingest all Batch 2 orders
+- Ingest all Batch 3 orders
+- Ingest outage for GATN and SOSO-3
+- Ingest all Batch 4 orders
+- Ingest all Batch 5 orders
+- Ingest OrbitMaintenance6 and OrbitMaintenance7
+
+
+- After each stage ensure you have the following information logged:
+ - number of total orders fullfilled
+ - reason for all rejected/removed orders
+ - number of orders tasked to each satellite
+ - number of contacts at each ground station

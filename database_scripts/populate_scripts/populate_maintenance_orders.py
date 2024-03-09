@@ -3,12 +3,13 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from app_config import get_db_session
 from app_config.database.mapping import MaintenanceOrder, Satellite
-from app_config import logging
+from app_config import logging, rabbit
+from rabbit_wrapper import TopicPublisher
 
 
 logger = logging.getLogger(__name__)
 
-def populate_maintenance_orders(path: Path):
+def populate_maintenance_orders(path: Path, emit=True):
     logger.info("Populating `maintenance_order` table with sample data...")
     image_order_jsons = get_data_from_json_files(
         path,
@@ -28,6 +29,10 @@ def populate_maintenance_orders(path: Path):
     session.add_all(orders)
     session.commit()
 
+    if emit:
+        for order in orders:
+            TopicPublisher(rabbit(), f"order.{order.order_type}.created").publish_message(order.id)
+
 
 def maintenance_order_from_json(maintenance_order_json):
     session = get_db_session()
@@ -42,7 +47,7 @@ def maintenance_order_from_json(maintenance_order_json):
     else:
         visits_remaining = int(maintenance_order_json["RepeatCycle"]["Repetition"])+1
         revisit_frequency = timedelta(seconds=int(maintenance_order_json["RepeatCycle"]["Frequency"]["MinimumGap"]))
-        revisit_frequency_max = timedelta(seconds=int(maintenance_order_json["RepeatCycle"]["MaxFrequency"]["MaximumGap"]))
+        revisit_frequency_max = timedelta(seconds=int(maintenance_order_json["RepeatCycle"]["Frequency"]["MaximumGap"]))
     operations_flag = maintenance_order_json["PayloadOutage"].lower()=="TRUE"
     return MaintenanceOrder(
         asset_id=int(satellite.id),

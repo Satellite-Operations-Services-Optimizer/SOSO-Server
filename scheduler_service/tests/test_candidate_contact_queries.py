@@ -305,7 +305,7 @@ def test_candidate_contact_queries():
     session.add(request)
     session.flush()
 
-    candidate_uplinks_query, candidate_downlinks_query = get_candidate_contact_queries(request.id, schedule.id, context_cutoff_time)
+    candidate_uplinks_query, candidate_downlinks_query = get_candidate_contact_queries(request.id, context_cutoff_time)
 
     # test candidate uplinks
     candidate_uplinks = candidate_uplinks_query.order_by(ContactEvent.start_time).all()
