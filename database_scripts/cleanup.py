@@ -7,6 +7,8 @@ from app_config.database.setup import setup_database
 from importlib import reload
 import argparse
 import os
+from datetime import datetime
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 logging.getLogger('sqlalchemy.engine').setLevel(logging.ERROR)
@@ -45,10 +47,10 @@ def rebuild_database_schema():
     import app_config.database.mapping
     reload(app_config.database.mapping)
 
-def populate_database():
+def populate_database(reference_time: Optional[datetime] = None):
     logger.info("Populating database...")
     from database_scripts.populate import populate_database
-    populate_database()
+    populate_database(reference_time)
 
     
     
@@ -56,16 +58,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--drop", action='store_true', default=False, help="Drop database, as well as all tables and data")
-    parser.add_argument("-b", "--rebuild", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
+    parser.add_argument("-s", "--schema", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
     parser.add_argument("-p", "--populate", action='store_true', default=False, help="Rebuild and populate database")
+    parser.add_argument("-t", "--reference_time", nargs='?', default=None, required=False, type=datetime.fromisoformat, help="Set the reference time of the schedule into which the order items will be populated into")
 
     args = parser.parse_args()
 
-    if args.populate or (not args.rebuild and not args.drop): # default when no args set
+    if args.populate or (not args.schema and not args.drop): # default when no args set
         drop_database_schema()
         rebuild_database_schema()
-        populate_database()
-    elif args.rebuild:
+        populate_database(reference_time=args.reference_time)
+    elif args.schema:
         drop_database_schema()
         rebuild_database_schema()
     elif args.drop:

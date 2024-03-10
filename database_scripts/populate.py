@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from app_config import logging
 from app_config.database import get_session
+from app_config.database.mapping import Schedule
 from database_scripts.populate_scripts.populate_image_orders import populate_image_orders
 from database_scripts.populate_scripts.populate_satellites import populate_satellites
 from database_scripts.populate_scripts.populate_groundstations import populate_groundstations
@@ -9,12 +10,23 @@ from database_scripts.populate_scripts.populate_maintenance_orders import popula
 from database_scripts.populate_scripts.populate_outage_orders import populate_outage_orders
 import argparse
 from pathlib import Path
+import os
 
 logger = logging.getLogger(__name__)
 
+def set_reference_time(reference_time):
+    session = get_session()
+    session.query(Schedule).filter_by(id=os.getenv("DEFAULT_SCHEDULE_ID")).update(dict(
+        reference_time=reference_time,
+        time_offset=reference_time - datetime.now()
+    ))
+    session.commit()
 
 samples_folder = Path(__file__).parent / 'sample_data'
-def populate_database():
+def populate_database(reference_time):
+    if reference_time:
+        set_reference_time(reference_time)
+
     populate_satellites(samples_folder / 'sample_satellites')
     populate_groundstations(samples_folder / 'sample_groundstations')
     populate_image_orders(samples_folder / 'sample_image_orders')
@@ -267,8 +279,12 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--outages", nargs='?', default=None, required=False, help="Path to the file containing outage data")
     # parser.add_argument("-p", "--schedule",action='store_true', default=False, help="Path to the file containing schedule data")
     parser.add_argument("--emit",action='store_true', default=True, help="Boolean flag whether to emit events to rabbitmq")
+    parser.add_argument("-t", "--reference_time", nargs='?', default=None, required=False, type=datetime.fromisoformat, help="Set the reference time of the schedule into which the order items will be populated into")
 
     args = parser.parse_args()
+
+    if args.reference_time:
+        set_reference_time(args.reference_time)
 
     if args.satellites:
         if args.satellites == 'sample':
@@ -300,5 +316,5 @@ if __name__ == '__main__':
     #     populate_scheduled_events()
 
     if not args.satellites and not args.groundstations and not args.imaging and not args.maintenance and not args.outages:
-        populate_database()
+        populate_database(args.reference_time)
     

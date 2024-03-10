@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from app_config import get_db_session
-from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest
+from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest, TransmissionOutage
 from helpers import create_dummy_imaging_event
 from scheduler_service.schedulers.scheduler_tools import get_candidate_contact_queries
 
@@ -66,10 +66,9 @@ def test_candidate_contact_queries():
         total_downlink_size=medium_image_downlink_size # this is what was scheduled to be transmitted. it takes `request_downlink_duration` seconds to transmit this much data
     )
 
-    transmission_outage = GroundStationOutage(
+    transmission_outage = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
-        outage_reason="transmitting",
         start_time=contact_already_transmitting.start_time + contact_already_transmitting.duration - contact_reconfig_time,
         duration=contact_already_transmitting.duration + contact_reconfig_time
     )
@@ -94,10 +93,9 @@ def test_candidate_contact_queries():
         total_downlink_size=medium_image_downlink_size
     )
 
-    transmission_outage_different_sat = GroundStationOutage(
+    transmission_outage_different_sat = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
-        outage_reason="transmitting",
         start_time=contact_transmitting_to_different_satellite.start_time + contact_transmitting_to_different_satellite.duration - contact_reconfig_time,
         duration=contact_transmitting_to_different_satellite.duration + contact_reconfig_time
     )

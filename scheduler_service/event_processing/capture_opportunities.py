@@ -84,7 +84,7 @@ def ensure_capture_opportunities_populated(start_time: datetime, end_time: datet
         session.add(capture_opportunities)
         processed_block_ids.append(block_id)
     else:
-        with loky.ProcessPoolExecutor() as executor:
+        with loky.ProcessPoolExecutor(max_workers=4) as executor:
             serializable_blocks = [
                 SerializableCaptureProcessingBlock(
                     id=block.id,
@@ -95,7 +95,7 @@ def ensure_capture_opportunities_populated(start_time: datetime, end_time: datet
                     time_range=block.time_range
                 ) for block in blocks_to_process
             ]
-            result_set = executor.map(calculate_capture_opportunities, serializable_blocks)
+            result_set = map(calculate_capture_opportunities, serializable_blocks) #i keep running out of memory. ditching multiprocessing for now
             for block_id, opportunities in result_set:
                 capture_opportunities = [
                     CaptureOpportunity(

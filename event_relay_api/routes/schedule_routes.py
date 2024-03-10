@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 import logging
 from app_config import get_db_session
-from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation
+from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, GroundStationOutageOrder, SatelliteOutageOrder
 from fastapi.encoders import jsonable_encoder
 from fastapi import Query
 from sqlalchemy import case
@@ -23,12 +23,9 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
     if not schedule:
         raise HTTPException(404, detail="Schedule does not exist.")
 
-    query = session.query(
+    events_subquery = session.query(
         ScheduledEvent.event_type,
         ScheduledEvent.id,
-        ScheduledEvent.start_time,
-        ScheduledEvent.duration,
-        ScheduledEvent.asset_id,
         Asset.name.label("asset_name"),
         GroundStation.id.label("groundstation_id"),
         GroundStation.name.label("groundstation_name"),
@@ -44,12 +41,69 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
     ).filter(ScheduledEvent.schedule_id==id).order_by(ScheduledEvent.start_time)
     
     if event_types:
-        query = query.filter(ScheduledEvent.event_type.in_(event_types))
+        events_subquery = events_subquery.filter(ScheduledEvent.event_type.in_(event_types))
 
     if not all:
-        query.limit(per_page).offset((page - 1) * per_page).all()
+        events_subquery.limit(per_page).offset((page - 1) * per_page)
+    
+    events_subquery = events_subquery.subquery()
 
-    return [event._asdict() for event in query.all()]
+    all_event_tables = {
+        "imaging": ScheduledImaging,
+        "maintenance": ScheduledMaintenance,
+        "contact": ContactEvent,
+        "capture": CaptureOpportunity,
+        "eclipse": SatelliteEclipse,
+        "sat_outage": SatelliteOutage,
+        "gs_outage": GroundStationOutage
+    }
+    all_order_tables = {
+        "imaging": ImageOrder,
+        "maintenance": MaintenanceOrder,
+        "gs_outage": GroundStationOutageOrder,
+        "sat_outage": SatelliteOutageOrder,
+    }
+    event_tables = [all_event_tables[event_type] for event_type in event_types]
+    events = []
+    for event_type in event_types:
+        event_table = all_event_tables[event_type]
+
+        additional_columns = []
+        if event_type=="imaging":
+            additional_columns.extend([
+                ImageOrder.image_type,
+                ImageOrder.latitude,
+                ImageOrder.longitude
+            ])
+        elif event_type=="capture":
+            additional_columns.extend([
+                CaptureOpportunity.image_type,
+                CaptureOpportunity.latitude,
+                CaptureOpportunity.longitude
+            ])
+        elif event_type=="maintenance":
+            additional_columns.append(MaintenanceOrder.description)
+
+        events_query = session.query(
+            *event_table.__table__.columns,
+            events_subquery.c.asset_name,
+            events_subquery.c.groundstation_id,
+            events_subquery.c.groundstation_name,
+            events_subquery.c.order_id,
+            *additional_columns
+        ).join(
+            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type)
+        )
+
+        order_table = all_order_tables.get(event_type)
+        if order_table:
+            events_query = events_query.join(
+                order_table, order_table.id==events_subquery.c.id
+            )
+
+        events.extend(events_query.order_by(event_table.start_time).all())
+
+    return [event._asdict() for event in events]
 
 def scheduled_event_columns():
     return []

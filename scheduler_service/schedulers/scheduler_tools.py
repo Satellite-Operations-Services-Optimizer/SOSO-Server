@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import uuid
 from app_config import get_db_session
-from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange, AssetState
+from app_config.database.mapping import Schedule, ScheduleRequest, SatelliteOutage, TransmittedEvent, ContactEvent, GroundStationOutage, StateCheckpoint, CaptureOpportunity, ImageOrder, Satellite, GroundStation, SatelliteEclipse, SatelliteStateChange, AssetState, TransmissionOutage
 from sqlalchemy import or_, exists
 from scheduler_service.schedulers.utils import query_gaps, query_islands
 from sqlalchemy import func, column, or_, and_, false, case, literal, true, union_all, union, not_
@@ -111,33 +111,48 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
+    priority_tier_info = session.query(
+        func.max(ScheduleRequest.priority).label('max_priority'),
+        func.min(ScheduleRequest.priority).label('min_priority'),
+        ScheduleRequest.priority_tier,
+    ).filter(
+        (ScheduleRequest.order_type=="imaging")|(ScheduleRequest.order_type=="maintenance")
+    ).group_by(
+        ScheduleRequest.priority_tier
+    ).all()
+
+    asset_grouped_candidates = []
     # Get the available slots for the satellite event to occur. start without any priority threshold, then incrementally start allowing it to displace other events of lower priority
-    candidate_plans = []
-    if request.order_type=="maintenance":
-        unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold).subquery()
-        # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
-        candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
-        if len(priority_threshold)==0:
-            unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold, displace_imaging_events=True).subquery()
+    for tier in sorted(priority_tier_info, key=lambda x: x.priority_tier):
+        for priority_threshold in range(tier.min_priority, tier.max_priority+1):
+            unfiltered_candidate_plans = query_candidate_scheduling_plans(
+                request_id,
+                context_cutoff_time,
+                priority_tier_threshold=tier.priority_tier,
+                priority_threshold=priority_threshold,
+            )
             # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
             candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
-    else:
-        for priority_threshold in range(request.priority+1):
-            unfiltered_candidate_plans = query_candidate_scheduling_plans(request_id, context_cutoff_time, priority_threshold).subquery()
-            # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
-            candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
-            if len(priority_threshold)>0: break
 
-    punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # it is already ordered by punctuality, so we can just take the top n
-    asset_grouped_candidates = session.query(
-        candidate_plans.c.schedule_id,
-        candidate_plans.c.asset_id,
-        func.array_agg(candidate_plans.c.time_range).limit(top_n).label('time_ranges'),
-        func.array_agg(candidate_plans.c.uplink_contact_id).limit(top_n).label('uplink_ids'),
-        func.array_agg(candidate_plans.c.downlink_contact_id).limit(top_n).label('downlink_ids')
-    ).group_by(candidate_plans.c.schedule_id, candidate_plans.c.asset_id).all()
+            candidate_plans_subquery = candidate_plans.subquery()
+            asset_grouped_candidates = session.query(
+                candidate_plans_subquery.c.request_id,
+                candidate_plans_subquery.c.schedule_id,
+                candidate_plans_subquery.c.asset_id,
+                func.array_agg(candidate_plans_subquery.c.time_range)[1:top_n].label('time_ranges'),
+                func.array_agg(candidate_plans_subquery.c.uplink_contact_id)[1:top_n].label('uplink_ids'),
+                func.array_agg(candidate_plans_subquery.c.downlink_contact_id)[1:top_n].label('downlink_ids')
+            ).group_by(candidate_plans_subquery.c.request_id, candidate_plans_subquery.c.schedule_id, candidate_plans_subquery.c.asset_id).all()
 
+            if len(asset_grouped_candidates) > 0:
+                break
+        if len(asset_grouped_candidates) > 0:
+            break
+    
+    # go through the asset_grouped_candidates and get the top_n candidates from any asset, orderd by their punctuality (i.e their time_range)
+    
 
+    punctuality_ordered_candidates = candidate_plans.limit(top_n).all() # they are already ordered for priority, so we can just take the top_n
     number_of_candidates = len(punctuality_ordered_candidates) # we could possibly have less than top_n candidates
     number_of_assets = len(asset_grouped_candidates)
 
@@ -159,11 +174,12 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
             candidate_downlink_id = asset_candidates.downlink_ids.pop(0)
 
             chosen_candidate = session.query(
-                func.literal(asset_candidates.schedule_id).label('schedule_id'),
-                func.literal(asset_candidates.asset_id).label('asset_id'),
-                func.literal(candidate_time_range).label('time_range'),
-                func.literal(candidate_uplink_id).label('uplink_contact_id'),
-                func.literal(candidate_downlink_id).label('downlink_contact_id')
+                literal(asset_candidates.request_id).label('request_id'),
+                literal(asset_candidates.schedule_id).label('schedule_id'),
+                literal(asset_candidates.asset_id).label('asset_id'),
+                literal(candidate_time_range).label('time_range'),
+                literal(candidate_uplink_id).label('uplink_contact_id'),
+                literal(candidate_downlink_id).label('downlink_contact_id')
             ).one()
         else:
             chosen_candidate = random.choice(punctuality_ordered_candidates).pop(0)
@@ -172,12 +188,12 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     return top_n_candidates
 
 
-def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_threshold: Optional[int] = None, displace_imaging_events=False):
+def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_tier_threshold: Optional[int] = None, priority_threshold: Optional[int] = None):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
     # Get the available slots for the satellite event to occur
-    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_threshold, displace_imaging_events).subquery()
+    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_tier_threshold, priority_threshold).subquery()
 
     # Get the candidate uplink and downlink contacts for the request
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
@@ -236,7 +252,7 @@ def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datet
             )
         ),
         isouter=not downlink_required
-    ).order_by(candidate_downlink_subquery.c.start_time, column('time_range')) #earlier to downlink, better. next in priority is earlier for event to take place, the better
+    ).order_by(column('time_range'), candidate_downlink_subquery.c.start_time) # TODO: confirm with CSA earlier to downlink, better. next in priority is earlier for event to take place, the better
     return candidate_schedule_plans
 
 def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime):
@@ -260,28 +276,32 @@ def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime)
     )
 
     # get all contacts that we can uplink with, where the contact's groundstation is not in outage during the contact period
-    gs_in_outage_for_contact_check = exists(GroundStationOutage).where(
-        GroundStationOutage.schedule_id==request.schedule_id,
-        GroundStationOutage.asset_id==ContactEvent.groundstation_id,
-        GroundStationOutage.utc_time_range.op('&&')(ContactEvent.utc_time_range),
-        or_(
-            GroundStationOutage.outage_reason!="transmitting",
-            # if the groundstation is in outage because it is transmitting to
-            # the satellite during *this contact* period, then it is not in outage
-            # for this satellite, because you can just keep on transmitting,
-            # without needing to reconfigure the groundstation to transmit to another satellite
-            and_( 
-                # if something is scheduled to be transmitted during this contact.
-                # (given we will make sure to place a groundstation outage whenever
-                # something is scheduled to be transmitted during a contact, we can
-                # safely assume that this contact is the only contact that is scheduled
-                # to transmit from this groundstation, thus the groundstation is not in outage
-                # for this contact - in fact, this is the only contact that the groundstation is available for)
-                GroundStationOutage.outage_reason=="transmitting",
-                ~contact_is_scheduled_to_transmit,
-            ),
+    gs_in_outage_for_contact_check = or_(
+        exists(GroundStationOutage).where(
+            GroundStationOutage.schedule_id==request.schedule_id,
+            GroundStationOutage.asset_id==ContactEvent.groundstation_id,
+            GroundStationOutage.utc_time_range.op('&&')(ContactEvent.utc_time_range),
+        ),
+        and_(
+            # if something is scheduled to be transmitted during this contact.
+            # (given we will make sure to place a groundstation outage whenever
+            # something is scheduled to be transmitted during a contact, we can
+            # safely assume that this contact is the only contact that is scheduled
+            # to transmit from this groundstation, thus the groundstation is not in outage
+            # for this contact - in fact, this is the only contact that the groundstation is available for)
+            ~contact_is_scheduled_to_transmit,
+            exists(TransmissionOutage).where(
+                TransmissionOutage.schedule_id==request.schedule_id,
+                TransmissionOutage.asset_id==ContactEvent.groundstation_id,
+                TransmissionOutage.utc_time_range.op('&&')(ContactEvent.utc_time_range),
+                # if the groundstation is in outage because it is transmitting to
+                # the satellite during *this contact* period, then it is not in outage
+                # for this satellite, because you can just keep on transmitting,
+                # without needing to reconfigure the groundstation to transmit to another satellite
+            )
         )
     )
+
     candidate_uplink_contact = session.query(ContactEvent)
     candidate_downlink_contact = session.query(ContactEvent)
 
@@ -325,7 +345,7 @@ def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime)
 
     return (candidate_uplink_contact, candidate_downlink_contact)
 
-def query_satellite_available_time_slots(request_id: int, priority_threshold: Optional[int] = None, displace_imaging_events: bool = False):
+def query_satellite_available_time_slots(request_id: int, priority_tier_threshold: Optional[int] = None, priority_threshold: Optional[int] = None):
     """
     Queries the schedule for available spots to place the request.
     """
@@ -342,10 +362,10 @@ def query_satellite_available_time_slots(request_id: int, priority_threshold: Op
     )
 
     ignored_events_filter = false()
-    if request.order_type=="maintenance" and displace_imaging_events:
-        ignored_events_filter |= TransmittedEvent.event_type=="imaging"
-    elif request.order_type=="imaging" and priority_threshold:
-        ignored_events_filter |= (TransmittedEvent.event_type=="imaging"&TransmittedEvent.priority<priority_threshold)
+    if priority_tier_threshold:
+        ignored_events_filter |= (TransmittedEvent.priority_tier<priority_tier_threshold)
+        if priority_threshold:
+            ignored_events_filter |= (TransmittedEvent.priority_tier==priority_tier_threshold)&(TransmittedEvent.priority<priority_threshold)
     
     blocking_transmitted_event_query.filter(~ignored_events_filter)
 
@@ -397,7 +417,7 @@ def query_satellite_available_time_slots(request_id: int, priority_threshold: Op
     )
     
     if request.asset_id is not None:
-        event_blocked_regions_query = event_blocked_regions_query.filter(blocking_events_subquery.asset_id == request.asset_id)
+        event_blocked_regions_query = event_blocked_regions_query.filter(blocking_events_subquery.c.asset_id == request.asset_id)
     
     # TODO: Query the StateCheckpoint row with the maximum checkpoint_time that is before the request's start time
     # Power constraint and storage constraint are currently affected by this not being completed
@@ -617,7 +637,7 @@ def query_valid_imaging_periods(request_id: int):
         CaptureOpportunity.latitude==ImageOrder.latitude,
         CaptureOpportunity.longitude==ImageOrder.longitude,
         CaptureOpportunity.image_type==ImageOrder.image_type,
-        (func.upper(capture_window)-func.lower(capture_window)) > 0 # Capture is instantaneous. we just need to make sure that the capture opportunity is within the window. if it is within the window for any amount of time, then it is valid
+        (func.upper(capture_window)-func.lower(capture_window)) > timedelta(seconds=0) # Capture is instantaneous. we just need to make sure that the capture opportunity is within the window. if it is within the window for any amount of time, then it is valid
     )
     if request.asset_id is not None:
         candidate_capture_opportunities = candidate_capture_opportunities.filter(CaptureOpportunity.asset_id==request.asset_id)

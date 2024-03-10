@@ -1,0 +1,49 @@
+Adding to sys.path: /Users/stanley/Projects/SOSO-Server
+Database tables automapped and exported to global namespace
+===========Overall stats===========
+Total order count: 69
+Total request count: 224
+   Rejected requests: 65
+     64: No satellites can capture this area during the requested time window.
+     1: Could not find a spot to schedule this event.
+   Scheduled requests: 159
+
+
+======Breakdown by order type======
+Total Maintenance request count: 87
+   Scheduled requests: 87
+Total Imaging request count: 135
+   Rejected requests: 65
+     64: No satellites can capture this area during the requested time window.
+     1: Could not find a spot to schedule this event.
+   Scheduled requests: 70
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+
+
+==========Scheduled Events=========
+
+------------Per satellite-----------
+SOSO-1: 28 events scheduled
+   maintenance events: 18
+   imaging events: 10
+SOSO-3: 36 events scheduled
+   maintenance events: 18
+   imaging events: 18
+SOSO-2: 34 events scheduled
+   maintenance events: 17
+   imaging events: 17
+SOSO-4: 37 events scheduled
+   maintenance events: 17
+   imaging events: 20
+SOSO-5: 22 events scheduled
+   maintenance events: 17
+   imaging events: 5
+
+
+----------Per groundstation---------
+GATN: 56 scheduled contacts
+Inuvik: 111 scheduled contacts
+Prince Albert: 44 scheduled contacts

@@ -4,14 +4,17 @@ from app_config import get_db_session
 from app_config.database.mapping import EclipseProcessingBlock, SatelliteEclipse, Satellite
 from .utils import retrieve_and_lock_unprocessed_blocks_for_processing
 from scheduler_service.satellite_state.state_generator import SatelliteStateGenerator
+from typing import Optional
 
-def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime):
+def ensure_eclipse_events_populated(start_time: datetime, end_time: datetime, satellite_id: Optional[int] = None):
     session = get_db_session()
+    valid_partition_values_subquery = session.query(Satellite.id.label('satellite_id')).filter_by(id=satellite_id).subquery()
     blocks_to_process = retrieve_and_lock_unprocessed_blocks_for_processing(
         start_time, end_time,
         EclipseProcessingBlock,
         partition_column_names=[EclipseProcessingBlock.satellite_id],
-        valid_partition_values_subquery=session.query(Satellite.id.label('satellite_id')).subquery()
+        valid_partition_values_subquery=valid_partition_values_subquery,
+        filters=[EclipseProcessingBlock.satellite_id == satellite_id] if satellite_id else []
     )
 
     eclipses = []

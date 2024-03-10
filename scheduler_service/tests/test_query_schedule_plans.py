@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from app_config import get_db_session
-from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest
+from app_config.database.mapping import ContactEvent, Schedule, Satellite, GroundStation, GroundStationOutage, CaptureOpportunity, ImageOrder, ScheduleRequest, TransmissionOutage
 from helpers import create_dummy_imaging_event
 from scheduler_service.schedulers.scheduler_tools import query_candidate_scheduling_plans
 from sqlalchemy import column
@@ -71,10 +71,9 @@ def test_candidate_contact_queries():
         total_downlink_size=medium_image_downlink_size # this is what was scheduled to be transmitted. it takes `request_downlink_duration` seconds to transmit this much data
     )
 
-    transmission_outage = GroundStationOutage(
+    transmission_outage = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
-        outage_reason="transmitting",
         start_time=contact_already_transmitting.start_time + contact_already_transmitting.duration - contact_reconfig_time,
         duration=contact_already_transmitting.duration + contact_reconfig_time
     )
@@ -99,10 +98,9 @@ def test_candidate_contact_queries():
         total_downlink_size=medium_image_downlink_size
     )
 
-    transmission_outage_different_sat = GroundStationOutage(
+    transmission_outage_different_sat = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
-        outage_reason="transmitting",
         start_time=contact_transmitting_to_different_satellite.start_time + contact_transmitting_to_different_satellite.duration - contact_reconfig_time,
         duration=contact_transmitting_to_different_satellite.duration + contact_reconfig_time
     )
@@ -150,7 +148,9 @@ def test_candidate_contact_queries():
     gap_start = imaging1.start_time + imaging1.duration
     gap_duration = 0.5*large_enough_contact_duration
 
-    contact_too_late_for_uplink_for_specific_event_time = ContactEvent( # must make capture opportunity start at time that makes this contact too late for uplink
+    # must make capture opportunity start at time that makes the remaining time for this contact smaller than the imaging time.
+    # the imaging should still take place but after the contact ends. this is because contact is assumed to be instantaneous, so we don't have to be constrained by the capture opportunity duration.
+    contact_overlapping_fit_capture_opportunity = ContactEvent( 
         schedule_id=schedule.id,
         asset_id=satellite_1.id,
         groundstation_id=groundstation_1.id,
@@ -158,7 +158,7 @@ def test_candidate_contact_queries():
         duration=large_enough_contact_duration
     )
 
-    prev_contact_end = contact_too_late_for_uplink_for_specific_event_time.start_time + contact_too_late_for_uplink_for_specific_event_time.duration
+    prev_contact_end = contact_overlapping_fit_capture_opportunity.start_time + contact_overlapping_fit_capture_opportunity.duration
     capture_opportunity = CaptureOpportunity(
         schedule_id=schedule.id,
         asset_id=satellite_1.id,
@@ -282,7 +282,7 @@ def test_candidate_contact_queries():
         contact_in_outage,
         contact_too_early_for_downlink,
         imaging1,
-        contact_too_late_for_uplink_for_specific_event_time ,
+        contact_overlapping_fit_capture_opportunity ,
         capture_opportunity,
         contact_too_early_for_donwlink_for_specific_event_time,
         imaging2,
@@ -333,20 +333,25 @@ def test_candidate_contact_queries():
     # expect all candidates to use the same (only available) capture opportunity
     for plan in candidate_plans:
         plan_tz = plan.time_range.lower.tzinfo
+        uplink_contact = session.query(ContactEvent).filter_by(id=plan.uplink_contact_id).one()
+
+        uplink_end_time = (uplink_contact.start_time + uplink_contact.duration).replace(tzinfo=plan_tz)
         capture_start_time = capture_opportunity.start_time.replace(tzinfo=plan_tz)
-        capture_end_time = capture_start_time + capture_opportunity.duration
-        assert plan.time_range.lower == capture_start_time and plan.time_range.upper == capture_end_time, "the correct capture opportunities must be identified and used for all candidate plans"
+        imaging_start_time = max(capture_start_time, uplink_end_time)
+        imaging_end_time = imaging_start_time + medium_image_duration
+        assert plan.time_range.lower == imaging_start_time and plan.time_range.upper > imaging_end_time, "the correct capture opportunities must be identified and used for all candidate plans"
 
     permissible_uplink_ids = [
         contact_overlapping_context_cutoff.id,
         contact_already_transmitting.id,
         contact_too_early_for_downlink.id,
+        contact_overlapping_fit_capture_opportunity.id
     ]
     permissible_downlink_ids = [
         contact_overlapping_event.id,
         contact_diff_groundstation_overlapping_contact.id,
         contact_too_late_for_uplink.id,
-        contact_outside_request_window.id,
+        contact_outside_request_window.id
     ]
 
     permissible_ids = product(permissible_uplink_ids, permissible_downlink_ids)

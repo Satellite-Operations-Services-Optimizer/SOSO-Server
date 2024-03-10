@@ -147,7 +147,10 @@ class SatelliteStateGenerator:
             return self.is_sunlit(time)
         is_sunlit_wrapper.step_days = self.precision.seconds / (24 * 60 * 60) # convert seconds to days
 
-        change_times, change_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
+        if start_time==end_time:
+            change_times, change_values = [start_time], [self.is_sunlit(start_time)]
+        else:
+            change_times, change_values = find_discrete(start_time, end_time, is_sunlit_wrapper)
         prev_time, prev_sunlit = start_time, self.is_sunlit(start_time)
         for time, is_sunlit in zip(change_times, change_values):
             if not prev_sunlit and is_sunlit:

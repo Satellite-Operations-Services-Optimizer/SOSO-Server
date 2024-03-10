@@ -36,7 +36,7 @@ def test_query_available_satellite_schedule_slots():
 
     # make a capture opportunity that is not long enough to schedule imaging to test if this is filtered out
     undersized_opportunity_start = valid_gap_start + valid_gap_duration
-    undersized_opportunity_duration = imaging_duration - timedelta(seconds=3) 
+    undersized_opportunity_duration = imaging_duration - 0.5*imaging_duration
     undersized_opportunity = CaptureOpportunity(
         schedule_id=schedule.id,
         asset_id=satellite_1.id,
@@ -51,7 +51,7 @@ def test_query_available_satellite_schedule_slots():
 
     # make a gap that is not large enough to schedule our item to make sure that these times are filtered out when finding available slots to schedule imaging
     invalid_gap_start = undersized_opportunity_start + undersized_opportunity_duration
-    invalid_gap_duration = imaging_duration - timedelta(seconds=3)
+    invalid_gap_duration = 0.5*(imaging_duration - undersized_opportunity_duration)
 
     # satellite outage
     sat_outage_start = invalid_gap_start + invalid_gap_duration
