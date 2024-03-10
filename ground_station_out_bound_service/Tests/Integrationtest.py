@@ -3,6 +3,7 @@ from app_config.database.mapping import ContactEvent, ScheduledEvent, ImageOrder
 from datetime import datetime, timedelta
 from fastapi.encoders import jsonable_encoder
 from ground_station_out_bound_service.Tests.populate_scheduled_events import create_valid_image_order_schedule
+from ground_station_out_bound_service.Helpers.util import add_image_activity
 from sqlalchemy import or_
 import random
 
@@ -55,7 +56,6 @@ def cleanup():
             scheduledimages = session.query(ScheduledImaging).filter(or_(ScheduledImaging.uplink_contact_id== contact.id, ScheduledImaging.downlink_contact_id== contact.id ) ).all()
             print(scheduledimages)
             for scheduledimage in scheduledimages:
-                print("\n1111\n")
                 print(scheduledimage)
                 schedulerequest = session.query(ScheduleRequest).filter(ScheduleRequest.id == scheduledimage.request_id).first()
                 imageorder = session.query(ImageOrder).filter(ImageOrder.id == schedulerequest.order_id).first()
@@ -66,9 +66,9 @@ def cleanup():
                 session.delete(schedulerequest)
                 
                 
-            outbound_schedule = session.query(OutboundSchedule.contact_id == contact.id).first()            
-            if(outbound_schedule != None):
-                session.delete(outbound_schedule)
+            outboundschedule = session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).first()            
+            if(outboundschedule != None):
+                session.delete(outboundschedule)
                 #outbound_schedule.delete(synchronize_session='fetch')
             
             session.delete(contact)
@@ -100,7 +100,10 @@ def run_test():
         for contact in contacts_with_schedules_not_sent:
             schedule = session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).first()
             print(jsonable_encoder(schedule), "\n")  
-
+    imaging = session.query(ScheduledImaging).first()
+    outbound = add_image_activity(imaging)
+    print(jsonable_encoder(outbound))
+    
                     
     # contacts = jsonable_encoder(get_approaching_scheduled_contacts())
     # print(contacts)

@@ -63,7 +63,8 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                 downlink_size=order.downlink_size,
                 power_usage=order.power_usage,
                 delivery_deadline=order.delivery_deadline,
-                priority=order.priority
+                priority=order.priority,
+                status = "scheduled"
             )
         )
         order.visits_remaining -= 1

@@ -4,14 +4,14 @@ from typing import Optional
 
 class image_activity(BaseModel):
     image_id: int
-    type: str
-    priority: str
+    image_type: str
+    priority: int
     start_time: datetime
     
 class maintenance_activity(BaseModel):
     activity_id: int
     description: str
-    priority: str
+    priority: int
     start_time: datetime
     payload_flag: bool
     duration: timedelta
@@ -26,9 +26,9 @@ class satellite_schedule(BaseModel):
     satellite_name: str
     schedule_id: int
     activity_window: tuple[datetime,datetime]
-    image_activities: list[image_activity]
-    maintenance_activities: list[maintenance_activity]
-    downlink_activities: list[downlink_activity]
+    image_activities: list[image_activity] = None
+    maintenance_activities: list[maintenance_activity] = None
+    downlink_activities: list[downlink_activity] = None
 
 # Intended for the ground station to recieve
 class downlink_image(BaseModel):
@@ -42,13 +42,13 @@ class ground_station_request(BaseModel):
     acquisition_of_signal: datetime
     loss_of_signal: datetime
     satellite_schedule_id: int
-    downlink_images: list[downlink_image]
+    downlink_images: list[downlink_image] = None
             
 class outbound_schedule(BaseModel):
     contact_id: int
     satellite_name: str
     activity_window: tuple[datetime,datetime]
-    image_activities: list[image_activity]
-    maintenance_activities: list[maintenance_activity]
-    downlink_activities: list[downlink_activity]
-    status: str
+    image_activities: list[image_activity] = None
+    maintenance_activities: list[maintenance_activity] = None
+    downlink_activities: list[downlink_activity] = None
+    schedule_status: str
