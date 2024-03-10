@@ -29,6 +29,7 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
         Asset.name.label("asset_name"),
         GroundStation.id.label("groundstation_id"),
         GroundStation.name.label("groundstation_name"),
+        ScheduleRequest.id.label("request_id"),
         ScheduleRequest.order_id
     ).join(
         Asset, (ScheduledEvent.asset_type==Asset.asset_type) & (ScheduledEvent.asset_id==Asset.id)
@@ -63,7 +64,6 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
         "gs_outage": GroundStationOutageOrder,
         "sat_outage": SatelliteOutageOrder,
     }
-    event_tables = [all_event_tables[event_type] for event_type in event_types]
     events = []
     for event_type in event_types:
         event_table = all_event_tables[event_type]
@@ -98,15 +98,15 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
         order_table = all_order_tables.get(event_type)
         if order_table:
             events_query = events_query.join(
-                order_table, order_table.id==events_subquery.c.id
+                ScheduleRequest,
+                ScheduleRequest.id==events_subquery.c.request_id
+            ).join(
+                order_table, order_table.id==ScheduleRequest.order_id
             )
 
         events.extend(events_query.order_by(event_table.start_time).all())
 
     return [event._asdict() for event in events]
-
-def scheduled_event_columns():
-    return []
 
 @router.get("/name={name}")
 async def scheduled_events_by_name(name: str):

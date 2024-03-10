@@ -125,11 +125,7 @@ def schedule_transmitted_event(request_id: int):
     context_cutoff = context_cutoff.replace(tzinfo=request.delivery_deadline.tzinfo)
 
     if context_cutoff > request.window_end - request.duration:
-        request.status = "rejected"
-        request.status_message = "Not enough time to plan event. Can't uplink and perform event before its end time."
-        session.commit()
-        TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
-        logger.info(f"Rejected {request.order_type} request with id={request.id}. {request.status_message}")
+        reject_request(request.id, "Not enough time to plan event. Can't uplink and perform event before its end time.")
         return
     
 
@@ -144,37 +140,20 @@ def schedule_transmitted_event(request_id: int):
             capture_opportunity_time_range.op('&&')(func.tstzrange(request.window_start, request.window_end))
         ).count() > 0
         if not capture_opportunities_exist:
-            request.status = "rejected"
-            request.status_message = "No satellites can capture this area during the requested time window."
-            session.commit()
-            TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
-            logger.info(f"Rejected {request.order_type} request with id={request.id}. {request.status_message}. (area={order.image_type} image at latitude={order.latitude}, longitude={order.longitude} at time range={request.window_start} to {request.window_end})")
+            reject_request(request.id, "No satellites can capture this area during the requested time window.")
             return
     available_time_slots = query_satellite_available_time_slots(request.id, request.priority_tier, request.priority).count()
     if available_time_slots == 0:
-        request.status = "rejected"
-        request.status_message = "No available time slots for this event."
-        session.commit()
-        TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
-        logger.info(f"Rejected {request.order_type} request with id={request.id}. {request.status_message}")
+        reject_request(request.id, "No available time slots for this event.")
         return
     
     scheduling_plan = optimized_request_planning(request_id)
 
-    if len(scheduling_plan) > 0:
-        execute_schedule_plan(scheduling_plan[0])
+    if len(scheduling_plan) == 0:
+        reject_request(request.id, "Could not find a spot to schedule this event.")
         return
     
-    prev_status = request.status
-    request.status = "rejected"
-    if prev_status == "displaced":
-        request.status_message = f"{request.status_message} Could not find a new spot to schedule the event."
-    else:
-        request.status_message = f"Could not find a spot to schedule this event."
-    
-    session.commit()
-    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
-    logger.info(f"Rejected {request.order_type} request with id={request.id}. {request.status_message}")
+    execute_schedule_plan(scheduling_plan[0])
 
 
 def execute_schedule_plan(schedule_plan):
@@ -356,3 +335,16 @@ def displace_event(event, message, emit=True):
     if emit:
         TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish_message(event.request_id)
         logger.info(f"Displaced {event.event_type} request with id={event.id}. {message}")
+
+def reject_request(request_id, message):
+    session = get_db_session()
+    request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+    request.status = "rejected"
+
+    if request.status_message is not None and request.status_message != "" and message != "":
+        request.status_message = f"{request.status_message} {message}"
+    else:
+        request.status_message = message
+    session.commit()
+    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
+    logger.info(f"Rejected {request.order_type} request with id={request.id}. {message}")

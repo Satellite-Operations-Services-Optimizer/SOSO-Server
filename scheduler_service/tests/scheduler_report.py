@@ -65,9 +65,9 @@ def print_request_breakdown(requests_subquery, indent):
             requests_subquery.c.status,
             requests_subquery.c.status_message
         ).all()
-        if len(breakdown_by_reason) > 1:
+        if len(breakdown_by_reason) > 0 and request_status != "received" and request_status != "scheduled":
             for reason, count in breakdown_by_reason:
-                print(f"{indent}  {count}: {reason or "Unspecified"}")
+                print(f"{indent}  {count}: Reason: {reason or "Unspecified"}")
     
 
 
