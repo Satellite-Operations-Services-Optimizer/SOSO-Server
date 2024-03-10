@@ -8,7 +8,7 @@ from ground_station_out_bound_service.models.ScheduleModel import satellite_sche
 from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 from ground_station_out_bound_service.Helpers.data import get_satellite, get_ground_station, update_schedule_request_status
 from ground_station_out_bound_service.Helpers.util import add_maintenance_activity, add_image_activity, add_downlink_activity, add_downlink_image
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 db_session = get_db_session()
@@ -17,7 +17,7 @@ def send_upcoming_contacts():
     
     satellite_schedules = []
     ground_station_schedules = []
-    current_datetime = datetime.now() 
+    current_datetime = datetime.now(timezone.utc) 
     
     # send schedules if cantact is less than 30 minutes away
     schedule = timedelta(minutes=30)
@@ -56,12 +56,28 @@ def send_upcoming_contacts():
                 publisher = TopicPublisher(rabbit(), f"outbound.schedule.failed")
                 publisher.publish_message("schedule not sent: time is past valid contact window")
             else:
+                if(outboundschedule.image_activities == None):
+                    imageactivities = []
+                else:
+                    imageactivities = outboundschedule.image_activities
+                    
+                if(outboundschedule.maintenance_activities == None):
+                    maintenanceactivities = []
+                else:
+                    maintenanceactivities = outboundschedule.maintenance_activities
+                    
+                if(outboundschedule.downlink_activities == None):
+                    downlinkactivities = []
+                else:
+                    downlinkactivities = outboundschedule.downlink_activities
+                    
+                
                 sat_schedule = satellite_schedule(satellite_name=outboundschedule.satellite_name,
                                                 schedule_id=outboundschedule.id,
                                                 activity_window=outboundschedule.activity_window,
-                                                image_activities= outboundschedule.image_activities,
-                                                maintenance_activities=outboundschedule.maintenance_activities,
-                                                downlink_activities=outboundschedule.downlink_activities)
+                                                image_activities= imageactivities,
+                                                maintenance_activities=maintenanceactivities,
+                                                downlink_activities=downlinkactivities)
                 sat_schedule_response = send_satellite_schedule(sat_schedule)
 
                 if(sat_schedule_response.status_code == 200):

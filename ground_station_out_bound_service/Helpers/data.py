@@ -1,8 +1,8 @@
 from datetime import datetime
 from app_config.database.mapping import Schedule, ImageOrder, MaintenanceOrder, OutageOrder, OutboundSchedule, ScheduledImaging, ScheduledMaintenance, ContactEvent, GroundStationRequest, GroundStation, Satellite, ScheduleRequest, ScheduledOutage
 from app_config import get_db_session
-from models.QueueModel import QueueRequest, QueueDetails
-from models.ScheduleModel import maintenance_activity, image_activity, downlink_activity, outbound_schedule
+from ground_station_out_bound_service.models.ScheduleModel import outbound_schedule
+from fastapi.encoders import jsonable_encoder
 
 db = get_db_session()
 def get_schedule(schedule_id: int ):
@@ -67,7 +67,7 @@ def get_ground_station(gs_id: int):
 
 def get_schedule_request(request_id: int, status: str):
     
-    return db.query(ScheduleRequest).filter(ScheduleRequest.order_id == request_id, ScheduleRequest.status == status).first()
+    return db.query(ScheduleRequest).filter(ScheduleRequest.id == request_id, ScheduleRequest.status == status).first()
 
 def get_all_scheduled_images_from_contact(contact_id: int):
     
@@ -77,29 +77,49 @@ def get_outbound_schedule(contact_id):
     
     return db.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact_id).first()
 
-def create_outbound_schedule(contact_id: int , satellite_name: str, active_window: list[datetime, datetime], image: list[image_activity] = None, maintenance: list[maintenance_activity] = None, downlink: list[downlink_activity] = None):
+def create_outbound_schedule_with_image(contact_id, satellite_name, active_window, image):
     
-    schedule = outbound_schedule(contact_id = contact_id,
+    schedule = OutboundSchedule(contact_id = contact_id,
                                  satellite_name = satellite_name,
-                                 active_window = active_window,
-                                 image_activities = image,
-                                 maintenance_activities = maintenance,
-                                 downlink_activities = downlink,
+                                 activity_window = active_window,
+                                 image_activities = [jsonable_encoder(image)],                                 
                                  schedule_status = "created")
     db.add(schedule)
     db.commit()
     return get_outbound_schedule(contact_id)
 
-def update_outbound_schedule(outbound_schedule: OutboundSchedule):
+def create_outbound_schedule_with_maintenance(contact_id, satellite_name, active_window, maintenance ):
+    
+    schedule = OutboundSchedule(contact_id = contact_id,
+                                 satellite_name = satellite_name,
+                                 activity_window = active_window,
+                                 maintenance_activities = [jsonable_encoder(maintenance)],
+                                 schedule_status = "created")
+    db.add(schedule)
+    db.commit()
+    return get_outbound_schedule(contact_id)
+
+def create_outbound_schedule_with_downlink(contact_id, satellite_name, active_window, downlink ):
+    
+    schedule = OutboundSchedule(contact_id = contact_id,
+                                 satellite_name = satellite_name,
+                                 activity_window = active_window,
+                                 downlink_activities = [jsonable_encoder(downlink)],
+                                 schedule_status = "created")
+    db.add(schedule)
+    db.commit()
+    return get_outbound_schedule(contact_id)
+
+def update_outbound_schedule(outbound_schedule: outbound_schedule):
     
        
     schedule = db.query(OutboundSchedule).filter_by(contact_id = outbound_schedule.contact_id).with_for_update().one()
     schedule.contact_id = outbound_schedule.contact_id
     schedule.satellite_name = outbound_schedule.satellite_name
-    schedule.active_window = outbound_schedule.active_window
-    schedule.image_activities = outbound_schedule.image
-    schedule.maintenance_activities = outbound_schedule.maintenance
-    schedule.downlink_activities = outbound_schedule.downlink
+    schedule.activity_window = outbound_schedule.activity_window
+    schedule.image_activities = outbound_schedule.image_activities
+    schedule.maintenance_activities = outbound_schedule.maintenance_activities
+    schedule.downlink_activities = outbound_schedule.downlink_activities
     schedule.schedule_status = "updated"
    
     db.commit()
