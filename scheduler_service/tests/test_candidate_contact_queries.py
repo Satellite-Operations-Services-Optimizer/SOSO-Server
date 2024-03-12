@@ -69,6 +69,7 @@ def test_candidate_contact_queries():
     transmission_outage = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
+        contact_id=contact_already_transmitting.id,
         start_time=contact_already_transmitting.start_time + contact_already_transmitting.duration - contact_reconfig_time,
         duration=contact_already_transmitting.duration + contact_reconfig_time
     )
@@ -96,6 +97,7 @@ def test_candidate_contact_queries():
     transmission_outage_different_sat = TransmissionOutage(
         schedule_id=schedule.id,
         asset_id=groundstation_1.id,
+        contact_id=contact_transmitting_to_different_satellite.id,
         start_time=contact_transmitting_to_different_satellite.start_time + contact_transmitting_to_different_satellite.duration - contact_reconfig_time,
         duration=contact_transmitting_to_different_satellite.duration + contact_reconfig_time
     )

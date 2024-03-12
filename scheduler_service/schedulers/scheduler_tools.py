@@ -134,14 +134,27 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
             # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
             candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
 
+            sample_size_for_dist_groundstations = 5
             candidate_plans_subquery = candidate_plans.subquery()
+            uplink_contact = aliased(ContactEvent)
+            downlink_contact = aliased(ContactEvent)
             asset_grouped_candidates = session.query(
                 candidate_plans_subquery.c.request_id,
                 candidate_plans_subquery.c.schedule_id,
                 candidate_plans_subquery.c.asset_id,
-                func.array_agg(candidate_plans_subquery.c.time_range)[1:top_n].label('time_ranges'),
-                func.array_agg(candidate_plans_subquery.c.uplink_contact_id)[1:top_n].label('uplink_ids'),
-                func.array_agg(candidate_plans_subquery.c.downlink_contact_id)[1:top_n].label('downlink_ids')
+                func.array_agg(uplink_contact.groundstation_id)[1:top_n+sample_size_for_dist_groundstations].label('uplink_groundstation_ids'),
+                func.array_agg(downlink_contact.groundstation_id)[1:top_n+sample_size_for_dist_groundstations].label('downlink_groundstation_ids'),
+                func.array_agg(candidate_plans_subquery.c.time_range)[1:top_n+sample_size_for_dist_groundstations].label('time_ranges'),
+                func.array_agg(candidate_plans_subquery.c.uplink_contact_id)[1:top_n+sample_size_for_dist_groundstations].label('uplink_ids'),
+                func.array_agg(candidate_plans_subquery.c.downlink_contact_id)[1:top_n+sample_size_for_dist_groundstations].label('downlink_ids')
+            ).join(
+                uplink_contact,
+                uplink_contact.id==candidate_plans_subquery.c.uplink_contact_id,
+                isouter=True
+            ).join(
+                downlink_contact,
+                downlink_contact.id==candidate_plans_subquery.c.downlink_contact_id,
+                isouter=True
             ).group_by(candidate_plans_subquery.c.request_id, candidate_plans_subquery.c.schedule_id, candidate_plans_subquery.c.asset_id).all()
 
             if len(asset_grouped_candidates) > 0:
@@ -169,9 +182,33 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
                     asset_candidates = None
             if asset_candidates == None: # should never happen because we must always have at least number_of_candidates candidates
                 break
-            candidate_time_range = asset_candidates.time_ranges.pop(0)
-            candidate_uplink_id = asset_candidates.uplink_ids.pop(0)
-            candidate_downlink_id = asset_candidates.downlink_ids.pop(0)
+
+            # shuffle for distributing groundstation
+            uplink_station_grouped_candidates = {}
+            for i, station_id in enumerate(asset_candidates.uplink_groundstation_ids):
+                if station_id in uplink_station_grouped_candidates:
+                    uplink_station_grouped_candidates[station_id].append(i)
+                else:
+                    uplink_station_grouped_candidates[station_id] = [i]
+            
+            uplink_station_id = random.choice(list(uplink_station_grouped_candidates.keys()))
+            indices_for_plans_using_chosen_uplink_station = uplink_station_grouped_candidates[uplink_station_id]
+
+            downlink_station_grouped_candidates = {}
+            for plan_idx in indices_for_plans_using_chosen_uplink_station:
+                downlink_station_id = asset_candidates.downlink_groundstation_ids[plan_idx]
+                if downlink_station_id in downlink_station_grouped_candidates:
+                    downlink_station_grouped_candidates[downlink_station_id].append(plan_idx)
+                else:
+                    downlink_station_grouped_candidates[downlink_station_id] = [plan_idx]
+                
+            chosen_downlink_station = random.choice(list(downlink_station_grouped_candidates.keys()))
+            chosen_plan_index = random.choice(downlink_station_grouped_candidates[chosen_downlink_station])
+            _ = asset_candidates.uplink_groundstation_ids.pop(chosen_plan_index)
+            _ = asset_candidates.downlink_groundstation_ids.pop(chosen_plan_index)
+            candidate_time_range = asset_candidates.time_ranges.pop(chosen_plan_index)
+            candidate_uplink_id = asset_candidates.uplink_ids.pop(chosen_plan_index)
+            candidate_downlink_id = asset_candidates.downlink_ids.pop(chosen_plan_index)
 
             chosen_candidate = session.query(
                 literal(asset_candidates.request_id).label('request_id'),
@@ -292,8 +329,7 @@ def get_candidate_contact_queries(request_id: int, uplink_cutoff_time: datetime)
             ~contact_is_scheduled_to_transmit,
             exists(TransmissionOutage).where(
                 TransmissionOutage.schedule_id==request.schedule_id,
-                TransmissionOutage.asset_id==ContactEvent.groundstation_id,
-                TransmissionOutage.utc_time_range.op('&&')(ContactEvent.utc_time_range),
+                TransmissionOutage.contact_id==ContactEvent.id,
                 # if the groundstation is in outage because it is transmitting to
                 # the satellite during *this contact* period, then it is not in outage
                 # for this satellite, because you can just keep on transmitting,
@@ -365,7 +401,10 @@ def query_satellite_available_time_slots(request_id: int, priority_tier_threshol
     if priority_tier_threshold:
         ignored_events_filter |= (TransmittedEvent.priority_tier<priority_tier_threshold)
         if priority_threshold:
-            ignored_events_filter |= (TransmittedEvent.priority_tier==priority_tier_threshold)&(TransmittedEvent.priority<priority_threshold)
+            ignored_events_filter |= and_(
+                TransmittedEvent.priority_tier==priority_tier_threshold,
+                TransmittedEvent.priority<priority_threshold
+            )
     
     blocking_transmitted_event_query.filter(~ignored_events_filter)
 

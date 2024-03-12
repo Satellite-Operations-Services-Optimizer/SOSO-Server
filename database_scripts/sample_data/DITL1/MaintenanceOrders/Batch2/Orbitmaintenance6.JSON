@@ -2,8 +2,8 @@
   "Target": "SOSO-3",
   "Activity": "OrbitManeuver",
   "Window": {
-    "Start": "2023-10-02T19:56:34",
-    "End": "2023-10-02T19:16:34"
+    "Start": "2023-10-02T19:16:34",
+    "End": "2023-10-02T19:56:34"
   },
   "Duration": "1200",
   "RepeatCycle": {

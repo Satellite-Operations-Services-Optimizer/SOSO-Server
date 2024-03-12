@@ -1,5 +1,5 @@
 from app_config import get_db_session, rabbit, logging
-from app_config.database.mapping import ScheduleRequest, ImageOrder, MaintenanceOrder, TransmittedEvent, SatelliteOutage, GroundStationOutage, ContactEvent, ScheduledImaging, ScheduledMaintenance, GroundStation, Schedule, EclipseProcessingBlock, TransmissionOutage, CaptureOpportunity
+from app_config.database.mapping import ScheduleRequest, ImageOrder, MaintenanceOrder, TransmittedEvent, SatelliteOutage, GroundStationOutage, ContactEvent, ScheduledImaging, ScheduledMaintenance, GroundStation, Schedule, EclipseProcessingBlock, TransmissionOutage, CaptureOpportunity, ScheduledEvent
 from sqlalchemy import or_, and_, func, exists, column
 from .scheduler_tools import calculate_top_scheduling_plans, query_satellite_available_time_slots
 from datetime import datetime, timedelta
@@ -22,6 +22,11 @@ def register_request_scheduler_listener():
 def process_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+    if not (request.status == "received" or request.status == "displaced"):
+        logger.error("Cannot process request with id={request_id}. It may have already been scheduled or rejected already, or is already being processed. Status: {request.status}")
+        return
+    request.status = "processing"
+    session.commit()
     logger.info(f"Processing {request.order_type} request with id={request_id}...")
     if request.order_type == "gs_outage" or request.order_type == "sat_outage":
         schedule_outage_request(request.id)
@@ -43,7 +48,7 @@ def decline_request(request_id: int):
     TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish_message(request.id)
     logger.info(f"Declined {request.order_type} request with id={request.id}.")
 
-def optimized_request_planning(request_id):
+def optimized_request_planning(request_id) -> list:
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
     schedule = session.query(Schedule).filter_by(id=request.schedule_id).one()
@@ -57,11 +62,16 @@ def optimized_request_planning(request_id):
     # We need eclipse events within request window for sure
     ensure_eclipse_events_populated(request.window_start, request.delivery_deadline) # TODO IMPORTANT!!!: Think of the interaction of this with the state checkpoint and calculating state. if we are only ensuring from this context cutoff, how do we know that the state is correct when we are calculating the state from the last checkpoint? UPDATE: No problem. we know because if an event was ever scheduled there, the eclipses must have already been populated. eclipses don't matter when we don't have any events taking place, and whenever we schedule an event to take place, we ensure that the eclipses are populated (exactly what we are doing now). Outages don't affect state. they just displace events. if there were no events there to begin with, nothing is affected. Only edge case is when one eclipse processing block ends close to another one starts, and they have an eclipse that spans from one's end to another's start. that means that by our internal model, it seems that the eclipse briefly ended and started again - so it seems like the satellite regained all its power. This is the only problem case.
 
-    context_growth_increment = timedelta(days=2)
+    context_growth_increment = max(timedelta(days=7), request.window_end-request.window_start)
     lower_context_cutoff = request.window_start
     upper_context_cutoff = request.window_end
 
+    retry_count = 0
     while lower_context_cutoff > min_context_cutoff or upper_context_cutoff < max_context_cutoff:
+        retry_count += 1
+        if retry_count > 5:
+            reject_request(request.id, "Could not find a spot to schedule this event. Spent too much time looking for a spot.")
+            return []
         if lower_context_cutoff < min_context_cutoff:
             ensure_eclipse_events_populated(lower_context_cutoff - context_growth_increment, lower_context_cutoff, request.asset_id) # 10 minutes for overlap
             ensure_eclipse_events_populated(upper_context_cutoff, upper_context_cutoff + context_growth_increment, request.asset_id)
@@ -105,13 +115,16 @@ def optimized_request_planning(request_id):
             workload_distribution_factor=0.75
         )
 
-        if len(scheduling_plan) > 0:
+        if scheduling_plan and len(scheduling_plan) > 0:
             return scheduling_plan
 
+        context_growth_increment = min(context_growth_increment*2, timedelta(days=60)) # double the time offset, but cap it at 40 days
         current_time = datetime.now() + schedule.time_offset
         min_context_cutoff = current_time + schedule.rejection_cutoff
         min_context_cutoff = min_context_cutoff.replace(tzinfo=request.delivery_deadline.tzinfo)
         max_context_cutoff = request.delivery_deadline
+    
+    reject_request(request.id, "Could not find a spot to schedule this event.")
     return []
 
 
@@ -149,11 +162,9 @@ def schedule_transmitted_event(request_id: int):
     
     scheduling_plan = optimized_request_planning(request_id)
 
-    if len(scheduling_plan) == 0:
-        reject_request(request.id, "Could not find a spot to schedule this event.")
-        return
+    if len(scheduling_plan) > 0:
+        execute_schedule_plan(scheduling_plan[0])
     
-    execute_schedule_plan(scheduling_plan[0])
 
 
 def execute_schedule_plan(schedule_plan):
@@ -201,37 +212,38 @@ def execute_schedule_plan(schedule_plan):
 
     # set groundstations in outage for transmission contact
     if schedule_plan.uplink_contact_id is not None:
-        uplink_contact = session.query(ContactEvent).filter_by(id=schedule_plan.uplink_contact_id).one()
-        uplink_groundstation = session.query(GroundStation).filter_by(id=uplink_contact.groundstation_id).one()
-        uplink_outage = TransmissionOutage(
-            schedule_id=request.schedule_id,
-            asset_id=uplink_groundstation.id,
-            start_time=uplink_contact.start_time - uplink_groundstation.reconfig_duration,
-            duration=uplink_contact.duration + 2*uplink_groundstation.reconfig_duration
-        )
-        session.add(uplink_outage)
+        uplink_transmission_outage = session.query(TransmissionOutage).filter_by(
+            contact_id=event.uplink_contact_id
+        ).one_or_none()
+        if uplink_transmission_outage is None:
+            uplink_contact = session.query(ContactEvent).filter_by(id=schedule_plan.uplink_contact_id).one()
+            uplink_groundstation = session.query(GroundStation).filter_by(id=uplink_contact.groundstation_id).one()
+            uplink_outage = TransmissionOutage(
+                schedule_id=request.schedule_id,
+                asset_id=uplink_groundstation.id,
+                contact_id=uplink_contact.id,
+                start_time=uplink_contact.start_time - uplink_groundstation.reconfig_duration,
+                duration=uplink_contact.duration + 2*uplink_groundstation.reconfig_duration
+            )
+            session.add(uplink_outage)
     
     if schedule_plan.downlink_contact_id is not None:
-        downlink_contact = session.query(ContactEvent).filter_by(id=schedule_plan.downlink_contact_id).one()
-        downlink_groundstation = session.query(GroundStation).filter_by(id=downlink_contact.groundstation_id).one()
-        downlink_outage = TransmissionOutage(
-            schedule_id=request.schedule_id,
-            asset_id=downlink_groundstation.id,
-            start_time=downlink_contact.start_time - downlink_groundstation.reconfig_duration,
-            duration=downlink_contact.duration + 2*downlink_groundstation.reconfig_duration
-        )
-        session.add(downlink_outage)
-    
-    session.query(ScheduleRequest).filter_by(id=event.request_id).update({
-        "status": "scheduled",
-        "status_message": ""
-    })
-    session.commit()
+        downlink_transmission_outage = session.query(TransmissionOutage).filter_by(
+            contact_id=event.downlink_contact_id
+        ).one_or_none()
+        if downlink_transmission_outage is None:
+            downlink_contact = session.query(ContactEvent).filter_by(id=schedule_plan.downlink_contact_id).one()
+            downlink_groundstation = session.query(GroundStation).filter_by(id=downlink_contact.groundstation_id).one()
+            downlink_outage = TransmissionOutage(
+                schedule_id=request.schedule_id,
+                asset_id=downlink_groundstation.id,
+                contact_id=downlink_contact.id,
+                start_time=downlink_contact.start_time - downlink_groundstation.reconfig_duration,
+                duration=downlink_contact.duration + 2*downlink_groundstation.reconfig_duration
+            )
+            session.add(downlink_outage)
 
-
-    # publish event notifying scheduled
-    TopicPublisher(rabbit(), f"request.{event.event_type}.scheduled").publish_message(event.request_id)
-    logger.info(f"Scheduled {event.event_type} request with id={event.id}.")
+    notify_request_scheduled(request.id)
 
 def schedule_outage_request(request_id):
     """
@@ -270,7 +282,7 @@ def schedule_outage_request(request_id):
 
     displaced_events = overlapping_events+untransmittable_events
     for event in displaced_events:
-        displace_event(event, message=f"Event was displaced due to an outage at {outage.asset_type} id={outage.asset_id}.")
+        displace_event(event, message=f"Event was displaced due to an outage at {request.asset_type} id={request.asset_id}.")
     
     session.commit()
 
@@ -283,58 +295,42 @@ def schedule_outage_request(request_id):
         duration=request.window_end - request.window_start
     )
     session.add(outage)
-
-    session.query(ScheduleRequest).filter_by(id=outage.request_id).update({
-        "status": "scheduled",
-        "status_message": ""
-    })
     session.commit()
 
-
-    # publish event notifying scheduled
-    TopicPublisher(rabbit(), f"request.{outage.event_type}.scheduled").publish_message(outage.request_id)
-    logger.info(f"Scheduled {outage.event_type} request with id={outage.id}.")
+    notify_request_scheduled(request.id)
 
 def displace_event(event, message, emit=True):
     session = get_db_session()
+
     if event.uplink_contact_id is not None:
-        uplink_transmission_outage = session.query(TransmissionOutage).join(
-            ContactEvent,
-            and_(
-                ContactEvent.id==event.uplink_contact_id,
-                ContactEvent.total_uplink_size-event.uplink_size <= 0 # This is the only event left scheduled to be transmitted during this contact (and since we are unscheduling it, there will be no more events scheduled to be transmitted during this contact)
-            )
+        session.query(TransmissionOutage).filter_by(
+            contact_id=event.uplink_contact_id
         ).filter(
-            TransmissionOutage.schedule_id==event.schedule_id,
-            TransmissionOutage.asset_id==ContactEvent.groundstation_id,
-            TransmissionOutage.utc_time_range.overlaps(ContactEvent.utc_time_range)
-        ).one_or_none()
-        session.delete(uplink_transmission_outage)
+            exists(ContactEvent).where(
+                ContactEvent.id==TransmissionOutage.contact_id,
+                ContactEvent.total_uplink_size-event.uplink_size <= 0
+            )
+        ).delete()
     if event.downlink_contact_id is not None:
-        downlink_transmission_outage = session.query(TransmissionOutage).join(
-            ContactEvent,
-            and_(
-                ContactEvent.id==event.downlink_contact_id,
-                ContactEvent.total_downlink_size-event.downlink_size <= 0 # This is the only event left scheduled to be transmitted during this contact (and since we are unscheduling it, there will be no more events scheduled to be transmitted during this contact)
-            )
+        session.query(TransmissionOutage).filter_by(
+            contact_id=event.downlink_contact_id
         ).filter(
-            TransmissionOutage.schedule_id==event.schedule_id,
-            TransmissionOutage.asset_id==ContactEvent.groundstation_id,
-            TransmissionOutage.utc_time_range.overlaps(ContactEvent.utc_time_range)
-        ).one_or_none()
-        session.delete(downlink_transmission_outage)
+            exists(ContactEvent).where(
+                ContactEvent.id==TransmissionOutage.contact_id,
+                ContactEvent.total_downlink_size-event.downlink_size <= 0
+            )
+        ).delete()
 
 
     session.delete(event)
-    session.query(ScheduleRequest).filter_by(id=event.request_id).update({
-        "status": "displaced",
-        "status_message": message
-    })
+    request = session.query(ScheduleRequest).filter_by(id=event.request_id).one()
+    request.status = "displaced"
+    request.status_message = message
     session.commit()
 
     if emit:
-        TopicPublisher(rabbit(), f"request.{event.event_type}.displaced").publish_message(event.request_id)
-        logger.info(f"Displaced {event.event_type} request with id={event.id}. {message}")
+        TopicPublisher(rabbit(), f"request.{request.order_type}.displaced").publish_message(request.id)
+        logger.info(f"Displaced {request.order_type} request with id={request.id}. {message}")
 
 def reject_request(request_id, message):
     session = get_db_session()
@@ -348,3 +344,18 @@ def reject_request(request_id, message):
     session.commit()
     TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
     logger.info(f"Rejected {request.order_type} request with id={request.id}. {message}")
+
+def notify_request_scheduled(request_id):
+    session = get_db_session()
+    request = session.query(ScheduleRequest).filter_by(id=request_id).one()
+    event = session.query(ScheduledEvent).filter_by(request_id=request.id).one()
+
+    request.status = "scheduled"
+    if request.status_message is not None and request.status_message != "" and message != "":
+        request.status_message = f"{request.status_message} Succesfully scheduled request."
+    else:
+        request.status_message = "Successfully scheduled request."
+    request.status_message = ""
+    session.commit()
+    TopicPublisher(rabbit(), f"request.{request.order_type}.scheduled").publish_message(request.id)
+    logger.info(f"Scheduled {request.order_type} request with id={request.id}. event_id={event.id}.")

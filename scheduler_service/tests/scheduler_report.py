@@ -1,9 +1,16 @@
+import warnings
+import logging
+# Suppress all warnings, including SQLAlchemy warnings
+warnings.filterwarnings("ignore")
+logging.basicConfig(level=logging.CRITICAL + 1)
+
 from app_config import get_db_session
 from app_config.database.mapping import ScheduleRequest, Schedule, Satellite, CaptureOpportunity, ImageOrder, SatelliteOutage, SystemOrder, ScheduledEvent, TransmittedEvent, GroundStation, ContactEvent
 from pathlib import Path
 from sqlalchemy import func
 
-def create_report(path: Path):
+
+def create_report():
     session = get_db_session()
     total_order_count = session.query(SystemOrder).count()
     total_request_count = session.query(ScheduleRequest).count()
@@ -18,14 +25,16 @@ def create_report(path: Path):
     print_request_breakdown(session.query(ScheduleRequest).subquery(), "   ")
 
 
-    print("\n\n======Breakdown by order type======")
+    print("\n======Breakdown by order type======")
 
-    for order_type, count in request_count_by_type:
-        print(f"Total {order_type.capitalize()} request count: {count}")
+    for order_type, request_count in request_count_by_type:
+        order_count = session.query(SystemOrder).filter_by(order_type=order_type).count()
+        print(f"Total {order_type.capitalize()} order count: {order_count}")
+        print(f"Total {order_type.capitalize()} request count: {request_count}")
         requests_subquery = session.query(ScheduleRequest).filter_by(order_type=order_type).subquery()
         print_request_breakdown(requests_subquery, "   ")
     
-    print("\n\n==========Scheduled Events=========\n")
+    print("\n==========Scheduled Events=========")
     print("------------Per satellite-----------")
     for satellite_id, satellite_name in session.query(Satellite.id, Satellite.name).all():
         total_event_count = session.query(TransmittedEvent).filter_by(asset_id=satellite_id).count()
@@ -37,11 +46,11 @@ def create_report(path: Path):
         ).filter_by(
             asset_id=satellite_id
         ).group_by(TransmittedEvent.event_type).all()
-        for event_type, count in event_count_by_type:
-            print(f"   {event_type} events: {count}")
+        for event_type, request_count in event_count_by_type:
+            print(f"   {event_type} events: {request_count}")
 
     
-    print("\n\n----------Per groundstation---------")
+    print("\n----------Per groundstation---------")
     for gs_id, gs_name in session.query(GroundStation.id, GroundStation.name).all():
         total_contacts = session.query(ContactEvent).filter(
             ContactEvent.groundstation_id==gs_id,
@@ -65,11 +74,12 @@ def print_request_breakdown(requests_subquery, indent):
             requests_subquery.c.status,
             requests_subquery.c.status_message
         ).all()
-        if len(breakdown_by_reason) > 0 and request_status != "received" and request_status != "scheduled":
+        if len(breakdown_by_reason) > 0 and request_status != "received" and request_status != "scheduled" and request_status != "processing":
             for reason, count in breakdown_by_reason:
                 print(f"{indent}  {count}: Reason: {reason or "Unspecified"}")
     
 
 
 
-create_report("")
+if __name__ == "__main__":
+    create_report()

@@ -281,10 +281,11 @@ class SatelliteStateGenerator:
 
         # detect change points, including the first point
         values = function(times_to_evaluate)
+        values = values if isinstance(values, np.ndarray) or isinstance(values, list) else np.array([values])
         changes = np.diff(values, prepend=values[0])
         change_indices = np.where(changes != 0)[0]
 
-        change_times = times_to_evaluate[change_indices]
+        change_times = times_to_evaluate[change_indices] if len(change_indices) > 0 else []
         return change_times, values[change_indices]
 
 

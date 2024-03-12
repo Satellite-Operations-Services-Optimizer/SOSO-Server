@@ -52,6 +52,10 @@ def populate_database(reference_time: Optional[datetime] = None):
     from database_scripts.populate import populate_database
     populate_database(reference_time)
 
+def set_reference_time(reference_time: Optional[datetime] = None):
+    from database_scripts.populate import set_reference_time
+    set_reference_time(reference_time)
+
     
     
 if __name__ == "__main__":
@@ -60,16 +64,22 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--drop", action='store_true', default=False, help="Drop database, as well as all tables and data")
     parser.add_argument("-s", "--schema", action='store_true', default=False, help="Drop and rebuild database schema, without populating it")
     parser.add_argument("-p", "--populate", action='store_true', default=False, help="Rebuild and populate database")
-    parser.add_argument("-t", "--reference_time", nargs='?', default=None, required=False, type=datetime.fromisoformat, help="Set the reference time of the schedule into which the order items will be populated into")
+    parser.add_argument("-t", "--reference-time", nargs='?', default=None, required=False, type=datetime.fromisoformat, help="Set the reference time of the schedule into which the order items will be populated into")
 
     args = parser.parse_args()
+
 
     if args.populate or (not args.schema and not args.drop): # default when no args set
         drop_database_schema()
         rebuild_database_schema()
-        populate_database(reference_time=args.reference_time)
+        if args.reference_time:
+            set_reference_time(args.reference_time)
+        populate_database()
     elif args.schema:
+        print("Rebuilding schema...")
         drop_database_schema()
         rebuild_database_schema()
+        if args.reference_time:
+            set_reference_time(args.reference_time)
     elif args.drop:
         drop_database_schema()

@@ -1,3 +1,11 @@
+import warnings
+from app_config import logging
+
+logger = logging.getLogger(__name__)
+# Suppress all warnings, including SQLAlchemy warnings
+if logger.getEffectiveLevel() > logging.DEBUG:
+    warnings.filterwarnings("ignore")
+
 from app_config.database.setup import engine
 from sqlalchemy import Column, Integer, DateTime, Float
 from sqlalchemy.ext.automap import automap_base

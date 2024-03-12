@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 import os
 
@@ -47,6 +47,16 @@ def get_session():
         # Create database session (scoped_session is used just to make sure the connection is thread safe)
         DatabaseSession = scoped_session(sessionmaker(bind=engine))
         _global_session = DatabaseSession()
+
+        try:
+            # Test the connection
+            session_works = _global_session.execute(text('SELECT 1'))
+        except:
+            _global_session.rollback()
+            _global_session.close()
+            DatabaseSession = scoped_session(sessionmaker(bind=engine))
+            _global_session = DatabaseSession()
+
     return _global_session
 
 setup_database()

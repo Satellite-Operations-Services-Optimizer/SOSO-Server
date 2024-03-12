@@ -1,12 +1,12 @@
 {
-   "Latitude": 45.75014710432836,
-   "Longitude": -77.0411818718021,
-   "Priority": 3,
-   "ImageType": "High",
-   "ImageStartTime": "2023-10-02T02:42:34",
-   "ImageEndTime": "2023-10-02T05:59:25",
-   "DeliveryTime": "2023-10-02T12:59:25",
-   "Recurrence": {
-      "Revist": "False"
-   }
+    "Latitude": 45.75014710432836,
+    "Longitude": -77.0411818718021,
+    "Priority": 3,
+    "ImageType": "High",
+    "ImageStartTime": "2023-10-02T02:42:34",
+    "ImageEndTime": "2023-10-02T05:59:25",
+    "DeliveryTime": "2023-10-02T12:59:25",
+    "Recurrence": {
+        "Revisit": "False"
+    }
 }

@@ -11,11 +11,17 @@ from database_scripts.populate_scripts.populate_outage_orders import populate_ou
 import argparse
 from pathlib import Path
 import os
+from datetime import datetime
+from typing import Union
+import sys
 
 logger = logging.getLogger(__name__)
 
-def set_reference_time(reference_time):
+def set_reference_time(reference_time: Union[datetime, str]):
     session = get_session()
+    if type(reference_time)==str:
+        reference_time = datetime.fromisoformat(reference_time)
+    print(f"Setting reference time to {reference_time}. schedule={os.getenv('DEFAULT_SCHEDULE_ID')}")
     session.query(Schedule).filter_by(id=os.getenv("DEFAULT_SCHEDULE_ID")).update(dict(
         reference_time=reference_time,
         time_offset=reference_time - datetime.now()
@@ -286,35 +292,48 @@ if __name__ == '__main__':
     if args.reference_time:
         set_reference_time(args.reference_time)
 
-    if args.satellites:
-        if args.satellites == 'sample':
-            populate_satellites(samples_folder / 'sample_satellites', emit=args.emit)
-        else:
+    satellites_flag = '--satellites' in sys.argv or '-s' in sys.argv
+    groundstations_flag = '--groundstations' in sys.argv or '-g' in sys.argv
+    imaging_flag = '--imaging' in sys.argv or '-i' in sys.argv
+    maintenance_flag = '--maintenance' in sys.argv or '-m' in sys.argv
+    outages_flag = '--outages' in sys.argv or '-o' in sys.argv
+
+    if satellites_flag:
+        if args.satellites:
             populate_satellites(args.satellites, emit=args.emit)
-    if args.groundstations:
-        if args.groundstations == 'sample':
-            populate_groundstations(samples_folder / 'sample_groundstations', emit=args.emit)
         else:
+            populate_satellites(samples_folder / 'sample_satellites', emit=args.emit)
+
+    if groundstations_flag:
+        if args.groundstations:
             populate_groundstations(args.groundstations, emit=args.emit)
-    if args.imaging:
-        if args.imaging == 'sample':
-            populate_image_orders(samples_folder / 'sample_image_orders', emit=args.emit)
         else:
+            populate_groundstations(samples_folder / 'sample_groundstations', emit=args.emit)
+
+    if imaging_flag:
+        if args.imaging:
+            print("Populating image orders from", args.imaging)
             populate_image_orders(args.imaging, emit=args.emit)
-    if args.maintenance:
-        if args.maintenance == 'sample':
-            populate_maintenance_orders(samples_folder / 'sample_maintenance_orders', emit=args.emit)
         else:
+            print("Populating image orders from", samples_folder / 'sample_image_orders')
+            populate_image_orders(samples_folder / 'sample_image_orders', emit=args.emit)
+
+    if maintenance_flag:
+        if args.maintenance:
             populate_maintenance_orders(args.maintenance, emit=args.emit)
-    if args.outages:
-        if args.outages == 'sample':
-            populate_outage_orders(samples_folder / 'sample_outage_orders', emit=args.emit)
         else:
+            populate_maintenance_orders(samples_folder / 'sample_maintenance_orders', emit=args.emit)
+
+    if outages_flag:
+        if args.outages:
             populate_outage_orders(args.outages, emit=args.emit)
-    # if args.schedule:
+        else:
+            populate_outage_orders(samples_folder / 'sample_outage_orders', emit=args.emit)
+    # if '--schedule' in sys.argv:
     #     # populate_sample_schedules()
     #     populate_scheduled_events()
 
-    if not args.satellites and not args.groundstations and not args.imaging and not args.maintenance and not args.outages:
-        populate_database(args.reference_time)
+
+    if not maintenance_flag and not groundstations_flag and not imaging_flag and not maintenance_flag and not outages_flag:
+        populate_database()
     

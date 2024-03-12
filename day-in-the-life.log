@@ -1,0 +1,3 @@
+Running the day-in-the-life (DITL) test
+Step 0: Cleanup database and set schedule reference time to 2022-09-01T00:00:00
+Step 1: Ingest all Batch 1 orders and all maintenance orders except for OrbitMaintenance6 and OrbitMaintenance7
