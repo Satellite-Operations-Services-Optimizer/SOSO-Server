@@ -11,7 +11,7 @@ import math
 import time
 from haversine import haversine
 from app_config import get_db_session
-from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, MaintenanceOrder, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule
+from app_config.database.mapping import GroundStation, Satellite, ImageOrder, ScheduleRequest, OutageOrder, MaintenanceOrder, ScheduledMaintenance, ScheduledOutage, ScheduledImaging, Schedule, ScheduledEvent
 from sqlalchemy import case, and_, or_
 from scheduler_service.constants import get_ephemeris
 from scheduler_service.schedulers.utils import get_image_dimensions
@@ -768,11 +768,9 @@ class System:
             if maintenance.asset_name in self.satellites_map:
                 self.satellites_map[maintenance.asset_name].maint.append(maintenance_order_dict)
     
-    def unscheduleRequest(self, request_id, event_table):
+    def unscheduleRequest(self, request_id):
         session = get_db_session()
-        scheduled_events = session.query(event_table).filter_by(request_id=request_id).all()
-        for event in scheduled_events:
-            session.delete(event)
+        session.query(ScheduledEvent).filter_by(request_id=request_id).delete()
 
         request = session.query(ScheduleRequest).filter_by(id=request_id).first()
         request.status = "received"

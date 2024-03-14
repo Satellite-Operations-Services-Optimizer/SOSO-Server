@@ -111,6 +111,19 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
+    # Get the candidate uplink and downlink contacts for the request
+    candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
+        request_id, uplink_cutoff_time=context_cutoff_time,
+    )
+
+    if request.uplink_size > 0 and candidate_uplink_contact.count() == 0: # TODO: WARNING: PERFORMANCE HIT!!! :( computing query before we actually use it. it is doubly computed. TODO: get ids of these queries, and pass them in to the following queries, for speedup
+        return [], "No contacts found to uplink this request."
+    if request.downlink_size > 0 and candidate_downlink_contact.count() == 0:
+        return [], "No contacts found to downlink this request."
+
+    candidate_uplink_subquery = candidate_uplink_contact.subquery()
+    candidate_downlink_subquery = candidate_downlink_contact.subquery()
+
     priority_tier_info = session.query(
         func.max(ScheduleRequest.priority).label('max_priority'),
         func.min(ScheduleRequest.priority).label('min_priority'),
@@ -124,12 +137,15 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     asset_grouped_candidates = []
     # Get the available slots for the satellite event to occur. start without any priority threshold, then incrementally start allowing it to displace other events of lower priority
     for tier in sorted(priority_tier_info, key=lambda x: x.priority_tier):
+        priority_tier_threshold = tier.priority_tier
         for priority_threshold in range(tier.min_priority, tier.max_priority+1):
+            # Get the available slots for the satellite event to occur
+            candidate_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_tier_threshold, priority_threshold).subquery()
             unfiltered_candidate_plans = query_candidate_scheduling_plans(
                 request_id,
-                context_cutoff_time,
-                priority_tier_threshold=tier.priority_tier,
-                priority_threshold=priority_threshold,
+                candidate_time_slots_subquery,
+                candidate_uplink_subquery,
+                candidate_downlink_subquery,
             )
             # candidate_plans = filter_out_candidate_plans_causing_invalid_state(unfiltered_candidate_plans).subquery()
             candidate_plans = unfiltered_candidate_plans # TODO: temporary, for testing purposes. we need to filter for invalid state
@@ -222,22 +238,21 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
             chosen_candidate = random.choice(punctuality_ordered_candidates).pop(0)
         
         top_n_candidates.append(chosen_candidate)
-    return top_n_candidates
+    
+    if len(top_n_candidates)==0:
+        message_uplink_path = "uplink gs contact -> " if request.uplink_size > 0 else ""
+        message_downlink_path = " -> downlink gs contact" if request.downlink_size > 0 else ""
+        failure_path = f"{message_uplink_path}satellite time slot{message_downlink_path}"
+        return [], f"There were available satellite time slots, and available groundstation contacts, but no valid matching of {failure_path} could be found."
+    
+    candidates = top_n_candidates
+    failure_reason = None
+    return candidates, failure_reason
 
 
-def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datetime, priority_tier_threshold: Optional[int] = None, priority_threshold: Optional[int] = None):
+def query_candidate_scheduling_plans(request_id: int, candidate_time_slots_subquery, candidate_uplink_subquery, candidate_downlink_subquery):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
-
-    # Get the available slots for the satellite event to occur
-    available_time_slots_subquery = query_satellite_available_time_slots(request_id, priority_tier_threshold, priority_threshold).subquery()
-
-    # Get the candidate uplink and downlink contacts for the request
-    candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
-        request_id, uplink_cutoff_time=context_cutoff_time,
-    )
-    candidate_uplink_subquery = candidate_uplink_contact.subquery()
-    candidate_downlink_subquery = candidate_downlink_contact.subquery()
 
     uplink_required = True # request.uplink_size > 0 TODO: we should never have a case where we have to model something in our system that doesn't need uplink. we need to uplink for sat to know what to do. verify with csa
     downlink_required = request.downlink_size > 0
@@ -247,41 +262,41 @@ def query_candidate_scheduling_plans(request_id: int, context_cutoff_time: datet
     uplink_downlink_gap = func.tstzrange(
         case(
             (candidate_uplink_subquery!=None, func.upper(uplink_time_range)),
-            else_=func.lower(available_time_slots_subquery.c.time_range)
+            else_=func.lower(candidate_time_slots_subquery.c.time_range)
         ),
         case(
             (candidate_downlink_subquery!=None, func.lower(downlink_time_range)),
-            else_=func.upper(available_time_slots_subquery.c.time_range)
+            else_=func.upper(candidate_time_slots_subquery.c.time_range)
         )
     )
 
-    latest_event_start_time = func.upper(available_time_slots_subquery.c.time_range)-ScheduleRequest.duration # the latest possible time we can start the event and still be able to complete it within the available time slot
-    earliest_event_end_time = func.lower(available_time_slots_subquery.c.time_range)+ScheduleRequest.duration
-    event_time_range = uplink_downlink_gap*available_time_slots_subquery.c.time_range
+    latest_event_start_time = func.upper(candidate_time_slots_subquery.c.time_range)-ScheduleRequest.duration # the latest possible time we can start the event and still be able to complete it within the available time slot
+    earliest_event_end_time = func.lower(candidate_time_slots_subquery.c.time_range)+ScheduleRequest.duration
+    event_time_range = uplink_downlink_gap*candidate_time_slots_subquery.c.time_range
     event_duration = func.upper(event_time_range)-func.lower(event_time_range)
     candidate_schedule_plans = session.query(
         ScheduleRequest.id.label('request_id'),
-        available_time_slots_subquery.c.schedule_id,
-        available_time_slots_subquery.c.asset_id.label('asset_id'),
+        candidate_time_slots_subquery.c.schedule_id,
+        candidate_time_slots_subquery.c.asset_id.label('asset_id'),
         event_time_range.label('time_range'),
         candidate_uplink_subquery.c.id.label('uplink_contact_id'),
         candidate_downlink_subquery.c.id.label('downlink_contact_id'),
     ).select_from(
-        available_time_slots_subquery
+        candidate_time_slots_subquery
     ).join(
         ScheduleRequest,
         ScheduleRequest.id==request.id
     ).join(
         candidate_uplink_subquery,
         and_(
-            available_time_slots_subquery.c.asset_id==candidate_uplink_subquery.c.asset_id,
+            candidate_time_slots_subquery.c.asset_id==candidate_uplink_subquery.c.asset_id,
             func.upper(uplink_time_range) < latest_event_start_time, # uplink must finish before the last possible chance to perform the event within the available time slot
         ),
         isouter=not uplink_required
     ).join(
         candidate_downlink_subquery,
         and_(
-            available_time_slots_subquery.c.asset_id==candidate_downlink_subquery.c.asset_id,
+            candidate_time_slots_subquery.c.asset_id==candidate_downlink_subquery.c.asset_id,
             func.upper(uplink_time_range) < candidate_downlink_subquery.c.start_time,
             case(
                 (candidate_uplink_subquery==None, func.lower(downlink_time_range) > earliest_event_end_time), # downlink must start after we have had a chance to perform the event

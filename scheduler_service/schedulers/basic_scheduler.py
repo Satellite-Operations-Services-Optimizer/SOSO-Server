@@ -23,7 +23,7 @@ def process_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
     if not (request.status == "received" or request.status == "displaced"):
-        logger.error("Cannot process request with id={request_id}. It may have already been scheduled or rejected already, or is already being processed. Status: {request.status}")
+        logger.error("Cannot start processing request with id={request_id}. It may have already been scheduled or rejected, or is already currently being processed. Status: {request.status}")
         return
     request.status = "processing"
     session.commit()
@@ -38,8 +38,7 @@ def decline_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
 
-    event = session.query(TransmittedEvent).filter_by(request_id=request_id).one_or_none()
-    displace_event(event, "", emit=False)
+    displace_scheduled_request(request_id, "", emit=False)
     request.status = "declined"
     request.status_message = "The request was declined by an opertor."
     session.commit()
@@ -67,10 +66,11 @@ def optimized_request_planning(request_id) -> list:
     upper_context_cutoff = request.window_end
 
     retry_count = 0
+    failure_reason = None
     while lower_context_cutoff > min_context_cutoff or upper_context_cutoff < max_context_cutoff:
         retry_count += 1
         if retry_count > 5:
-            reject_request(request.id, "Could not find a spot to schedule this event. Spent too much time looking for a spot.")
+            reject_request(request.id, f"Spent too much time trying to find a valid schedule plan. Failure reason during last try: {failure_reason}")
             return []
         if lower_context_cutoff < min_context_cutoff:
             ensure_eclipse_events_populated(lower_context_cutoff - context_growth_increment, lower_context_cutoff, request.asset_id) # 10 minutes for overlap
@@ -108,15 +108,16 @@ def optimized_request_planning(request_id) -> list:
         #     ensure_eclipse_events_populated(range.time_range.lower, range.time_range.upper, range.satellite_id)
 
 
-        scheduling_plan = calculate_top_scheduling_plans(
+        scheduling_plans, failure_reason = calculate_top_scheduling_plans(
             request_id=request.id,
             context_cutoff_time=lower_context_cutoff, # we only need lower_context_cutoff because we assume upper cutoff is request.delivery_deadline. best case we have already processed contacts past upper_context_cutoff and we gett a better scheduling plann sooner. worst case, no contacts are found there and this function expands the upper context cutoff
             top_n=1,
             workload_distribution_factor=0.75
         )
 
-        if scheduling_plan and len(scheduling_plan) > 0:
-            return scheduling_plan
+        if len(scheduling_plans) > 0:
+            return scheduling_plans
+
 
         context_growth_increment = min(context_growth_increment*2, timedelta(days=60)) # double the time offset, but cap it at 40 days
         current_time = datetime.now() + schedule.time_offset
@@ -124,7 +125,7 @@ def optimized_request_planning(request_id) -> list:
         min_context_cutoff = min_context_cutoff.replace(tzinfo=request.delivery_deadline.tzinfo)
         max_context_cutoff = request.delivery_deadline
     
-    reject_request(request.id, "Could not find a spot to schedule this event.")
+    reject_request(request.id, f"{failure_reason}")
     return []
 
 
@@ -160,10 +161,10 @@ def schedule_transmitted_event(request_id: int):
         reject_request(request.id, "No available time slots for this event.")
         return
     
-    scheduling_plan = optimized_request_planning(request_id)
+    scheduling_plans = optimized_request_planning(request_id)
 
-    if len(scheduling_plan) > 0:
-        execute_schedule_plan(scheduling_plan[0])
+    if len(scheduling_plans) > 0:
+        execute_schedule_plan(scheduling_plans[0])
     
 
 
@@ -183,7 +184,7 @@ def execute_schedule_plan(schedule_plan):
     ).filter(transmitted_event_time_range.op('&&')(schedule_plan.time_range)).all()
 
     for event in displaced_events:
-        displace_event(event, "Event was displaced in favor of a higher priority event.")
+        displace_scheduled_request(event.request_id, "Event was displaced in favor of a higher priority event.")
 
     session.commit()
 
@@ -256,11 +257,11 @@ def schedule_outage_request(request_id):
         raise Exception("This function only scheduling outages.")
 
     # events scheduled to be performed during the outage
-    overlapping_events = session.query(TransmittedEvent).filter_by(
+    request_ids_for_overlapping_events = session.query(TransmittedEvent.request_id).filter_by(
         schedule_id=request.schedule_id,
         asset_id=request.asset_id,
         asset_type=request.asset_type
-    ).filter(TransmittedEvent.utc_time_range.overlaps(request.utc_window_time_range)).all()
+    ).filter(TransmittedEvent.utc_time_range.overlaps(request.utc_window_time_range))
 
     if request.asset_type == "satellite":
         contact_event_filter = ContactEvent.asset_id==request.asset_id
@@ -273,16 +274,17 @@ def schedule_outage_request(request_id):
         ContactEvent.utc_time_range.overlaps(request.utc_window_time_range)
     ).subquery()
 
-    untransmittable_events = session.query(TransmittedEvent).filter(
+    request_ids_for_untransmittable_events = session.query(TransmittedEvent.request_id).filter(
         or_(
             TransmittedEvent.uplink_contact_id.in_(overlapping_contacts_subquery),
             TransmittedEvent.downlink_contact_id.in_(overlapping_contacts_subquery)
         )
-    ).all()
+    )
 
-    displaced_events = overlapping_events+untransmittable_events
-    for event in displaced_events:
-        displace_event(event, message=f"Event was displaced due to an outage at {request.asset_type} id={request.asset_id}.")
+    # union the two and get the unique ids
+    displaced_requests = request_ids_for_overlapping_events.union(request_ids_for_untransmittable_events).distinct().all()
+    for displaced_request in displaced_requests:
+        displace_scheduled_request(displaced_request.request_id, message=f"Scheduled request was displaced due to an outage at {request.asset_type} id={request.asset_id}.")
     
     session.commit()
 
@@ -299,8 +301,11 @@ def schedule_outage_request(request_id):
 
     notify_request_scheduled(request.id)
 
-def displace_event(event, message, emit=True):
+def displace_scheduled_request(request_id, message, emit=True):
     session = get_db_session()
+
+    request =session.query(ScheduleRequest).filter_by(id=request_id).one()
+    event = session.query(TransmittedEvent).filter_by(request_id=request.id).one()
 
     if event.uplink_contact_id is not None:
         session.query(TransmissionOutage).filter_by(
@@ -321,9 +326,12 @@ def displace_event(event, message, emit=True):
             )
         ).delete()
 
+    # have to delete this way and not with session.delete(event) because it deletes from all
+    # children tables (both imaging and maintenance events) with the event.id if you do session.delete(event) (and id is not unique
+    # across inherited tables, so it deletes potentially multiple rows, as long as it has the same id as event.id. it doesn't just)
+    # delete the corresponding row of the `event` orm object we pass to it.)
+    session.query(ScheduledEvent).filter_by(request_id=request.id).delete() 
 
-    session.delete(event)
-    request = session.query(ScheduleRequest).filter_by(id=event.request_id).one()
     request.status = "displaced"
     request.status_message = message
     session.commit()
@@ -351,11 +359,10 @@ def notify_request_scheduled(request_id):
     event = session.query(ScheduledEvent).filter_by(request_id=request.id).one()
 
     request.status = "scheduled"
-    if request.status_message is not None and request.status_message != "" and message != "":
+    if request.status_message is not None and request.status_message != "":
         request.status_message = f"{request.status_message} Succesfully scheduled request."
     else:
         request.status_message = "Successfully scheduled request."
-    request.status_message = ""
     session.commit()
     TopicPublisher(rabbit(), f"request.{request.order_type}.scheduled").publish_message(request.id)
     logger.info(f"Scheduled {request.order_type} request with id={request.id}. event_id={event.id}.")
