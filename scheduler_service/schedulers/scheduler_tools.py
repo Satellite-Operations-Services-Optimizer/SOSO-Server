@@ -115,14 +115,16 @@ def calculate_top_scheduling_plans(request_id: int, context_cutoff_time: datetim
     candidate_uplink_contact, candidate_downlink_contact = get_candidate_contact_queries(
         request_id, uplink_cutoff_time=context_cutoff_time,
     )
+    candidate_uplink_ids = session.scalars(candidate_uplink_contact.with_entities(ContactEvent.id)).all() # save query result for speed boost, as it is used in multiple places
+    candidate_downlink_ids = session.scalars(candidate_downlink_contact.with_entities(ContactEvent.id)).all()
+    candidate_uplink_subquery = session.query(ContactEvent).filter(ContactEvent.id.in_(candidate_uplink_ids)).subquery()
+    candidate_downlink_subquery = session.query(ContactEvent).filter(ContactEvent.id.in_(candidate_downlink_ids)).subquery()
 
-    if request.uplink_size > 0 and candidate_uplink_contact.count() == 0: # TODO: WARNING: PERFORMANCE HIT!!! :( computing query before we actually use it. it is doubly computed. TODO: get ids of these queries, and pass them in to the following queries, for speedup
+
+    if request.uplink_size > 0 and len(candidate_uplink_ids) == 0: # TODO: WARNING: PERFORMANCE HIT!!! :( computing query before we actually use it. it is doubly computed. TODO: get ids of these queries, and pass them in to the following queries, for speedup
         return [], "No contacts found to uplink this request."
-    if request.downlink_size > 0 and candidate_downlink_contact.count() == 0:
+    if request.downlink_size > 0 and len(candidate_downlink_ids) == 0:
         return [], "No contacts found to downlink this request."
-
-    candidate_uplink_subquery = candidate_uplink_contact.subquery()
-    candidate_downlink_subquery = candidate_downlink_contact.subquery()
 
     priority_tier_info = session.query(
         func.max(ScheduleRequest.priority).label('max_priority'),
