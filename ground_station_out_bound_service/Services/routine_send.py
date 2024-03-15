@@ -3,7 +3,7 @@ from rabbit_wrapper import TopicConsumer, TopicPublisher
 from app_config.rabbit import rabbit
 from app_config import logging
 from app_config import get_db_session
-from app_config.database.mapping import Base, GroundStationRequest, ContactEvent, OutboundSchedule, ScheduledMaintenance, ScheduledImaging
+from app_config.database.mapping import Base, GroundStationRequest, ContactEvent, OutboundSchedule, ScheduledMaintenance, ScheduledImaging, Schedule, GroundStation
 from ground_station_out_bound_service.models.ScheduleModel import satellite_schedule, ground_station_request
 from ground_station_out_bound_service.Helpers.contact_ground_station import send_ground_station_request, send_satellite_schedule
 from ground_station_out_bound_service.Helpers.data import get_satellite, get_ground_station, update_schedule_request_status
@@ -19,11 +19,13 @@ def send_upcoming_contacts():
     ground_station_schedules = []
     current_datetime = datetime.now(timezone.utc) 
     
-    # send schedules if cantact is less than 30 minutes away
-    schedule = timedelta(minutes=30)
+    # send schedules if contact is less than 20 minutes away
+    schedule_limit = db_session.query(Schedule).first().rejection_cutoff
+        
+    gs_limit = db_session.query(GroundStation).first().reconfig_duration
     
     #possibliy multiple gs requests
-    scheduled_contacts = db_session.query(ContactEvent).filter(ContactEvent.start_time - current_datetime > timedelta(minutes=5)).filter(ContactEvent.start_time - current_datetime <= schedule).all()
+    scheduled_contacts = db_session.query(ContactEvent).filter(ContactEvent.start_time - current_datetime > gs_limit).filter(ContactEvent.start_time - current_datetime <= schedule_limit).all()
     
     for contact in scheduled_contacts:
         request_ids = []
@@ -52,7 +54,7 @@ def send_upcoming_contacts():
                 
         if (outboundschedule != None and outboundschedule.schedule_status != "sent_to_gs" ):
             
-            if(contact.start_time - current_datetime <= timedelta(minutes=5)): # don't send if contact window has already passed or less than 5 minutes away
+            if(contact.start_time - current_datetime <= gs_limit): # don't send if contact window has already passed or less than 20 minutes away
                 logging.info(f"cannot uplink updated schedule - previous schedule has been uplinked and contact window has passed")
                 failed_update = jsonable_encoder(outboundschedule)
                 logging.info(f"failed update schedule: \n{failed_update}")
