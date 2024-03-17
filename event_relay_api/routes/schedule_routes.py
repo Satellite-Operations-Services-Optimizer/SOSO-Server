@@ -21,7 +21,7 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
     session = get_db_session()
     schedule = session.query(Schedule).filter_by(id=id).first()
     if not schedule:
-        raise HTTPException(404, detail="Schedule does not exist.")
+        raise HTTPException(404, detail="Schedule with id={id} does not exist.")
 
     events_subquery = session.query(
         ScheduledEvent.event_type,
@@ -109,7 +109,7 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
     return [event._asdict() for event in events]
 
 @router.get("/name={name}")
-async def scheduled_events_by_name(name: str):
+async def get_schedule_by_name(name: str):
     session = get_db_session()
     schedule = session.query(Schedule).filter_by(name=name).first()
     if not schedule:

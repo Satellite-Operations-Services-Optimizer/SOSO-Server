@@ -14,21 +14,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 #ground_station endpoints
-@router.get("/ground_stations")
+@router.get("/groundstations")
 async def get_all_ground_stations(): 
     session = get_db_session()
     ground_stations = session.query(GroundStation).all()
     return jsonable_encoder(ground_stations)
 
-@router.get("/ground_stations/{id}", response_model=GroundStationCreationRequest)
+@router.get("/groundstations/{id}", response_model=GroundStationCreationRequest)
 async def get_ground_station(id):
     session = get_db_session()
     ground_station = session.query(GroundStation).filter_by(id=id).first()
     if not ground_station:
-        raise HTTPException(404, detail="Ground station does not exist.")
+        raise HTTPException(404, detail="Groundstation with id={id} does not exist.")
     return jsonable_encoder(ground_station)
 
-@router.post("/create_ground_station")
+@router.post("/groundstations/create")
 async def new_ground_station(ground_station: GroundStationCreationRequest):
     session = get_db_session()
     new_ground_station = GroundStation(**ground_station.model_dump())
@@ -37,13 +37,22 @@ async def new_ground_station(ground_station: GroundStationCreationRequest):
     session.refresh(new_ground_station)
     return new_ground_station.id
 
-""" @router.put("/ground_stations/{name}")
-async def modify_ground_station(name):
-    return modify_ground_station_by_name(name) """
-
-
 #satellite end points
-@router.post("/create_satellite")
+@router.get("/satellites")
+async def get_satellites():
+    session = get_db_session()
+    satellites = session.query(Satellite).all()
+    return jsonable_encoder(satellites)
+
+@router.get("/satellites/{id}")
+async def get_ground_station(id):
+    session = get_db_session()
+    satellite = session.query(Satellite).filter_by(id=id).first()
+    if not satellite:
+        raise HTTPException(404, detail="Satellite with id={id} does not exist.")
+    return jsonable_encoder(satellite)
+
+@router.post("/satellites/create")
 async def new_satellite(tle_file: UploadFile = File(...), 
                         satellite_form_data = SatelliteCreationRequest):    
     
@@ -54,9 +63,3 @@ async def new_satellite(tle_file: UploadFile = File(...),
     new_satellite = json.load(tle_json.file)
     new_satellite_id = add_satellite(new_satellite, tle_json, satellite_form_data)
     return new_satellite_id
-
-@router.get("/satellites")
-async def get_satellites():
-    session = get_db_session()
-    satellites = session.query(Satellite).all()
-    return jsonable_encoder(satellites)
