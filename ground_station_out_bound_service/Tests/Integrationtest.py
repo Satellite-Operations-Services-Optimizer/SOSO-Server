@@ -8,9 +8,9 @@ from sqlalchemy import or_
 import random
 
 session = get_db_session()
-
+schedule_limit = session.query(Schedule).first().rejection_cutoff
 def get_approaching_scheduled_contacts():
-    contacts = session.query(ContactEvent).filter(ContactEvent.start_time >= datetime.now()).filter(ContactEvent.start_time <= (datetime.now() + timedelta(minutes=29)) ).all()
+    contacts = session.query(ContactEvent).filter(ContactEvent.start_time >= datetime.now()).filter(ContactEvent.start_time <= (datetime.now() + schedule_limit) ).all()
     return contacts
 
 def get_image_orders():
@@ -20,7 +20,7 @@ def get_image_orders():
 def check_outbound_schedule(contactId: int):
     outbound_schedule = session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contactId).first()
     if (outbound_schedule != None):
-        if(outbound_schedule.status == "sent_to_gs"):
+        if(outbound_schedule.schedule_status == "sent_to_gs"):
             return "schedule_sent"
         else:
             return "schedule_not_sent"
@@ -85,31 +85,26 @@ def cleanup():
     
 def initialize():
     cleanup()    
-    for i in range(1,10):
+    
+    for i in range(1,3):
+      create_valid_image_order_schedule(datetime.now() + timedelta(minutes=i*1), f"testschedule {i}")
+    for i in range(3,7):
       create_valid_image_order_schedule(datetime.now() + timedelta(minutes=i*3), f"testschedule {i}")
-    for i in range(10,15):
-      create_valid_image_order_schedule(datetime.now() + timedelta(minutes=i*3), f"testschedule {i}")
+    for i in range(7,10):
+      create_valid_image_order_schedule(datetime.now() + timedelta(minutes=i*5), f"testschedule {i}")
 
 
 def run_test():
-    initialize()
-
+    #initialize()
+    #cleanup()
     contacts_with_schedules_not_sent  = check_schedule_status()
     if(contacts_with_schedules_not_sent != None):
         print("\nThese outbound schedules were created but not sent: \n")
         for contact in contacts_with_schedules_not_sent:
             schedule = session.query(OutboundSchedule).filter(OutboundSchedule.contact_id == contact.id).first()
             print(jsonable_encoder(schedule), "\n")  
-    imaging = session.query(ScheduledImaging).first()
-    outbound = add_image_activity(imaging)
-    print(jsonable_encoder(outbound))
     
-                    
-    # contacts = jsonable_encoder(get_approaching_scheduled_contacts())
-    # print(contacts)
-
-    # contacts = session.query(ContactEvent).all()
-    # print(jsonable_encoder(contacts))
+    
 
 if __name__ == "__main__":
     run_test()
