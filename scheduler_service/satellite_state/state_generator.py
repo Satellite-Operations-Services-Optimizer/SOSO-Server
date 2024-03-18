@@ -93,7 +93,7 @@ class SatelliteStateGenerator:
             else: # coverage is limited by the sensor's field of view
                 cap_angle = math.asin(math.sin(half_fov) / rho) - half_fov
             
-            sat_coverage_dist = EARTH_RADIUS * cap_angle
+            sat_coverage_dist = EARTH_RADIUS * cap_angle # this is radius * angle = arc length
             
             image_within_view = required_coverage_dist < sat_coverage_dist
             return image_within_view
