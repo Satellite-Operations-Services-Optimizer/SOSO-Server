@@ -41,7 +41,7 @@ def ensure_capture_opportunities_populated(start_time: datetime, end_time: datet
 
     start_time_no_tz = start_time.replace(tzinfo=None)
     end_time_no_tz = end_time.replace(tzinfo=None)
-    exists_condition = exists().where(
+    exists_condition = exists(ScheduleRequest).where(
         ScheduleRequest.schedule_id == ImageOrder.schedule_id,
         ScheduleRequest.order_id == ImageOrder.id,
         ScheduleRequest.order_type == ImageOrder.order_type,

@@ -1,0 +1,490 @@
+Running the day-in-the-life (DITL) test from folder: database_scripts/sample_data/DITLrepeat3
+Step 0: Cleanup database and set schedule reference time to 2022-09-01T00:00:00
+Step 1: Ingest all Batch 1 orders and all maintenance orders except for OrbitMaintenance6 and OrbitMaintenance7
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 1 hours, 8 minutes, 32 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 120
+Total request count: 490
+   Rejected requests: 105
+     100: Reason: No satellites can capture this area during the requested time window.
+     1: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 385
+     385: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 1
+     1: Reason: No available time slots for this event.
+   Scheduled requests: 89
+     89: Reason: Successfully scheduled request.
+Total Imaging order count: 100
+Total Imaging request count: 400
+   Rejected requests: 104
+     100: Reason: No satellites can capture this area during the requested time window.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 296
+     296: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 80 events scheduled
+   maintenance events: 18
+   imaging events: 62
+SOSO-3: 102 events scheduled
+   maintenance events: 18
+   imaging events: 84
+SOSO-2: 64 events scheduled
+   maintenance events: 18
+   imaging events: 46
+SOSO-4: 106 events scheduled
+   maintenance events: 17
+   imaging events: 89
+SOSO-5: 33 events scheduled
+   maintenance events: 18
+   imaging events: 15
+
+----------Per groundstation---------
+GATN: 156 scheduled contacts
+Inuvik: 208 scheduled contacts
+Prince Albert: 116 scheduled contacts
+
+
+
+
+
+Step 2: Ingest all Batch 2 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 13 minutes, 21 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 140
+Total request count: 570
+   Rejected requests: 137
+     129: Reason: No satellites can capture this area during the requested time window.
+     4: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 433
+     433: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 1
+     1: Reason: No available time slots for this event.
+   Scheduled requests: 89
+     89: Reason: Successfully scheduled request.
+Total Imaging order count: 120
+Total Imaging request count: 480
+   Rejected requests: 136
+     129: Reason: No satellites can capture this area during the requested time window.
+     3: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 344
+     344: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 88 events scheduled
+   maintenance events: 18
+   imaging events: 70
+SOSO-3: 115 events scheduled
+   maintenance events: 18
+   imaging events: 97
+SOSO-2: 71 events scheduled
+   maintenance events: 18
+   imaging events: 53
+SOSO-4: 123 events scheduled
+   maintenance events: 17
+   imaging events: 106
+SOSO-5: 36 events scheduled
+   maintenance events: 18
+   imaging events: 18
+
+----------Per groundstation---------
+GATN: 163 scheduled contacts
+Inuvik: 228 scheduled contacts
+Prince Albert: 129 scheduled contacts
+
+
+
+
+
+Step 3: Ingest all Batch 3 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 2 minutes, 46 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 145
+Total request count: 590
+   Rejected requests: 145
+     137: Reason: No satellites can capture this area during the requested time window.
+     4: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 445
+     445: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 1
+     1: Reason: No available time slots for this event.
+   Scheduled requests: 89
+     89: Reason: Successfully scheduled request.
+Total Imaging order count: 125
+Total Imaging request count: 500
+   Rejected requests: 144
+     137: Reason: No satellites can capture this area during the requested time window.
+     3: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+   Scheduled requests: 356
+     356: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 90 events scheduled
+   maintenance events: 18
+   imaging events: 72
+SOSO-3: 118 events scheduled
+   maintenance events: 18
+   imaging events: 100
+SOSO-2: 72 events scheduled
+   maintenance events: 18
+   imaging events: 54
+SOSO-4: 129 events scheduled
+   imaging events: 112
+   maintenance events: 17
+SOSO-5: 36 events scheduled
+   maintenance events: 18
+   imaging events: 18
+
+----------Per groundstation---------
+GATN: 166 scheduled contacts
+Inuvik: 239 scheduled contacts
+Prince Albert: 131 scheduled contacts
+
+
+
+
+
+Step 4: Ingest outage for GATN and SOSO-3
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 2 minutes, 46 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 147
+Total request count: 592
+   Rejected requests: 148
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     4: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     137: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 444
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     25: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     411: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 2
+     1: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+   Scheduled requests: 88
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     87: Reason: Successfully scheduled request.
+Total Imaging order count: 125
+Total Imaging request count: 500
+   Rejected requests: 146
+     3: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     137: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 354
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     24: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     322: Reason: Successfully scheduled request.
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 90 events scheduled
+   maintenance events: 18
+   imaging events: 72
+SOSO-3: 108 events scheduled
+   imaging events: 91
+   maintenance events: 17
+SOSO-2: 79 events scheduled
+   maintenance events: 18
+   imaging events: 61
+SOSO-4: 129 events scheduled
+   imaging events: 112
+   maintenance events: 17
+SOSO-5: 36 events scheduled
+   maintenance events: 18
+   imaging events: 18
+
+----------Per groundstation---------
+GATN: 173 scheduled contacts
+Inuvik: 246 scheduled contacts
+Prince Albert: 142 scheduled contacts
+
+
+
+
+
+Step 5: Ingest all Batch 4 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 16 minutes, 55 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 197
+Total request count: 792
+   Rejected requests: 207
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     16: Reason: No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+     184: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 585
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     25: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     552: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 2
+     1: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+   Scheduled requests: 88
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     87: Reason: Successfully scheduled request.
+Total Imaging order count: 175
+Total Imaging request count: 700
+   Rejected requests: 205
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     15: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     4: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     184: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 495
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     24: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     463: Reason: Successfully scheduled request.
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 118 events scheduled
+   maintenance events: 18
+   imaging events: 100
+SOSO-3: 143 events scheduled
+   imaging events: 126
+   maintenance events: 17
+SOSO-2: 107 events scheduled
+   maintenance events: 18
+   imaging events: 89
+SOSO-4: 171 events scheduled
+   imaging events: 154
+   maintenance events: 17
+SOSO-5: 44 events scheduled
+   maintenance events: 18
+   imaging events: 26
+
+----------Per groundstation---------
+GATN: 193 scheduled contacts
+Inuvik: 299 scheduled contacts
+Prince Albert: 179 scheduled contacts
+
+
+
+
+
+Step 6: Ingest all Batch 5 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 12 minutes, 46 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 222
+Total request count: 892
+   Rejected requests: 227
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     20: Reason: No available time slots for this event.
+     7: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+     197: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 665
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     25: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     632: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Rejected requests: 2
+     1: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+   Scheduled requests: 88
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     87: Reason: Successfully scheduled request.
+Total Imaging order count: 200
+Total Imaging request count: 800
+   Rejected requests: 225
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     19: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     7: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     197: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 575
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     24: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     543: Reason: Successfully scheduled request.
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 132 events scheduled
+   imaging events: 114
+   maintenance events: 18
+SOSO-3: 167 events scheduled
+   imaging events: 150
+   maintenance events: 17
+SOSO-2: 122 events scheduled
+   maintenance events: 18
+   imaging events: 104
+SOSO-4: 190 events scheduled
+   imaging events: 173
+   maintenance events: 17
+SOSO-5: 52 events scheduled
+   maintenance events: 18
+   imaging events: 34
+
+----------Per groundstation---------
+GATN: 207 scheduled contacts
+Inuvik: 325 scheduled contacts
+Prince Albert: 194 scheduled contacts
+
+
+
+
+
+Step 7: Ingest OrbitMaintenance6 and OrbitMaintenance7
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 224
+Total request count: 894
+   Rejected requests: 228
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     21: Reason: No available time slots for this event.
+     7: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+     197: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 666
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     25: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     633: Reason: Successfully scheduled request.
+
+======Breakdown by order type======
+Total Maintenance order count: 22
+Total Maintenance request count: 92
+   Rejected requests: 3
+     2: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. No available time slots for this event.
+   Scheduled requests: 89
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     88: Reason: Successfully scheduled request.
+Total Imaging order count: 200
+Total Imaging request count: 800
+   Rejected requests: 225
+     1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
+     19: Reason: No available time slots for this event.
+     1: Reason: Scheduled request was displaced due to an outage at satellite id=2. No available time slots for this event.
+     7: Reason: Spent too much time trying to find a valid schedule plan. Failure reason during last try: There were available satellite time slots, and available groundstation contacts, but no valid matching of uplink gs contact -> satellite time slot -> downlink gs contact could be found.
+     197: Reason: No satellites can capture this area during the requested time window.
+   Scheduled requests: 575
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     24: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     543: Reason: Successfully scheduled request.
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 132 events scheduled
+   imaging events: 114
+   maintenance events: 18
+SOSO-3: 168 events scheduled
+   imaging events: 150
+   maintenance events: 18
+SOSO-2: 122 events scheduled
+   maintenance events: 18
+   imaging events: 104
+SOSO-4: 190 events scheduled
+   imaging events: 173
+   maintenance events: 17
+SOSO-5: 52 events scheduled
+   maintenance events: 18
+   imaging events: 34
+
+----------Per groundstation---------
+GATN: 207 scheduled contacts
+Inuvik: 326 scheduled contacts
+Prince Albert: 194 scheduled contacts
+
+
+
+
+

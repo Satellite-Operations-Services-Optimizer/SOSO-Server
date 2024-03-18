@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from sqlalchemy import Column, column, func, case, or_, union, text, not_, select, and_, or_
+from sqlalchemy import Column, column, func, case, or_, union, text, not_, select, and_, or_, null
 from sqlalchemy.sql.expression import BinaryExpression
 from dataclasses import dataclass
 from app_config.database.mapping import Schedule
@@ -78,21 +78,23 @@ def query_gaps(
         range_constructor: Callable = func.tstzrange,
         valid_partition_values_subquery = None
     ):
-    if start_time >= end_time:
-        return session.query().filter(False)
-
     session = get_db_session()
-
-    if start_time is None:
-        start_time = datetime.min
-    if end_time is None:
-        end_time = datetime.max
-
     range_column = column(range_column.name)
     partition_columns = [
         column(partition_column) if type(partition_column)==str else column(partition_column.name)
         for partition_column in partition_columns
     ]
+
+    if start_time >= end_time: # return empty result set that still has the correct columns
+        return session.query(
+            *[null().label(partition_column.name) for partition_column in partition_columns],
+            null().label('time_range')
+        ).filter(False)
+
+    if start_time is None:
+        start_time = datetime.min
+    if end_time is None:
+        end_time = datetime.max
 
     window_time_range = range_constructor(start_time, end_time)
     table_partition_columns = [source_subquery.c[column.name] for column in partition_columns]

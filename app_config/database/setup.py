@@ -33,7 +33,15 @@ def setup_database(use_localhost=False):
     #   OperationalError: server closed the connection unexpectedly
 	#   This probably means the server terminated abnormally
     # I found this solution: https://stackoverflow.com/a/60614871
-    engine = create_engine(_db_url, pool_pre_ping=True)
+    engine = create_engine(
+        _db_url,
+        pool_size=10,
+        max_overflow=2,
+        pool_recycle=300,
+        pool_pre_ping=True,
+        pool_use_lifo=True
+    )
+
 
 _global_session = None
 def get_session():

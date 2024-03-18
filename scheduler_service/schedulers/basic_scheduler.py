@@ -23,7 +23,7 @@ def process_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
     if not (request.status == "received" or request.status == "displaced"):
-        logger.error("Cannot start processing request with id={request_id}. It may have already been scheduled or rejected, or is already currently being processed. Status: {request.status}")
+        logger.error("BUG WARNING: Something went wrong. Cannot start processing request with id={request_id}. It may have already been scheduled or rejected, or is already currently being processed. Status: {request.status}")
         return
     request.status = "processing"
     session.commit()

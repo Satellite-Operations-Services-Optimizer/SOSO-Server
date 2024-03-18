@@ -1,0 +1,359 @@
+Running the day-in-the-life (DITL) test from folder: database_scripts/sample_data/DITLdate2
+Step 0: Cleanup database and set schedule reference time to 2022-09-01T00:00:00
+Step 1: Ingest all Batch 1 orders and all maintenance orders except for OrbitMaintenance6 and OrbitMaintenance7
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 33 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 120
+Total request count: 190
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+   Rejected requests: 100
+     100: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+Total Imaging order count: 100
+Total Imaging request count: 100
+   Rejected requests: 100
+     100: Reason: No satellites can capture this area during the requested time window.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 2: Ingest all Batch 2 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 140
+Total request count: 210
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+   Rejected requests: 120
+     120: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+Total Imaging order count: 120
+Total Imaging request count: 120
+   Rejected requests: 120
+     120: Reason: No satellites can capture this area during the requested time window.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 3: Ingest all Batch 3 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 145
+Total request count: 215
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+   Rejected requests: 125
+     125: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Imaging order count: 125
+Total Imaging request count: 125
+   Rejected requests: 125
+     125: Reason: No satellites can capture this area during the requested time window.
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 4: Ingest outage for GATN and SOSO-3
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 147
+Total request count: 217
+   Scheduled requests: 92
+     92: Reason: Successfully scheduled request.
+   Rejected requests: 125
+     125: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+Total Imaging order count: 125
+Total Imaging request count: 125
+   Rejected requests: 125
+     125: Reason: No satellites can capture this area during the requested time window.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 5: Ingest all Batch 4 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 1 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 197
+Total request count: 267
+   Scheduled requests: 92
+     92: Reason: Successfully scheduled request.
+   Rejected requests: 175
+     175: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+Total Imaging order count: 175
+Total Imaging request count: 175
+   Rejected requests: 175
+     175: Reason: No satellites can capture this area during the requested time window.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 6: Ingest all Batch 5 orders
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 222
+Total request count: 292
+   Scheduled requests: 92
+     92: Reason: Successfully scheduled request.
+   Rejected requests: 200
+     200: Reason: No satellites can capture this area during the requested time window.
+
+======Breakdown by order type======
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Maintenance order count: 20
+Total Maintenance request count: 90
+   Scheduled requests: 90
+     90: Reason: Successfully scheduled request.
+Total Imaging order count: 200
+Total Imaging request count: 200
+   Rejected requests: 200
+     200: Reason: No satellites can capture this area during the requested time window.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 18 events scheduled
+   maintenance events: 18
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 52 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
+Step 7: Ingest OrbitMaintenance6 and OrbitMaintenance7
+Database tables automapped and exported to global namespace
+Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
+Starting scheduler timer...
+Scheduler finished in 0 seconds.
+Creating report...
+===========Overall stats===========
+Total order count: 224
+Total request count: 294
+   Scheduled requests: 93
+     93: Reason: Successfully scheduled request.
+   Rejected requests: 201
+     200: Reason: No satellites can capture this area during the requested time window.
+     1: Reason: No available time slots for this event.
+
+======Breakdown by order type======
+Total Sat_outage order count: 1
+Total Sat_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+Total Maintenance order count: 22
+Total Maintenance request count: 92
+   Scheduled requests: 91
+     91: Reason: Successfully scheduled request.
+   Rejected requests: 1
+     1: Reason: No available time slots for this event.
+Total Imaging order count: 200
+Total Imaging request count: 200
+   Rejected requests: 200
+     200: Reason: No satellites can capture this area during the requested time window.
+Total Gs_outage order count: 1
+Total Gs_outage request count: 1
+   Scheduled requests: 1
+     1: Reason: Successfully scheduled request.
+
+==========Scheduled Events=========
+------------Per satellite-----------
+SOSO-1: 18 events scheduled
+   maintenance events: 18
+SOSO-3: 19 events scheduled
+   maintenance events: 19
+SOSO-2: 18 events scheduled
+   maintenance events: 18
+SOSO-4: 18 events scheduled
+   maintenance events: 18
+SOSO-5: 18 events scheduled
+   maintenance events: 18
+
+----------Per groundstation---------
+GATN: 53 scheduled contacts
+Inuvik: 22 scheduled contacts
+Prince Albert: 10 scheduled contacts
+
+
+
+
+
