@@ -29,10 +29,7 @@ def set_reference_time(reference_time: Union[datetime, str]):
     session.commit()
 
 samples_folder = Path(__file__).parent / 'sample_data'
-def populate_database(reference_time):
-    if reference_time:
-        set_reference_time(reference_time)
-
+def populate_database():
     populate_satellites(samples_folder / 'sample_satellites')
     populate_groundstations(samples_folder / 'sample_groundstations')
     populate_image_orders(samples_folder / 'sample_image_orders')

@@ -102,8 +102,8 @@ CREATE TABLE IF NOT EXISTS system_order (
 	end_time timestamptz NOT NULL,
 	duration interval NOT NULL,
 	delivery_deadline timestamptz,
-    repeat_count integer DEFAULT 1 NOT NULL CHECK (repeat_count >= 1), -- if repeat_count is 1, then it is a one-time order
-	visits_remaining integer NOT NULL DEFAULT 1 CHECK (visits_remaining>=0),
+    repeat_count integer DEFAULT 0 NOT NULL CHECK (repeat_count >= 0), -- if repeat_count is 0, then it is a one-time order
+	visits_remaining integer NOT NULL DEFAULT 1 CHECK (visits_remaining>=0), -- down counter of number of visits remaining to be completed
 	revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
 	revisit_frequency_max interval DEFAULT NULL,
 	priority integer DEFAULT 1 NOT NULL CHECK (priority > 0),

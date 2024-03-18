@@ -47,10 +47,10 @@ def rebuild_database_schema():
     import app_config.database.mapping
     reload(app_config.database.mapping)
 
-def populate_database(reference_time: Optional[datetime] = None):
+def populate_database():
     logger.info("Populating database...")
     from database_scripts.populate import populate_database
-    populate_database(reference_time)
+    populate_database()
 
 def set_reference_time(reference_time: Optional[datetime] = None):
     from database_scripts.populate import set_reference_time

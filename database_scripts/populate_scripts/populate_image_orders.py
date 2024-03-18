@@ -25,11 +25,12 @@ def populate_image_orders(path: Path, emit=True):
         ]
     )
     orders = []
-    for image_order in image_order_jsons.values():
-        orders.append(image_order_from_json(image_order))
     session = get_db_session()
-    session.add_all(orders)
-    session.commit()
+    for image_order in image_order_jsons.values():
+        order = image_order_from_json(image_order)
+        orders.append(order)
+        session.add(order)
+        session.commit()
 
     if emit:
         for order in orders:
@@ -38,7 +39,7 @@ def populate_image_orders(path: Path, emit=True):
 
 def image_order_from_json(image_order_json):
     num_revisits = 0 if type(image_order_json["Recurrence"])==list else image_order_json["Recurrence"].get("NumberOfRevisits")
-    visits_remaining = (num_revisits or 0)+1,
+    visits_remaining = (num_revisits or 0)+1
     does_not_repeat = not image_order_json["Recurrence"] or type(image_order_json["Recurrence"]) == list or image_order_json["Recurrence"]["Revisit"] == "False"
     if not does_not_repeat:
         frequency_amount = image_order_json["Recurrence"].get("RevisitFrequency")
