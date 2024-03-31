@@ -1,0 +1,17 @@
+{
+    "Target": "SOSO-2",
+    "Activity": "OrbitParameterUpdate",
+    "Window": {
+        "Start": "2024-05-28T02:17:39",
+        "End": "2024-04-13T10:47:36"
+    },
+    "Duration": "310",
+    "RepeatCycle": {
+        "Frequency": {
+            "MinimumGap": "8849",
+            "MaximumGap": "56966"
+        },
+        "Repetition": "6"
+    },
+    "PayloadOutage": "TRUE"
+}

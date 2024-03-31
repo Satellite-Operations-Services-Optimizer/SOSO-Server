@@ -1,0 +1,17 @@
+{
+    "Target": "SOSO-2",
+    "Activity": "PayloadDiagnosticActivity",
+    "Window": {
+        "Start": "2024-07-01T11:47:21",
+        "End": "2024-04-22T02:26:04"
+    },
+    "Duration": "96",
+    "RepeatCycle": {
+        "Frequency": {
+            "MinimumGap": "24874",
+            "MaximumGap": "56556"
+        },
+        "Repetition": "33"
+    },
+    "PayloadOutage": "TRUE"
+}

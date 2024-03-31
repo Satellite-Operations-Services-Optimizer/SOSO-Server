@@ -1,0 +1,15 @@
+{
+    "Latitude": 0.22321629561734824,
+    "Longitude": -34.08503333943713,
+    "Priority": 3,
+    "ImageType": "Spotlight",
+    "ImageStartTime": "2024-04-24T13:38:18",
+    "ImageEndTime": "2024-04-23T11:48:10",
+    "DeliveryTime": "2024-04-24T02:34:35",
+    "Recurrence": {
+        "Revisit": "True",
+        "NumberOfRevisits": null,
+        "RevisitFrequency": null,
+        "RevisitFrequencyUnits": null
+    }
+}

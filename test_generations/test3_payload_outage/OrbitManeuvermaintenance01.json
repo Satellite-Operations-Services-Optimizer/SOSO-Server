@@ -1,0 +1,17 @@
+{
+    "Target": "SOSO-3",
+    "Activity": "OrbitManeuver",
+    "Window": {
+        "Start": "2024-10-11T00:06:18",
+        "End": "2024-08-15T00:12:48"
+    },
+    "Duration": "564",
+    "RepeatCycle": {
+        "Frequency": {
+            "MinimumGap": "Null",
+            "MaximumGap": "Null"
+        },
+        "Repetition": "Null"
+    },
+    "PayloadOutage": "TRUE"
+}

@@ -1,0 +1,17 @@
+{
+    "Target": "SOSO-1",
+    "Activity": "MemoryScrub",
+    "Window": {
+        "Start": "2024-06-04T19:14:52",
+        "End": "2024-08-29T00:25:02"
+    },
+    "Duration": "128",
+    "RepeatCycle": {
+        "Frequency": {
+            "MinimumGap": "21070",
+            "MaximumGap": "96379"
+        },
+        "Repetition": "43"
+    },
+    "PayloadOutage": "TRUE"
+}
