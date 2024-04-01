@@ -176,7 +176,7 @@ EXECUTE FUNCTION set_default_imaging_values();
 CREATE TABLE IF NOT EXISTS maintenance_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
-    operations_flag boolean,
+    payload_outage boolean,
     description text,
     asset_id integer NOT NULL REFERENCES satellite (id), -- maintenance orders must be performed on a specific asset. TODO: My assumption is that we don't have maintenance orders for groundstations. veryfy with tsa.
     priority_tier integer DEFAULT 2 NOT NULL CHECK (priority_tier > 0),
@@ -783,9 +783,9 @@ CREATE TABLE IF NOT EXISTS state_checkpoint (
     asset_id integer REFERENCES asset (id),
     asset_type asset_type NOT NULL,
     checkpoint_time timestamptz NOT NULL,
-    state asset_state NOT NULL DEFAULT default_asset_state()
-    -- delta_from_prev_chkpt asset_state NOT NULL DEFAULT default_asset_state(), -- cumulative delta of all the changes since the last checkpoint - basically how much has the state changed since the last checkpoint?
-    -- peak_delta_from_prev_chkpt asset_state NOT NULL DEFAULT default_asset_state()-- peak state values since last checkpoint, offset from the state values at the last checkpoint. Used to see if we have exceeded the satellite's capacity since the last checkpoint, to know if we have to fix the schedule made there
+    state asset_state NOT NULL DEFAULT default_asset_state(),
+    delta_from_prev_chkpt asset_state NOT NULL DEFAULT default_asset_state(), -- cumulative delta of all the changes since the last checkpoint - basically how much has the state changed since the last checkpoint?
+    peak_delta_from_prev_chkpt asset_state NOT NULL DEFAULT default_asset_state()-- peak state values since last checkpoint, offset from the state values at the last checkpoint. Used to see if we have exceeded the satellite's capacity since the last checkpoint, to know if we have to fix the schedule made there
 );
 
 

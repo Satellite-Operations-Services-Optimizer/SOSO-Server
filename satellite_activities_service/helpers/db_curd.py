@@ -40,7 +40,7 @@ def create_maintenence_request(db: Session, request: ActivityRequest):
         revisit_frequency=request.RepeatCycle.Repetition,
         revisit_frequency=request.RepeatCycle.Frequency.MinimumGap,
         revisit_frequency_max=request.RepeatCycle.Frequency.MaximumGap,        
-        operations_flag=request.PayloadOutage
+        payload_outage=request.PayloadOutage
     )
     #db = SessionLocal() 
     db.add(db_request)

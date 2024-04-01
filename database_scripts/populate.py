@@ -198,7 +198,7 @@ def generate_random_maintenance_order():
         "repetition": random.randint(1,5),
         "frequency_max": random.randint(1, 10),
         "frequency_min": random.randint(1, 5),
-        "operations_flag": random.choice([True, False]),
+        "payload_outage": random.choice([True, False]),
         "description": f"Random maintenance for {random.choice(asset_names)}"
     }
 
@@ -217,7 +217,7 @@ def populate_random_maintenance_orders(num_orders=10):
                 repetition=data["repetition"],
                 frequency_max=data["frequency_max"],
                 frequency_min=data["frequency_min"],
-                operations_flag=data["operations_flag"],
+                payload_outage=data["payload_outage"],
                 description=data["description"]
             )
         )

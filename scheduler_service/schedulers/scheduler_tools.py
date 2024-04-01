@@ -415,6 +415,14 @@ def query_satellite_available_time_slots(request_id: int, priority_tier_threshol
     )
 
     ignored_events_filter = false()
+
+    # payload_outage = and_(
+    #     TransmittedEvent.order_type=="imaging",
+    #     TransmittedEvent.payload_outage==True
+    # )
+
+    # ignored_events_filter |= payload_outage
+
     if priority_tier_threshold:
         ignored_events_filter |= (TransmittedEvent.priority_tier<priority_tier_threshold)
         if priority_threshold:

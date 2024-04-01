@@ -15,7 +15,7 @@ def add_maintenance_activity(scheduled_maintenance: ScheduledMaintenance):
     
         maint_activity = maintenance_activity(activity_id = scheduled_maintenance.id, description = maintenance_order.description,
                                 priority = maintenance_request.priority, start_time = scheduled_maintenance.start_time,
-                                payload_flag = maintenance_order.operations_flag, duration = maintenance_request.duration)
+                                payload_flag = maintenance_order.payload_outage, duration = maintenance_request.duration)
         
         contact_id = scheduled_maintenance.uplink_contact_id
         outbound_schedule = get_outbound_schedule(contact_id)

@@ -43,7 +43,7 @@ async def create_maintenance_request(maintenance_request: ActivityRequest = Depe
         visits_remaining = int(maintenance_request.RepeatCycle.Repetition)+1
         revisit_frequency = timedelta(seconds=int(maintenance_request.RepeatCycle.Frequency.MinimumGap))
         revisit_frequency_max = timedelta(seconds=int(maintenance_request.RepeatCycle.Frequency.MaximumGap))
-    operations_flag = maintenance_request.PayloadOutage.lower()=="true"
+    payload_outage = maintenance_request.PayloadOutage.lower()=="true"
     maintenance_order = MaintenanceOrder(
         asset_id=int(satellite.id),
         description=maintenance_request.Activity,
@@ -53,7 +53,7 @@ async def create_maintenance_request(maintenance_request: ActivityRequest = Depe
         visits_remaining=visits_remaining,
         revisit_frequency=revisit_frequency,
         revisit_frequency_max=revisit_frequency_max,
-        operations_flag=operations_flag,
+        payload_outage=payload_outage,
     )
     
     session.add(maintenance_order)

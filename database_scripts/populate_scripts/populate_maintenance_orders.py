@@ -48,7 +48,7 @@ def maintenance_order_from_json(maintenance_order_json):
         visits_remaining = int(maintenance_order_json["RepeatCycle"]["Repetition"])+1
         revisit_frequency = timedelta(seconds=int(maintenance_order_json["RepeatCycle"]["Frequency"]["MinimumGap"]))
         revisit_frequency_max = timedelta(seconds=int(maintenance_order_json["RepeatCycle"]["Frequency"]["MaximumGap"]))
-    operations_flag = maintenance_order_json["PayloadOutage"].lower()=="true"
+    payload_outage = maintenance_order_json["PayloadOutage"].lower()=="true"
     return MaintenanceOrder(
         asset_id=int(satellite.id),
         description=maintenance_order_json["Activity"],
@@ -58,5 +58,5 @@ def maintenance_order_from_json(maintenance_order_json):
         visits_remaining=visits_remaining,
         revisit_frequency=revisit_frequency,
         revisit_frequency_max=revisit_frequency_max,
-        operations_flag=operations_flag,
+        payload_outage=payload_outage,
     )
