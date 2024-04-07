@@ -63,6 +63,11 @@ async def create_order(image_request: ImageRequest = Depends(lambda request_data
     TopicPublisher(rabbit(), f"order.{image_order.order_type}.created").publish_message(image_order.id)
     return image_order.id
 
+@router.get("/dashBoardOrders")
+async def getDashBoardOrders():
+    session = get_db_session()
+    order_items = session.query(ScheduleRequest).filter(ScheduleRequest.order_type=="imaging" or ScheduleRequest.order_type=="maintenance").order_by(ScheduleRequest.window_start).limit(100).all()
+    return order_items
     
 def parse_image_type(request_image_type):
     type_mappings = {
