@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 def register_request_scheduler_listener():
     schedule_request_consumer = TopicConsumer(rabbit())
-    schedule_request_consumer.bind("request.*.created")
-    schedule_request_consumer.bind("request.*.displaced")
+    schedule_request_consumer.bind("schedule.request.*.created")
+    schedule_request_consumer.bind("schedule.request.*.displaced")
     schedule_request_consumer.register_callback(lambda request_id: process_request(request_id))
 
-    schedule_decline_consumer = TopicConsumer(rabbit(), "request.*.declined")
+    schedule_decline_consumer = TopicConsumer(rabbit(), "schedule.request.*.decline")
     schedule_decline_consumer.register_callback(lambda request_id: decline_request(request_id))
 
 def process_request(request_id: int):
@@ -44,7 +44,7 @@ def decline_request(request_id: int):
     session.commit()
 
     # publish event notifying declined
-    TopicPublisher(rabbit(), f"request.{request.order_type}.declined").publish_message(request.id)
+    TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.declined").publish_message(request.id)
     logger.info(f"Declined {request.order_type} request with id={request.id}.")
 
 def optimized_request_planning(request_id) -> list:
@@ -337,7 +337,7 @@ def displace_scheduled_request(request_id, message, emit=True):
     session.commit()
 
     if emit:
-        TopicPublisher(rabbit(), f"request.{request.order_type}.displaced").publish_message(request.id)
+        TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.displaced").publish_message(request.id)
         logger.info(f"Displaced {request.order_type} request with id={request.id}. {message}")
 
 def reject_request(request_id, message):
@@ -350,7 +350,7 @@ def reject_request(request_id, message):
     else:
         request.status_message = message
     session.commit()
-    TopicPublisher(rabbit(), f"request.{request.order_type}.rejected").publish_message(request.id)
+    TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.rejected").publish_message(request.id)
     logger.info(f"Rejected {request.order_type} request with id={request.id}. {message}")
 
 def notify_request_scheduled(request_id):
@@ -364,5 +364,5 @@ def notify_request_scheduled(request_id):
     else:
         request.status_message = "Successfully scheduled request."
     session.commit()
-    TopicPublisher(rabbit(), f"request.{request.order_type}.scheduled").publish_message(request.id)
+    TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.scheduled").publish_message(request.id)
     logger.info(f"Scheduled {request.order_type} request with id={request.id}. event_id={event.id}.")

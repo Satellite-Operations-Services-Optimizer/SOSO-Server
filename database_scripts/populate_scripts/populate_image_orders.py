@@ -38,8 +38,9 @@ def populate_image_orders(path: Path, emit=True):
 
 
 def image_order_from_json(image_order_json):
-    num_revisits = 0 if type(image_order_json["Recurrence"])==list else image_order_json["Recurrence"].get("NumberOfRevisits")
-    visits_remaining = (num_revisits or 0)+1
+    repeat_count = 0 if type(image_order_json["Recurrence"])==list else image_order_json["Recurrence"].get("NumberOfRevisits")
+    repeat_count = repeat_count or 0
+    visits_remaining = (repeat_count or 0)+1
     does_not_repeat = not image_order_json["Recurrence"] or type(image_order_json["Recurrence"]) == list or image_order_json["Recurrence"]["Revisit"] == "False"
     if not does_not_repeat:
         frequency_amount = image_order_json["Recurrence"].get("RevisitFrequency")
@@ -55,7 +56,7 @@ def image_order_from_json(image_order_json):
         start_time=datetime.fromisoformat(image_order_json["ImageStartTime"]),
         end_time=datetime.fromisoformat(image_order_json["ImageEndTime"]),
         delivery_deadline=datetime.fromisoformat(image_order_json["DeliveryTime"]),
-        repeat_count=num_revisits,
+        repeat_count=repeat_count,
         visits_remaining=visits_remaining,
         revisit_frequency=revisit_frequency
     )

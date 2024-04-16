@@ -36,11 +36,11 @@ async def create_maintenance_request(maintenance_request: ActivityRequest = Depe
     duration = timedelta(seconds=int(maintenance_request.Duration))
 
     if maintenance_request.RepeatCycle.Repetition == "Null":
-        visits_remaining = 1
+        repeat_count = 0
         revisit_frequency = timedelta(seconds=0)
         revisit_frequency_max = timedelta(seconds=0)
     else:
-        visits_remaining = int(maintenance_request.RepeatCycle.Repetition)+1
+        repeat_count = int(maintenance_request.RepeatCycle.Repetition)
         revisit_frequency = timedelta(seconds=int(maintenance_request.RepeatCycle.Frequency.MinimumGap))
         revisit_frequency_max = timedelta(seconds=int(maintenance_request.RepeatCycle.Frequency.MaximumGap))
     payload_outage = maintenance_request.PayloadOutage.lower()=="true"
@@ -50,7 +50,8 @@ async def create_maintenance_request(maintenance_request: ActivityRequest = Depe
         start_time=datetime.fromisoformat(maintenance_request.Window.Start),
         end_time=datetime.fromisoformat(maintenance_request.Window.End),
         duration=duration,
-        visits_remaining=visits_remaining,
+        repeat_count=repeat_count,
+        visits_remaining=repeat_count+1,
         revisit_frequency=revisit_frequency,
         revisit_frequency_max=revisit_frequency_max,
         payload_outage=payload_outage,

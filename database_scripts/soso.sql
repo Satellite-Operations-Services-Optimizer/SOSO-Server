@@ -293,6 +293,7 @@ CREATE TABLE IF NOT EXISTS schedule_request (
     schedule_id integer NOT NULL REFERENCES schedule (id),
     order_id integer NOT NULL,
     order_type order_type, -- needed because order_id is not unique across the different order types
+    order_item_count integer NOT NULL DEFAULT 1 CHECK (order_item_count > 0),
     asset_id integer DEFAULT NULL, -- it is null in the case where we don't care what asset it is performed on
     asset_type asset_type DEFAULT NULL,
     window_start timestamptz,

@@ -414,7 +414,7 @@ def query_satellite_available_time_slots(request_id: int, priority_tier_threshol
         func.tstzrange(TransmittedEvent.start_time, TransmittedEvent.start_time+TransmittedEvent.duration).label('time_range')
     )
 
-    ignored_events_filter = false()
+    is_lower_priority = false()
 
     # payload_outage = and_(
     #     TransmittedEvent.order_type=="imaging",
@@ -424,14 +424,14 @@ def query_satellite_available_time_slots(request_id: int, priority_tier_threshol
     # ignored_events_filter |= payload_outage
 
     if priority_tier_threshold:
-        ignored_events_filter |= (TransmittedEvent.priority_tier<priority_tier_threshold)
+        is_lower_priority |= (TransmittedEvent.priority_tier<priority_tier_threshold)
         if priority_threshold:
-            ignored_events_filter |= and_(
+            is_lower_priority |= and_(
                 TransmittedEvent.priority_tier==priority_tier_threshold,
                 TransmittedEvent.priority<priority_threshold
             )
     
-    blocking_transmitted_event_query.filter(~ignored_events_filter)
+    blocking_transmitted_event_query = blocking_transmitted_event_query.filter(~is_lower_priority)
 
     satellite_outage_query = session.query(
         SatelliteOutage.schedule_id.label('schedule_id'),

@@ -129,5 +129,5 @@ def create_request(order):
     session.commit()
 
     # publish request created
-    TopicPublisher(rabbit(), f"request.{order.order_type}.created").publish_message(request.id)
+    TopicPublisher(rabbit(), f"schedule.request.{order.order_type}.created").publish_message(request.id)
     return request

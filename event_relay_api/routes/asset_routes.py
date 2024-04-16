@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
 from helpers.asset_helper import add_satellite
 from helpers.asset_helper import add_satellite
-from helpers.miscellaneous_helper import txt_to_json_converter
+from helpers.miscellaneous_helper import tle_txt_to_json_converter
 import logging
 from fastapi import HTTPException
 from app_config import get_db_session
@@ -53,12 +53,10 @@ async def get_ground_station(id):
     return jsonable_encoder(satellite)
 
 @router.post("/satellites/create")
-async def new_satellite(tle_file: UploadFile = File(...), 
-                        satellite_form_data = SatelliteCreationRequest):    
-    
+async def new_satellite(tle_file: UploadFile, satellite_form_data: SatelliteCreationRequest):    
     tle_json = tle_file
     if tle_file.filename.endswith(".txt"):
-        txt_to_json_converter(tle_file, tle_json)
+        tle_txt_to_json_converter(tle_file, tle_json)
 
     new_satellite = json.load(tle_json.file)
     new_satellite_id = add_satellite(new_satellite, tle_json, satellite_form_data)

@@ -98,6 +98,8 @@ def test_candidate_contact_queries():
         duration=large_enough_contact_duration,
         total_downlink_size=medium_image_downlink_size
     )
+    session.add(contact_transmitting_to_different_satellite)
+    session.flush()
 
     transmission_outage_different_sat = TransmissionOutage(
         schedule_id=schedule.id,
@@ -278,7 +280,7 @@ def test_candidate_contact_queries():
         contact_already_transmitting,
         transmission_outage,
         contact_invalid_because_transmitting_different_sat,
-        contact_transmitting_to_different_satellite,
+        # contact_transmitting_to_different_satellite,
         transmission_outage_different_sat,
         regular_outage,
         contact_in_outage,

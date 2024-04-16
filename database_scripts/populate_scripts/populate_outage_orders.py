@@ -56,5 +56,4 @@ def outage_order_from_json(outage_order_json):
             start_time=start_time,
             end_time=end_time,
             duration=duration
-
         )

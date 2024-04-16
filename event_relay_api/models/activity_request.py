@@ -21,6 +21,8 @@ class ActivityRequest(BaseModel):
     RepeatCycle: RepeatCycle
     PayloadOutage: str
     
-
-
+class OutageOrderCreationRequest(BaseModel):
+    Target: str
+    Activity: str
+    Window: Window
 

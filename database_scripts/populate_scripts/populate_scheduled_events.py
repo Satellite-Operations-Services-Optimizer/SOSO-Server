@@ -30,6 +30,7 @@ def create_valid_image_order_schedule(start_time: datetime):
 
     image_order_end_time = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
     delivery_deadline = image_order_end_time + timedelta(days=1) # downlink the photo you took by this time
+    repeat_count = 15
     image_order = ImageOrder(
         schedule_id=schedule.id,
         latitude=0.0,
@@ -38,7 +39,8 @@ def create_valid_image_order_schedule(start_time: datetime):
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,
-        visits_remaining=15,
+        repeat_count=repeat_count,
+        visits_remaining=repeat_count+1,
         revisit_frequency=timedelta(days=1)
     )
     session.add(image_order)
@@ -51,12 +53,14 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
 
     session = get_db_session()
     # create repeated requests
+    order_item_count = 1
     for visit_count in range(order.visits_remaining):
         requests.append(
             ScheduleRequest(
                 schedule_id=order.schedule_id,
                 order_id=order.id,
                 order_type=order.order_type,
+                order_item_count=order_item_count,
                 window_start=order.start_time,
                 window_end=order.end_time,
                 duration=order.duration,

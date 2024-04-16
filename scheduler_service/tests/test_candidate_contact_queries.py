@@ -35,6 +35,7 @@ def test_candidate_contact_queries():
         start_time=context_cutoff_time - 4*large_enough_contact_duration,
         duration=large_enough_contact_duration,
     )
+    session.add(contact_outside_of_context_cutoff)
 
     contact_overlapping_context_cutoff = ContactEvent(
         schedule_id=schedule.id,
@@ -43,6 +44,7 @@ def test_candidate_contact_queries():
         start_time=context_cutoff_time - large_enough_contact_duration,
         duration= 2*large_enough_contact_duration # it still is enough to uplink within the cutoff
     )
+    session.add(contact_overlapping_context_cutoff)
 
     contact_too_small_within_context_cutoff = ContactEvent(
         schedule_id=schedule.id,
@@ -51,6 +53,7 @@ def test_candidate_contact_queries():
         start_time=context_cutoff_time - large_enough_contact_duration,
         duration=large_enough_contact_duration + too_small_contact_duration
     )
+    session.add(contact_too_small_within_context_cutoff)
 
     contact_reconfig_time = timedelta(minutes=6)
 
@@ -65,6 +68,8 @@ def test_candidate_contact_queries():
         duration=request_downlink_duration + large_enough_contact_duration, # enough time to have finished transmitting what was already scheduled to be transmitted, and then start transmitting the new request
         total_downlink_size=medium_image_downlink_size # this is what was scheduled to be transmitted. it takes `request_downlink_duration` seconds to transmit this much data
     )
+    session.add(contact_already_transmitting)
+    session.flush()
 
     transmission_outage = TransmissionOutage(
         schedule_id=schedule.id,
@@ -73,6 +78,7 @@ def test_candidate_contact_queries():
         start_time=contact_already_transmitting.start_time + contact_already_transmitting.duration - contact_reconfig_time,
         duration=contact_already_transmitting.duration + contact_reconfig_time
     )
+    session.add(transmission_outage)
 
     gap_start = transmission_outage.start_time + transmission_outage.duration
     gap_duration = default_gap_duration + contact_reconfig_time
@@ -84,6 +90,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_invalid_because_transmitting_different_sat)
 
     contact_transmitting_to_different_satellite = ContactEvent(
         schedule_id=schedule.id,
@@ -93,6 +100,8 @@ def test_candidate_contact_queries():
         duration=large_enough_contact_duration,
         total_downlink_size=medium_image_downlink_size
     )
+    session.add(contact_transmitting_to_different_satellite)
+    session.flush()
 
     transmission_outage_different_sat = TransmissionOutage(
         schedule_id=schedule.id,
@@ -101,6 +110,8 @@ def test_candidate_contact_queries():
         start_time=contact_transmitting_to_different_satellite.start_time + contact_transmitting_to_different_satellite.duration - contact_reconfig_time,
         duration=contact_transmitting_to_different_satellite.duration + contact_reconfig_time
     )
+    session.add(transmission_outage_different_sat)
+    session.flush()
 
     gap_start = transmission_outage_different_sat.start_time + transmission_outage_different_sat.duration
     gap_duration = default_gap_duration
@@ -112,6 +123,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=contact_reconfig_time + large_enough_contact_duration + contact_reconfig_time
     )
+    session.add(regular_outage)
 
     contact_in_outage = ContactEvent(
         schedule_id=schedule.id,
@@ -120,6 +132,7 @@ def test_candidate_contact_queries():
         start_time=regular_outage.start_time + contact_reconfig_time,
         duration=large_enough_contact_duration
     )
+    session.add(contact_in_outage)
 
     gap_start = regular_outage.start_time + regular_outage.duration
     gap_duration = default_gap_duration + medium_image_duration
@@ -131,6 +144,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_too_early_for_downlink)
 
     gap_start = contact_too_early_for_downlink.start_time + contact_too_early_for_downlink.duration
     gap_duration = default_gap_duration
@@ -154,6 +168,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=medium_image_duration
     )
+    session.add(capture_opportunity)
 
     gap_start = capture_opportunity.start_time + capture_opportunity.duration
     gap_duration = 0.5*large_enough_contact_duration
@@ -172,6 +187,7 @@ def test_candidate_contact_queries():
         start_time=imaging2.start_time + 0.2*imaging2.duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_overlapping_event)
 
     contact_diff_groundstation_overlapping_contact = ContactEvent(
         schedule_id=schedule.id,
@@ -180,6 +196,7 @@ def test_candidate_contact_queries():
         start_time=contact_overlapping_event.start_time + 0.5*contact_overlapping_event.duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_diff_groundstation_overlapping_contact)
 
     gap_start = max(contact_diff_groundstation_overlapping_contact.start_time + contact_diff_groundstation_overlapping_contact.duration, imaging2.start_time + imaging2.duration)
     gap_duration = default_gap_duration
@@ -191,6 +208,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_different_satellite)
 
     gap_start = contact_different_satellite.start_time + contact_different_satellite.duration
     gap_duration = default_gap_duration
@@ -202,6 +220,7 @@ def test_candidate_contact_queries():
         start_time=contact_different_satellite.start_time + contact_different_satellite.duration,
         duration=too_small_contact_duration
     )
+    session.add(contact_too_small)
 
     gap_start = contact_too_small.start_time + contact_too_small.duration
     gap_duration = default_gap_duration
@@ -213,6 +232,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_too_late_for_uplink)
 
     gap_start = contact_too_late_for_uplink.start_time + contact_too_late_for_uplink.duration
     gap_duration = 0.5*medium_image_duration + default_gap_duration # not enough time left after uplink for imaging to take place. NOTE: make sure to set request window to end at a time that makes this contact too late for uplink (0.5*imaging_duration after contact ends)
@@ -224,6 +244,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_outside_request_window)
 
     gap_start = contact_outside_request_window.start_time + contact_outside_request_window.duration
     gap_duration = default_gap_duration
@@ -235,6 +256,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
+    session.add(contact_overlapping_delivery_deadline)
 
     gap_start = contact_overlapping_delivery_deadline.start_time + contact_overlapping_delivery_deadline.duration
     gap_duration = default_gap_duration
@@ -246,31 +268,7 @@ def test_candidate_contact_queries():
         start_time=gap_start + gap_duration,
         duration=large_enough_contact_duration
     )
-
-    session.add_all([
-        contact_outside_of_context_cutoff,
-        contact_overlapping_context_cutoff,
-        contact_too_small_within_context_cutoff,
-        contact_already_transmitting,
-        transmission_outage,
-        contact_invalid_because_transmitting_different_sat,
-        contact_transmitting_to_different_satellite,
-        transmission_outage_different_sat,
-        regular_outage,
-        contact_in_outage,
-        contact_too_early_for_downlink,
-        imaging1,
-        capture_opportunity,
-        imaging2,
-        contact_overlapping_event,
-        contact_diff_groundstation_overlapping_contact,
-        contact_different_satellite,
-        contact_too_small,
-        contact_too_late_for_uplink,
-        contact_outside_request_window,
-        contact_overlapping_delivery_deadline,
-        contact_after_delivery_deadline
-    ])
+    session.add(contact_after_delivery_deadline)
 
     request_start_time = contact_too_early_for_downlink.start_time - 0.5*medium_image_duration # not enough time for imaging to take place before downlink (0.5*imaging_duration)
     request_end_time = contact_too_late_for_uplink.start_time + contact_too_late_for_uplink.duration + 0.5*medium_image_duration # not enough time left after uplink for imaging to take place (0.5*imaging_duration)

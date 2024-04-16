@@ -1,11 +1,12 @@
 from typing import List
 from fastapi import APIRouter, HTTPException
 import logging
-from app_config import get_db_session
+from app_config import get_db_session, rabbit
 from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, GroundStationOutageOrder, SatelliteOutageOrder
 from fastapi.encoders import jsonable_encoder
 from fastapi import Query
 from sqlalchemy import case
+from rabbit_wrapper import TopicPublisher
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -15,6 +16,23 @@ async def get_schedules():
     session = get_db_session()
     schedules = session.query(Schedule).all()
     return jsonable_encoder(schedules)
+
+@router.get("/requests")
+async def get_all_schedule_requests(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+    session = get_db_session()
+    query = session.query(ScheduleRequest)
+    if not all:
+        query.limit(per_page).offset((page - 1) * per_page)
+    return query.all()
+
+@router.post("/requests/{request_id}/decline")
+async def decline_schedule_request(request_id: int):
+    session = get_db_session()
+    request = session.query(ScheduleRequest).filter_by(id=request_id).first()
+    if not request:
+        raise HTTPException(404, detail="Request does not exist.")
+    TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.decline").publish_message(request.id)
+
 
 @router.get("/{id}/events")
 async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: int = Query(1000, ge=1), all: bool = Query(False), event_types: List[str] = Query(None)):
