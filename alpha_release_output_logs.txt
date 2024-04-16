@@ -1,0 +1,1364 @@
+
+10
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulation took 6.053995935122172 minutes
+Optimization took 9.011186643441518 minutes
+
+20
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulation took 15.978048129876455 minutes
+Optimization took 12.245512060324351 minutes
+
+30
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:44:12 UTC
+Simulation took 18.1853826284408568 minutes
+Optimization took 30.52097983757654827 minutes
+
+40
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:57:05 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:57:05 UTC
+Simulation took 60.614582137266796 minutes
+Optimization took 31.750710519154865 minutes
+
+50
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:57:05 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:57:05 UTC
+Simulation took 77.614582137266796 minutes
+Optimization took 45.750710519154865 minutes
+
+60
+Events ranging from 2023-10-02 00:11:39 UTC to 2023-10-03 07:47:27 UTC
+Simulating System from 2023-10-02 00:11:39 UTC to 2023-10-03 07:47:27 UTC
+Simulation took 130.766799648602803 minutes
+Optimization took 48.81052504380544 minutes
+
+
+Ground Station Requests:
+{'Station Name': 'Inuvik Northwest Territories', 'Satellite': 'SOSO-1', 'Acquisition of Signal': '2023-10-08T06:11:40', 'Loss of Signal': '2023-10-08T06:17:50', 'Satellite Schedule ID': 0, 'Images to be Downlinked': []}
+{'Station Name': 'Gatineau Quebec', 'Satellite': 'SOSO-2', 'Acquisition of Signal': '2023-10-08T03:05:10', 'Loss of Signal': '2023-10-08T03:13:30', 'Satellite Schedule ID': 1, 'Images to be Downlinked': []}
+{'Station Name': 'Inuvik Northwest Territories', 'Satellite': 'SOSO-3', 'Acquisition of Signal': '2023-10-08T05:43:00', 'Loss of Signal': '2023-10-08T05:47:30', 'Satellite Schedule ID': 2, 'Images to be Downlinked': []}
+{'Station Name': 'Inuvik Northwest Territories', 'Satellite': 'SOSO-4', 'Acquisition of Signal': '2023-10-08T05:25:10', 'Loss of Signal': '2023-10-08T05:27:20', 'Satellite Schedule ID': 3, 'Images to be Downlinked': []}
+{'Station Name': 'Inuvik Northwest Territories', 'Satellite': 'SOSO-5', 'Acquisition of Signal': '2023-10-08T06:47:20', 'Loss of Signal': '2023-10-08T06:55:20', 'Satellite Schedule ID': 4, 'Images to be Downlinked': []}
+
+
+SATELLITE ACTIVITY SCHEDULE
+
+
+{
+    "Satellite Name": "SOSO-1",
+    "Schedule ID": 0,
+    "Activity Window": {
+        "Start": "2023-10-08T10:51:00",
+        "End": "2023-10-09T08:55:11"
+    },
+    "Image Activities": [
+        {
+            "Image ID": 0,
+            "Type": "Low",
+            "Priority": 2,
+            "Image Time": "2023-10-08T10:51:00"
+        },
+        {
+            "Image ID": 1,
+            "Type": "Medium",
+            "Priority": 3,
+            "Image Time": "2023-10-09T04:13:00"
+        },
+        {
+            "Image ID": 2,
+            "Type": "Low",
+            "Priority": 1,
+            "Image Time": "2023-10-09T08:32:00"
+        }
+    ],
+    "Maintenance Activities": [
+        {
+            "Activity ID": 0,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 1,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-09T16:03:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 2,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-11T08:06:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 3,
+            "Description": "OrbitManeuver",
+            "Activity Time": "2023-10-08T06:26:47",
+            "Payload Flag": "TRUE",
+            "Duration": "900"
+        },
+        {
+            "Activity ID": 4,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 5,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-14T00:00:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 6,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-20T00:01:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 7,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-26T00:01:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 8,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 9,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T20:05:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 10,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-09T16:10:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 11,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-10T12:15:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 12,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-11T08:20:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 13,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-12T04:25:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 14,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-13T00:30:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        }
+    ],
+    "Downlink Activities": [
+        {
+            "Image ID": 0,
+            "Downlink Start": "2023-10-08T10:52:00",
+            "Downlink Stop": "2023-10-08T10:52:01",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 1,
+            "Downlink Start": "2023-10-09T05:48:50",
+            "Downlink Stop": "2023-10-09T05:48:53",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 2,
+            "Downlink Start": "2023-10-09T08:55:10",
+            "Downlink Stop": "2023-10-09T08:55:11",
+            "Station": "Inuvik Northwest Territories"
+        }
+    ]
+}
+{
+    "Satellite Name": "SOSO-2",
+    "Schedule ID": 1,
+    "Activity Window": {
+        "Start": "2023-10-08T04:35:00",
+        "End": "2023-10-10T04:12:33"
+    },
+    "Image Activities": [
+        {
+            "Image ID": 3,
+            "Type": "Low",
+            "Priority": 3,
+            "Image Time": "2023-10-08T04:35:00"
+        },
+        {
+            "Image ID": 4,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-09T12:46:00"
+        },
+        {
+            "Image ID": 5,
+            "Type": "Medium",
+            "Priority": 3,
+            "Image Time": "2023-10-09T23:39:00"
+        }
+    ],
+    "Maintenance Activities": [
+        {
+            "Activity ID": 15,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 16,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-09T16:03:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 17,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-11T08:06:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 18,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 19,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-14T00:00:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 20,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-20T00:01:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 21,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-26T00:01:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 22,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 23,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T20:05:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 24,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-09T16:10:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 25,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-10T12:15:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 26,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-11T08:20:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 27,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-12T04:25:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 28,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-13T00:30:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        }
+    ],
+    "Downlink Activities": [
+        {
+            "Image ID": 3,
+            "Downlink Start": "2023-10-08T06:09:50",
+            "Downlink Stop": "2023-10-08T06:09:51",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 4,
+            "Downlink Start": "2023-10-09T13:44:40",
+            "Downlink Stop": "2023-10-09T13:44:43",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 5,
+            "Downlink Start": "2023-10-10T04:12:30",
+            "Downlink Stop": "2023-10-10T04:12:33",
+            "Station": "Prince Albert Saskatchewan"
+        }
+    ]
+}
+{
+    "Satellite Name": "SOSO-3",
+    "Schedule ID": 2,
+    "Activity Window": {
+        "Start": "2023-10-08T16:52:00",
+        "End": "2023-10-10T06:38:43"
+    },
+    "Image Activities": [
+        {
+            "Image ID": 6,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-08T16:52:00"
+        },
+        {
+            "Image ID": 7,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-08T22:18:00"
+        },
+        {
+            "Image ID": 8,
+            "Type": "Medium",
+            "Priority": 2,
+            "Image Time": "2023-10-09T05:29:00"
+        },
+        {
+            "Image ID": 9,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-09T21:30:00"
+        }
+    ],
+    "Maintenance Activities": [
+        {
+            "Activity ID": 29,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 30,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-09T16:03:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 31,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-11T08:06:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 32,
+            "Description": "OrbitManeuver",
+            "Activity Time": "2023-10-09T10:11:34",
+            "Payload Flag": "TRUE",
+            "Duration": "900"
+        },
+        {
+            "Activity ID": 33,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 34,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-14T00:00:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 35,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-20T00:01:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 36,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-26T00:01:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 37,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 38,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T20:05:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 39,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-09T16:10:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 40,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-10T12:15:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 41,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-11T08:20:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 42,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-12T04:25:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 43,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-13T00:30:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        }
+    ],
+    "Downlink Activities": [
+        {
+            "Image ID": 6,
+            "Downlink Start": "2023-10-08T18:07:40",
+            "Downlink Stop": "2023-10-08T18:07:43",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 7,
+            "Downlink Start": "2023-10-09T05:25:10",
+            "Downlink Stop": "2023-10-09T05:25:13",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 8,
+            "Downlink Start": "2023-10-09T06:57:20",
+            "Downlink Stop": "2023-10-09T06:57:23",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 9,
+            "Downlink Start": "2023-10-10T06:38:40",
+            "Downlink Stop": "2023-10-10T06:38:43",
+            "Station": "Inuvik Northwest Territories"
+        }
+    ]
+}
+{
+    "Satellite Name": "SOSO-4",
+    "Schedule ID": 3,
+    "Activity Window": {
+        "Start": "2023-10-09T14:04:00",
+        "End": "2023-10-09T14:25:53"
+    },
+    "Image Activities": [
+        {
+            "Image ID": 10,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-09T14:04:00"
+        }
+    ],
+    "Maintenance Activities": [
+        {
+            "Activity ID": 44,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 45,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-09T16:03:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 46,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-11T08:06:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 47,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 48,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-14T00:00:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 49,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-20T00:01:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 50,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-26T00:01:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 51,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 52,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T20:05:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 53,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-09T16:10:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 54,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-10T12:15:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 55,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-11T08:20:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 56,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-12T04:25:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 57,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-13T00:30:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        }
+    ],
+    "Downlink Activities": [
+        {
+            "Image ID": 10,
+            "Downlink Start": "2023-10-09T14:25:50",
+            "Downlink Stop": "2023-10-09T14:25:53",
+            "Station": "Inuvik Northwest Territories"
+        }
+    ]
+}
+{
+    "Satellite Name": "SOSO-5",
+    "Schedule ID": 4,
+    "Activity Window": {
+        "Start": "2023-10-08T09:07:00",
+        "End": "2023-10-09T14:21:43"
+    },
+    "Image Activities": [
+        {
+            "Image ID": 11,
+            "Type": "Low",
+            "Priority": 3,
+            "Image Time": "2023-10-08T09:07:00"
+        },
+        {
+            "Image ID": 12,
+            "Type": "Low",
+            "Priority": 2,
+            "Image Time": "2023-10-08T18:05:00"
+        },
+        {
+            "Image ID": 13,
+            "Type": "Medium",
+            "Priority": 3,
+            "Image Time": "2023-10-08T21:14:00"
+        },
+        {
+            "Image ID": 14,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-09T04:07:00"
+        },
+        {
+            "Image ID": 15,
+            "Type": "Medium",
+            "Priority": 1,
+            "Image Time": "2023-10-09T13:41:00"
+        }
+    ],
+    "Maintenance Activities": [
+        {
+            "Activity ID": 58,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 59,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-09T16:03:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 60,
+            "Description": "MemoryScrub",
+            "Activity Time": "2023-10-11T08:06:00",
+            "Payload Flag": "TRUE",
+            "Duration": "180"
+        },
+        {
+            "Activity ID": 61,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 62,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-14T00:00:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 63,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-20T00:01:00",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 64,
+            "Description": "OrbitParameterUpdate",
+            "Activity Time": "2023-10-26T00:01:30",
+            "Payload Flag": "FALSE",
+            "Duration": "30"
+        },
+        {
+            "Activity ID": 65,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T00:00:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 66,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-08T20:05:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 67,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-09T16:10:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 68,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-10T12:15:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 69,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-11T08:20:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 70,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-12T04:25:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        },
+        {
+            "Activity ID": 71,
+            "Description": "PayloadDiagnosticActivity",
+            "Activity Time": "2023-10-13T00:30:00",
+            "Payload Flag": "TRUE",
+            "Duration": "300"
+        }
+    ],
+    "Downlink Activities": [
+        {
+            "Image ID": 11,
+            "Downlink Start": "2023-10-08T09:55:30",
+            "Downlink Stop": "2023-10-08T09:55:31",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 12,
+            "Downlink Start": "2023-10-08T19:15:30",
+            "Downlink Stop": "2023-10-08T19:15:31",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 13,
+            "Downlink Start": "2023-10-09T06:33:00",
+            "Downlink Stop": "2023-10-09T06:33:03",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 14,
+            "Downlink Start": "2023-10-09T06:33:00",
+            "Downlink Stop": "2023-10-09T06:33:03",
+            "Station": "Inuvik Northwest Territories"
+        },
+        {
+            "Image ID": 15,
+            "Downlink Start": "2023-10-09T14:21:40",
+            "Downlink Stop": "2023-10-09T14:21:43",
+            "Station": "Inuvik Northwest Territories"
+        }
+    ]
+}
+Image Capture Scedule:
+
+Sat      Start Time                End Time                  Type         Latitude          Longitude         Priority
+________________________________________________________________________________________________________________________
+SOSO-1 | 2023-10-09 08:32:00 UTC | 2023-10-09 08:32:20 UTC | Low        |   -0.8318776298 |   31.5649477210 | 1         
+SOSO-3 | 2023-10-08 22:18:00 UTC | 2023-10-08 22:18:45 UTC | Medium     |  -76.5060970248 | -143.0537734078 | 1         
+SOSO-3 | 2023-10-08 16:52:00 UTC | 2023-10-08 16:52:45 UTC | Medium     |   59.8016557608 |   96.7863800621 | 1         
+SOSO-3 | 2023-10-09 21:30:00 UTC | 2023-10-09 21:30:45 UTC | Medium     |   10.8281883518 |   16.2520449199 | 1         
+SOSO-5 | 2023-10-09 04:07:00 UTC | 2023-10-09 04:07:45 UTC | Medium     |  -76.8449003052 | -127.3329573594 | 1         
+SOSO-2 | 2023-10-09 12:46:00 UTC | 2023-10-09 12:46:45 UTC | Medium     |  -29.3633697204 |  140.7507796924 | 1         
+SOSO-4 | 2023-10-09 14:04:00 UTC | 2023-10-09 14:04:45 UTC | Medium     |  -11.8872546818 |  -52.8173736749 | 1         
+SOSO-5 | 2023-10-09 13:41:00 UTC | 2023-10-09 13:41:45 UTC | Medium     |  -82.6893837030 |   13.6343912040 | 1         
+SOSO-3 | 2023-10-09 05:29:00 UTC | 2023-10-09 05:29:45 UTC | Medium     |   63.0308171333 |  -92.5412815612 | 2         
+SOSO-1 | 2023-10-08 10:51:00 UTC | 2023-10-08 10:51:20 UTC | Low        |   76.6680381757 |  -50.3689145751 | 2         
+SOSO-5 | 2023-10-08 18:05:00 UTC | 2023-10-08 18:05:20 UTC | Low        |   39.1884680688 |   72.3536910710 | 2         
+SOSO-5 | 2023-10-08 21:14:00 UTC | 2023-10-08 21:14:45 UTC | Medium     |   43.5708749674 |   27.4350672595 | 3         
+SOSO-5 | 2023-10-08 09:07:00 UTC | 2023-10-08 09:07:20 UTC | Low        |  -78.0805111728 |  152.4810398120 | 3         
+SOSO-2 | 2023-10-08 04:35:00 UTC | 2023-10-08 04:35:20 UTC | Low        |   82.2599041511 |  -46.1095249100 | 3         
+SOSO-2 | 2023-10-09 23:39:00 UTC | 2023-10-09 23:39:45 UTC | Medium     |   14.9212342533 |  -17.0860837389 | 3         
+SOSO-1 | 2023-10-09 04:13:00 UTC | 2023-10-09 04:13:45 UTC | Medium     |   82.5483750793 |  -29.3542084113 | 3         
+
+
+Image Downlink Scedule:
+
+Sat      Latitude          Longitude         Ground Station               Delivery Start            Delivery End
+________________________________________________________________________________________________________________________
+SOSO-1 |   -0.831877630 |   31.564947721 | Inuvik Northwest Territories | 2023-10-09 08:55:10 UTC | 2023-10-09 08:55:11 UTC
+SOSO-3 |  -76.506097025 | -143.053773408 | Inuvik Northwest Territories | 2023-10-09 05:25:10 UTC | 2023-10-09 05:25:13 UTC
+SOSO-3 |   59.801655761 |   96.786380062 | Inuvik Northwest Territories | 2023-10-08 18:07:40 UTC | 2023-10-08 18:07:43 UTC
+SOSO-3 |   10.828188352 |   16.252044920 | Inuvik Northwest Territories | 2023-10-10 06:38:40 UTC | 2023-10-10 06:38:43 UTC
+SOSO-5 |  -76.844900305 | -127.332957359 | Inuvik Northwest Territories | 2023-10-09 06:33:00 UTC | 2023-10-09 06:33:03 UTC
+SOSO-2 |  -29.363369720 |  140.750779692 | Inuvik Northwest Territories | 2023-10-09 13:44:40 UTC | 2023-10-09 13:44:43 UTC
+SOSO-4 |  -11.887254682 |  -52.817373675 | Inuvik Northwest Territories | 2023-10-09 14:25:50 UTC | 2023-10-09 14:25:53 UTC
+SOSO-5 |  -82.689383703 |   13.634391204 | Inuvik Northwest Territories | 2023-10-09 14:21:40 UTC | 2023-10-09 14:21:43 UTC
+SOSO-3 |   63.030817133 |  -92.541281561 | Inuvik Northwest Territories | 2023-10-09 06:57:20 UTC | 2023-10-09 06:57:23 UTC
+SOSO-1 |   76.668038176 |  -50.368914575 | Inuvik Northwest Territories | 2023-10-08 10:52:00 UTC | 2023-10-08 10:52:01 UTC
+SOSO-5 |   39.188468069 |   72.353691071 | Inuvik Northwest Territories | 2023-10-08 19:15:30 UTC | 2023-10-08 19:15:31 UTC
+SOSO-5 |   43.570874967 |   27.435067260 | Inuvik Northwest Territories | 2023-10-09 06:33:00 UTC | 2023-10-09 06:33:03 UTC
+SOSO-5 |  -78.080511173 |  152.481039812 | Inuvik Northwest Territories | 2023-10-08 09:55:30 UTC | 2023-10-08 09:55:31 UTC
+SOSO-2 |   82.259904151 |  -46.109524910 | Inuvik Northwest Territories | 2023-10-08 06:09:50 UTC | 2023-10-08 06:09:51 UTC
+SOSO-2 |   14.921234253 |  -17.086083739 | Prince Albert Saskatchewan   | 2023-10-10 04:12:30 UTC | 2023-10-10 04:12:33 UTC
+SOSO-1 |   82.548375079 |  -29.354208411 | Inuvik Northwest Territories | 2023-10-09 05:48:50 UTC | 2023-10-09 05:48:53 UTC
+
+
+Sattelite: SOSO-1
+
+Activity                    Repetitions   Iteration   Start Time                End Time
+________________________________________________________________________________________________________
+MemoryScrub               | 3           | 0         | 2023-10-09 08:32:25 UTC | 2023-10-09 08:35:25 UTC  
+                          |             | 1         | 2023-10-11 00:35:25 UTC | 2023-10-11 00:38:25 UTC  
+                          |             | 2         | 2023-10-12 16:38:25 UTC | 2023-10-12 16:41:25 UTC  
+
+OrbitManeuver             | Null        | 0         | 2023-10-08 06:26:47 UTC | 2023-10-08 06:41:47 UTC  
+
+OrbitParameterUpdate      | 4           | 0         | 2023-10-09 08:32:25 UTC | 2023-10-09 08:32:55 UTC  
+                          |             | 1         | 2023-10-15 08:32:55 UTC | 2023-10-15 08:33:25 UTC  
+                          |             | 2         | 2023-10-21 08:33:25 UTC | 2023-10-21 08:33:55 UTC  
+                          |             | 3         | 2023-10-27 08:33:55 UTC | 2023-10-27 08:34:25 UTC  
+
+PayloadDiagnosticActivity | 7           | 0         | 2023-10-09 08:32:25 UTC | 2023-10-09 08:37:25 UTC  
+                          |             | 1         | 2023-10-10 04:37:25 UTC | 2023-10-10 04:42:25 UTC  
+                          |             | 2         | 2023-10-11 00:42:25 UTC | 2023-10-11 00:47:25 UTC  
+                          |             | 3         | 2023-10-11 20:47:25 UTC | 2023-10-11 20:52:25 UTC  
+                          |             | 4         | 2023-10-12 16:52:25 UTC | 2023-10-12 16:57:25 UTC  
+                          |             | 5         | 2023-10-13 12:57:25 UTC | 2023-10-13 13:02:25 UTC  
+                          |             | 6         | 2023-10-14 09:02:25 UTC | 2023-10-14 09:07:25 UTC  
+
+
+
+Sattelite: SOSO-2
+
+Activity                    Repetitions   Iteration   Start Time                End Time
+________________________________________________________________________________________________________
+MemoryScrub               | 3           | 0         | 2023-10-09 23:39:50 UTC | 2023-10-09 23:42:50 UTC  
+                          |             | 1         | 2023-10-11 15:42:50 UTC | 2023-10-11 15:45:50 UTC  
+                          |             | 2         | 2023-10-13 07:45:50 UTC | 2023-10-13 07:48:50 UTC  
+
+OrbitParameterUpdate      | 4           | 0         | 2023-10-09 23:39:50 UTC | 2023-10-09 23:40:20 UTC  
+                          |             | 1         | 2023-10-15 23:40:20 UTC | 2023-10-15 23:40:50 UTC  
+                          |             | 2         | 2023-10-21 23:40:50 UTC | 2023-10-21 23:41:20 UTC  
+                          |             | 3         | 2023-10-27 23:41:20 UTC | 2023-10-27 23:41:50 UTC  
+
+PayloadDiagnosticActivity | 7           | 0         | 2023-10-09 23:39:50 UTC | 2023-10-09 23:44:50 UTC  
+                          |             | 1         | 2023-10-10 19:44:50 UTC | 2023-10-10 19:49:50 UTC  
+                          |             | 2         | 2023-10-11 15:49:50 UTC | 2023-10-11 15:54:50 UTC  
+                          |             | 3         | 2023-10-12 11:54:50 UTC | 2023-10-12 11:59:50 UTC  
+                          |             | 4         | 2023-10-13 07:59:50 UTC | 2023-10-13 08:04:50 UTC  
+                          |             | 5         | 2023-10-14 04:04:50 UTC | 2023-10-14 04:09:50 UTC  
+                          |             | 6         | 2023-10-15 00:09:50 UTC | 2023-10-15 00:14:50 UTC  
+
+
+
+Sattelite: SOSO-3
+
+Activity                    Repetitions   Iteration   Start Time                End Time
+________________________________________________________________________________________________________
+MemoryScrub               | 3           | 0         | 2023-10-09 21:30:50 UTC | 2023-10-09 21:33:50 UTC  
+                          |             | 1         | 2023-10-11 13:33:50 UTC | 2023-10-11 13:36:50 UTC  
+                          |             | 2         | 2023-10-13 05:36:50 UTC | 2023-10-13 05:39:50 UTC  
+
+OrbitManeuver             | Null        | 0         | 2023-10-09 10:11:34 UTC | 2023-10-09 10:26:34 UTC  
+
+OrbitParameterUpdate      | 4           | 0         | 2023-10-09 21:30:50 UTC | 2023-10-09 21:31:20 UTC  
+                          |             | 1         | 2023-10-15 21:31:20 UTC | 2023-10-15 21:31:50 UTC  
+                          |             | 2         | 2023-10-21 21:31:50 UTC | 2023-10-21 21:32:20 UTC  
+                          |             | 3         | 2023-10-27 21:32:20 UTC | 2023-10-27 21:32:50 UTC  
+
+PayloadDiagnosticActivity | 7           | 0         | 2023-10-09 21:30:50 UTC | 2023-10-09 21:35:50 UTC  
+                          |             | 1         | 2023-10-10 17:35:50 UTC | 2023-10-10 17:40:50 UTC  
+                          |             | 2         | 2023-10-11 13:40:50 UTC | 2023-10-11 13:45:50 UTC  
+                          |             | 3         | 2023-10-12 09:45:50 UTC | 2023-10-12 09:50:50 UTC  
+                          |             | 4         | 2023-10-13 05:50:50 UTC | 2023-10-13 05:55:50 UTC  
+                          |             | 5         | 2023-10-14 01:55:50 UTC | 2023-10-14 02:00:50 UTC  
+                          |             | 6         | 2023-10-14 22:00:50 UTC | 2023-10-14 22:05:50 UTC  
+
+
+
+Sattelite: SOSO-4
+
+Activity                    Repetitions   Iteration   Start Time                End Time
+________________________________________________________________________________________________________
+MemoryScrub               | 3           | 0         | 2023-10-09 14:04:50 UTC | 2023-10-09 14:07:50 UTC  
+                          |             | 1         | 2023-10-11 06:07:50 UTC | 2023-10-11 06:10:50 UTC  
+                          |             | 2         | 2023-10-12 22:10:50 UTC | 2023-10-12 22:13:50 UTC  
+
+OrbitParameterUpdate      | 4           | 0         | 2023-10-09 14:04:50 UTC | 2023-10-09 14:05:20 UTC  
+                          |             | 1         | 2023-10-15 14:05:20 UTC | 2023-10-15 14:05:50 UTC  
+                          |             | 2         | 2023-10-21 14:05:50 UTC | 2023-10-21 14:06:20 UTC  
+                          |             | 3         | 2023-10-27 14:06:20 UTC | 2023-10-27 14:06:50 UTC  
+
+PayloadDiagnosticActivity | 7           | 0         | 2023-10-09 14:04:50 UTC | 2023-10-09 14:09:50 UTC  
+                          |             | 1         | 2023-10-10 10:09:50 UTC | 2023-10-10 10:14:50 UTC  
+                          |             | 2         | 2023-10-11 06:14:50 UTC | 2023-10-11 06:19:50 UTC  
+                          |             | 3         | 2023-10-12 02:19:50 UTC | 2023-10-12 02:24:50 UTC  
+                          |             | 4         | 2023-10-12 22:24:50 UTC | 2023-10-12 22:29:50 UTC  
+                          |             | 5         | 2023-10-13 18:29:50 UTC | 2023-10-13 18:34:50 UTC  
+                          |             | 6         | 2023-10-14 14:34:50 UTC | 2023-10-14 14:39:50 UTC  
+
+
+
+Sattelite: SOSO-5
+
+Activity                    Repetitions   Iteration   Start Time                End Time
+________________________________________________________________________________________________________
+MemoryScrub               | 3           | 0         | 2023-10-09 13:41:50 UTC | 2023-10-09 13:44:50 UTC  
+                          |             | 1         | 2023-10-11 05:44:50 UTC | 2023-10-11 05:47:50 UTC  
+                          |             | 2         | 2023-10-12 21:47:50 UTC | 2023-10-12 21:50:50 UTC  
+
+OrbitParameterUpdate      | 4           | 0         | 2023-10-09 13:41:50 UTC | 2023-10-09 13:42:20 UTC  
+                          |             | 1         | 2023-10-15 13:42:20 UTC | 2023-10-15 13:42:50 UTC  
+                          |             | 2         | 2023-10-21 13:42:50 UTC | 2023-10-21 13:43:20 UTC  
+                          |             | 3         | 2023-10-27 13:43:20 UTC | 2023-10-27 13:43:50 UTC  
+
+PayloadDiagnosticActivity | 7           | 0         | 2023-10-09 13:41:50 UTC | 2023-10-09 13:46:50 UTC  
+                          |             | 1         | 2023-10-10 09:46:50 UTC | 2023-10-10 09:51:50 UTC  
+                          |             | 2         | 2023-10-11 05:51:50 UTC | 2023-10-11 05:56:50 UTC  
+                          |             | 3         | 2023-10-12 01:56:50 UTC | 2023-10-12 02:01:50 UTC  
+                          |             | 4         | 2023-10-12 22:01:50 UTC | 2023-10-12 22:06:50 UTC  
+                          |             | 5         | 2023-10-13 18:06:50 UTC | 2023-10-13 18:11:50 UTC  
+                          |             | 6         | 2023-10-14 14:11:50 UTC | 2023-10-14 14:16:50 UTC  
+
+
+Storage Usage:
+
+Sattelite      Storage Left
+__________________________
+SOSO-1       | 39.5 GB
+SOSO-2       | 39.375 GB
+SOSO-3       | 39.0 GB
+SOSO-4       | 39.75 GB
+SOSO-5       | 39.0 GB
+
+
+Ground Station Utilization
+
+
+
+Inuvik Northwest Territories
+
+	Allocated Slots
+	Start                       End
+	____________________________________________________
+	2023-10-08 06:09:50 UTC  |  2023-10-08 06:09:51 UTC
+	2023-10-08 09:55:30 UTC  |  2023-10-08 09:55:31 UTC
+	2023-10-08 10:52:00 UTC  |  2023-10-08 10:52:01 UTC
+	2023-10-08 18:07:40 UTC  |  2023-10-08 18:07:43 UTC
+	2023-10-08 19:15:30 UTC  |  2023-10-08 19:15:31 UTC
+	2023-10-09 06:33:00 UTC  |  2023-10-09 06:33:03 UTC
+	2023-10-09 05:25:10 UTC  |  2023-10-09 05:25:13 UTC
+	2023-10-09 06:33:00 UTC  |  2023-10-09 06:33:03 UTC
+	2023-10-09 05:48:50 UTC  |  2023-10-09 05:48:53 UTC
+	2023-10-09 06:57:20 UTC  |  2023-10-09 06:57:23 UTC
+	2023-10-09 08:55:10 UTC  |  2023-10-09 08:55:11 UTC
+	2023-10-09 13:44:40 UTC  |  2023-10-09 13:44:43 UTC
+	2023-10-09 14:21:40 UTC  |  2023-10-09 14:21:43 UTC
+	2023-10-09 14:25:50 UTC  |  2023-10-09 14:25:53 UTC
+	2023-10-10 06:38:40 UTC  |  2023-10-10 06:38:43 UTC
+
+	Available Slots
+	Start                       End
+	____________________________________________________
+	2023-10-08 02:02:00 UTC     2023-10-08 06:09:45 UTC
+	2023-10-08 02:02:06 UTC     2023-10-08 09:55:25 UTC
+	2023-10-08 02:02:13 UTC     2023-10-08 10:51:55 UTC
+	2023-10-08 02:02:19 UTC     2023-10-08 18:07:35 UTC
+	2023-10-08 02:02:26 UTC     2023-10-08 19:15:25 UTC
+	2023-10-08 02:02:33 UTC     2023-10-09 05:25:05 UTC
+	2023-10-08 02:02:40 UTC     2023-10-09 06:32:55 UTC
+	2023-10-08 02:02:40 UTC     2023-10-09 05:48:45 UTC
+	2023-10-08 02:02:48 UTC     2023-10-09 06:32:55 UTC
+	2023-10-08 02:02:48 UTC     2023-10-09 06:57:15 UTC
+	2023-10-08 02:02:55 UTC     2023-10-09 08:55:05 UTC
+	2023-10-08 02:03:02 UTC     2023-10-09 13:44:35 UTC
+	2023-10-08 02:03:09 UTC     2023-10-09 14:21:35 UTC
+	2023-10-08 02:03:17 UTC     2023-10-09 14:25:45 UTC
+	2023-10-08 02:03:24 UTC     2023-10-10 06:38:35 UTC
+	2023-10-08 02:03:32 UTC     2023-10-10 07:53:16 UTC
+
+
+Prince Albert Saskatchewan
+
+	Allocated Slots
+	Start                       End
+	____________________________________________________
+	2023-10-10 04:12:30 UTC  |  2023-10-10 04:12:33 UTC
+
+	Available Slots
+	Start                       End
+	____________________________________________________
+	2023-10-08 02:02:00 UTC     2023-10-10 04:12:25 UTC
+	2023-10-08 02:02:08 UTC     2023-10-10 07:53:16 UTC
+
+
+Gatineau Quebec
+
+	Allocated Slots
+	Start                       End
+	____________________________________________________
+
+	Available Slots
+	Start                       End
+	____________________________________________________
+	2023-10-08 02:02:00 UTC     2023-10-10 07:53:16 UTC
+
+
+
+Ground Station Visibility
+
+SOSO-1
+
+     Inuvik Northwest Territories
+         Start                       End
+         ____________________________________________________
+         2023-10-08 06:11:40 UTC     2023-10-08 06:17:50 UTC
+         2023-10-08 07:44:40 UTC     2023-10-08 07:53:40 UTC
+         2023-10-08 09:18:20 UTC     2023-10-08 09:27:20 UTC
+         2023-10-08 10:52:00 UTC     2023-10-08 10:59:30 UTC
+         2023-10-08 12:25:20 UTC     2023-10-08 12:31:10 UTC
+         2023-10-08 13:57:40 UTC     2023-10-08 14:03:10 UTC
+         2023-10-08 15:29:10 UTC     2023-10-08 15:36:20 UTC
+         2023-10-08 17:01:10 UTC     2023-10-08 17:09:50 UTC
+         2023-10-08 18:34:30 UTC     2023-10-08 18:43:30 UTC
+         2023-10-08 20:09:40 UTC     2023-10-08 20:16:50 UTC
+         2023-10-09 05:48:50 UTC     2023-10-09 05:53:30 UTC
+         2023-10-09 07:21:40 UTC     2023-10-09 07:30:10 UTC
+         2023-10-09 08:55:10 UTC     2023-10-09 09:04:20 UTC
+         2023-10-09 10:28:50 UTC     2023-10-09 10:36:50 UTC
+         2023-10-09 12:02:20 UTC     2023-10-09 12:08:30 UTC
+         2023-10-09 13:35:00 UTC     2023-10-09 13:40:20 UTC
+         2023-10-09 15:06:30 UTC     2023-10-09 15:13:10 UTC
+         2023-10-09 16:38:20 UTC     2023-10-09 16:46:40 UTC
+         2023-10-09 18:11:10 UTC     2023-10-09 18:20:30 UTC
+         2023-10-09 19:46:00 UTC     2023-10-09 19:53:50 UTC
+         2023-10-09 21:24:40 UTC     2023-10-09 21:25:10 UTC
+         2023-10-10 05:26:40 UTC     2023-10-10 05:28:30 UTC
+         2023-10-10 06:58:30 UTC     2023-10-10 07:06:40 UTC
+
+     Prince Albert Saskatchewan
+         Start                       End
+         ____________________________________________________
+         2023-10-08 04:41:20 UTC     2023-10-08 04:47:30 UTC
+         2023-10-08 06:14:00 UTC     2023-10-08 06:23:00 UTC
+         2023-10-08 07:48:30 UTC     2023-10-08 07:54:20 UTC
+         2023-10-08 15:24:20 UTC     2023-10-08 15:30:50 UTC
+         2023-10-08 16:56:00 UTC     2023-10-08 17:05:10 UTC
+         2023-10-08 18:32:20 UTC     2023-10-08 18:37:10 UTC
+         2023-10-09 04:19:40 UTC     2023-10-09 04:22:30 UTC
+         2023-10-09 05:50:50 UTC     2023-10-09 05:59:50 UTC
+         2023-10-09 07:24:50 UTC     2023-10-09 07:32:10 UTC
+         2023-10-09 15:02:20 UTC     2023-10-09 15:07:10 UTC
+         2023-10-09 16:33:00 UTC     2023-10-09 16:42:00 UTC
+         2023-10-09 18:07:50 UTC     2023-10-09 18:14:50 UTC
+         2023-10-10 05:27:50 UTC     2023-10-10 05:36:30 UTC
+         2023-10-10 07:01:30 UTC     2023-10-10 07:09:40 UTC
+
+     Gatineau Quebec
+         Start                       End
+         ____________________________________________________
+         2023-10-08 03:08:10 UTC     2023-10-08 03:16:00 UTC
+         2023-10-08 04:41:30 UTC     2023-10-08 04:49:50 UTC
+         2023-10-08 13:47:30 UTC     2023-10-08 13:54:10 UTC
+         2023-10-08 15:19:30 UTC     2023-10-08 15:28:30 UTC
+         2023-10-09 02:45:40 UTC     2023-10-09 02:51:50 UTC
+         2023-10-09 04:18:10 UTC     2023-10-09 04:27:00 UTC
+         2023-10-09 13:26:00 UTC     2023-10-09 13:30:00 UTC
+         2023-10-09 14:56:20 UTC     2023-10-09 15:05:20 UTC
+         2023-10-09 16:33:00 UTC     2023-10-09 16:36:50 UTC
+         2023-10-10 02:24:20 UTC     2023-10-10 02:26:20 UTC
+         2023-10-10 03:55:00 UTC     2023-10-10 04:04:00 UTC
+         2023-10-10 05:30:00 UTC     2023-10-10 05:35:00 UTC
+SOSO-2
+
+     Inuvik Northwest Territories
+         Start                       End
+         ____________________________________________________
+         2023-10-08 06:09:50 UTC     2023-10-08 06:16:30 UTC
+         2023-10-08 07:43:30 UTC     2023-10-08 07:52:50 UTC
+         2023-10-08 09:17:50 UTC     2023-10-08 09:27:10 UTC
+         2023-10-08 10:52:00 UTC     2023-10-08 11:00:00 UTC
+         2023-10-08 12:25:50 UTC     2023-10-08 12:32:10 UTC
+         2023-10-08 13:58:40 UTC     2023-10-08 14:04:50 UTC
+         2023-10-08 15:30:50 UTC     2023-10-08 15:38:30 UTC
+         2023-10-08 17:03:20 UTC     2023-10-08 17:12:40 UTC
+         2023-10-08 18:37:20 UTC     2023-10-08 18:46:50 UTC
+         2023-10-08 20:13:20 UTC     2023-10-08 20:20:40 UTC
+         2023-10-09 05:55:40 UTC     2023-10-09 06:01:30 UTC
+         2023-10-09 07:29:20 UTC     2023-10-09 07:38:30 UTC
+         2023-10-09 09:03:30 UTC     2023-10-09 09:13:00 UTC
+         2023-10-09 10:37:40 UTC     2023-10-09 10:46:00 UTC
+         2023-10-09 12:11:30 UTC     2023-10-09 12:18:10 UTC
+         2023-10-09 13:44:40 UTC     2023-10-09 13:50:40 UTC
+         2023-10-09 15:16:50 UTC     2023-10-09 15:24:10 UTC
+         2023-10-09 16:49:20 UTC     2023-10-09 16:58:20 UTC
+         2023-10-09 18:23:00 UTC     2023-10-09 18:32:30 UTC
+         2023-10-09 19:58:30 UTC     2023-10-09 20:06:30 UTC
+         2023-10-10 05:41:40 UTC     2023-10-10 05:46:30 UTC
+         2023-10-10 07:15:00 UTC     2023-10-10 07:23:50 UTC
+
+     Prince Albert Saskatchewan
+         Start                       End
+         ____________________________________________________
+         2023-10-08 04:39:00 UTC     2023-10-08 04:45:30 UTC
+         2023-10-08 06:12:10 UTC     2023-10-08 06:21:50 UTC
+         2023-10-08 07:47:10 UTC     2023-10-08 07:53:40 UTC
+         2023-10-08 15:25:50 UTC     2023-10-08 15:33:00 UTC
+         2023-10-08 16:58:20 UTC     2023-10-08 17:07:50 UTC
+         2023-10-08 18:35:20 UTC     2023-10-08 18:40:30 UTC
+         2023-10-09 04:25:20 UTC     2023-10-09 04:30:20 UTC
+         2023-10-09 05:57:50 UTC     2023-10-09 06:07:30 UTC
+         2023-10-09 07:32:40 UTC     2023-10-09 07:40:00 UTC
+         2023-10-09 15:12:10 UTC     2023-10-09 15:18:30 UTC
+         2023-10-09 16:44:00 UTC     2023-10-09 16:53:30 UTC
+         2023-10-09 18:20:10 UTC     2023-10-09 18:26:40 UTC
+         2023-10-10 04:12:30 UTC     2023-10-10 04:14:10 UTC
+         2023-10-10 05:43:40 UTC     2023-10-10 05:53:00 UTC
+         2023-10-10 07:18:10 UTC     2023-10-10 07:26:10 UTC
+
+     Gatineau Quebec
+         Start                       End
+         ____________________________________________________
+         2023-10-08 03:05:10 UTC     2023-10-08 03:13:30 UTC
+         2023-10-08 04:39:00 UTC     2023-10-08 04:48:00 UTC
+         2023-10-08 13:48:30 UTC     2023-10-08 13:55:40 UTC
+         2023-10-08 15:21:10 UTC     2023-10-08 15:30:30 UTC
+         2023-10-09 02:51:20 UTC     2023-10-09 02:58:40 UTC
+         2023-10-09 04:24:40 UTC     2023-10-09 04:33:50 UTC
+         2023-10-09 13:35:00 UTC     2023-10-09 13:41:00 UTC
+         2023-10-09 15:06:50 UTC     2023-10-09 15:16:20 UTC
+         2023-10-09 16:45:50 UTC     2023-10-09 16:46:50 UTC
+         2023-10-10 02:37:40 UTC     2023-10-10 02:43:30 UTC
+         2023-10-10 04:10:20 UTC     2023-10-10 04:19:50 UTC
+         2023-10-10 05:46:40 UTC     2023-10-10 05:50:00 UTC
+SOSO-3
+
+     Inuvik Northwest Territories
+         Start                       End
+         ____________________________________________________
+         2023-10-08 05:43:00 UTC     2023-10-08 05:47:30 UTC
+         2023-10-08 07:16:00 UTC     2023-10-08 07:24:40 UTC
+         2023-10-08 08:49:50 UTC     2023-10-08 08:59:10 UTC
+         2023-10-08 10:23:50 UTC     2023-10-08 10:32:10 UTC
+         2023-10-08 11:57:30 UTC     2023-10-08 12:04:00 UTC
+         2023-10-08 13:30:30 UTC     2023-10-08 13:36:10 UTC
+         2023-10-08 15:02:30 UTC     2023-10-08 15:09:20 UTC
+         2023-10-08 16:34:30 UTC     2023-10-08 16:43:00 UTC
+         2023-10-08 18:07:40 UTC     2023-10-08 18:17:00 UTC
+         2023-10-08 19:42:30 UTC     2023-10-08 19:50:50 UTC
+         2023-10-08 21:20:50 UTC     2023-10-08 21:23:00 UTC
+         2023-10-09 05:25:10 UTC     2023-10-09 05:27:20 UTC
+         2023-10-09 06:57:20 UTC     2023-10-09 07:05:40 UTC
+         2023-10-09 08:31:10 UTC     2023-10-09 08:40:30 UTC
+         2023-10-09 10:05:10 UTC     2023-10-09 10:13:40 UTC
+         2023-10-09 11:38:50 UTC     2023-10-09 11:45:50 UTC
+         2023-10-09 13:12:00 UTC     2023-10-09 13:17:40 UTC
+         2023-10-09 14:44:10 UTC     2023-10-09 14:50:40 UTC
+         2023-10-09 16:16:00 UTC     2023-10-09 16:24:20 UTC
+         2023-10-09 17:49:00 UTC     2023-10-09 17:58:20 UTC
+         2023-10-09 19:23:30 UTC     2023-10-09 19:32:10 UTC
+         2023-10-09 21:00:40 UTC     2023-10-09 21:05:10 UTC
+         2023-10-10 06:38:40 UTC     2023-10-10 06:46:20 UTC
+
+     Prince Albert Saskatchewan
+         Start                       End
+         ____________________________________________________
+         2023-10-08 04:14:10 UTC     2023-10-08 04:15:30 UTC
+         2023-10-08 05:45:00 UTC     2023-10-08 05:54:10 UTC
+         2023-10-08 07:19:10 UTC     2023-10-08 07:27:00 UTC
+         2023-10-08 14:58:20 UTC     2023-10-08 15:03:00 UTC
+         2023-10-08 16:29:10 UTC     2023-10-08 16:38:20 UTC
+         2023-10-08 18:04:10 UTC     2023-10-08 18:11:30 UTC
+         2023-10-09 05:26:20 UTC     2023-10-09 05:35:10 UTC
+         2023-10-09 07:00:20 UTC     2023-10-09 07:08:50 UTC
+         2023-10-09 14:41:30 UTC     2023-10-09 14:43:10 UTC
+         2023-10-09 16:10:40 UTC     2023-10-09 16:19:30 UTC
+         2023-10-09 17:44:50 UTC     2023-10-09 17:53:10 UTC
+         2023-10-10 05:07:50 UTC     2023-10-10 05:16:00 UTC
+         2023-10-10 06:41:30 UTC     2023-10-10 06:50:20 UTC
+
+     Gatineau Quebec
+         Start                       End
+         ____________________________________________________
+         2023-10-08 02:39:30 UTC     2023-10-08 02:45:10 UTC
+         2023-10-08 04:11:50 UTC     2023-10-08 04:21:10 UTC
+         2023-10-08 05:48:20 UTC     2023-10-08 05:50:40 UTC
+         2023-10-08 13:21:50 UTC     2023-10-08 13:25:30 UTC
+         2023-10-08 14:52:10 UTC     2023-10-08 15:01:20 UTC
+         2023-10-08 16:28:40 UTC     2023-10-08 16:33:30 UTC
+         2023-10-09 02:22:30 UTC     2023-10-09 02:24:20 UTC
+         2023-10-09 03:53:10 UTC     2023-10-09 04:02:30 UTC
+         2023-10-09 05:28:20 UTC     2023-10-09 05:33:50 UTC
+         2023-10-09 14:33:40 UTC     2023-10-09 14:42:40 UTC
+         2023-10-09 16:08:40 UTC     2023-10-09 16:15:40 UTC
+         2023-10-10 03:34:30 UTC     2023-10-10 03:43:40 UTC
+         2023-10-10 05:09:00 UTC     2023-10-10 05:16:10 UTC
+SOSO-4
+
+     Inuvik Northwest Territories
+         Start                       End
+         ____________________________________________________
+         2023-10-08 05:25:10 UTC     2023-10-08 05:27:20 UTC
+         2023-10-08 06:57:20 UTC     2023-10-08 07:05:30 UTC
+         2023-10-08 08:31:10 UTC     2023-10-08 08:40:30 UTC
+         2023-10-08 10:05:00 UTC     2023-10-08 10:13:40 UTC
+         2023-10-08 11:38:50 UTC     2023-10-08 11:45:40 UTC
+         2023-10-08 13:12:00 UTC     2023-10-08 13:17:40 UTC
+         2023-10-08 14:44:10 UTC     2023-10-08 14:50:30 UTC
+         2023-10-08 16:16:00 UTC     2023-10-08 16:24:20 UTC
+         2023-10-08 17:48:50 UTC     2023-10-08 17:58:10 UTC
+         2023-10-08 19:23:30 UTC     2023-10-08 19:32:00 UTC
+         2023-10-08 21:00:30 UTC     2023-10-08 21:05:00 UTC
+         2023-10-09 06:38:40 UTC     2023-10-09 06:46:20 UTC
+         2023-10-09 08:12:20 UTC     2023-10-09 08:21:40 UTC
+         2023-10-09 09:46:20 UTC     2023-10-09 09:55:10 UTC
+         2023-10-09 11:20:10 UTC     2023-10-09 11:27:20 UTC
+         2023-10-09 12:53:30 UTC     2023-10-09 12:59:10 UTC
+         2023-10-09 14:25:50 UTC     2023-10-09 14:32:00 UTC
+         2023-10-09 15:57:40 UTC     2023-10-09 16:05:30 UTC
+         2023-10-09 17:30:20 UTC     2023-10-09 17:39:30 UTC
+         2023-10-09 19:04:20 UTC     2023-10-09 19:13:20 UTC
+         2023-10-09 20:40:50 UTC     2023-10-09 20:46:40 UTC
+         2023-10-10 06:20:10 UTC     2023-10-10 06:27:00 UTC
+
+     Prince Albert Saskatchewan
+         Start                       End
+         ____________________________________________________
+         2023-10-08 05:26:20 UTC     2023-10-08 05:35:10 UTC
+         2023-10-08 07:00:10 UTC     2023-10-08 07:08:40 UTC
+         2023-10-08 14:41:30 UTC     2023-10-08 14:43:00 UTC
+         2023-10-08 16:10:40 UTC     2023-10-08 16:19:30 UTC
+         2023-10-08 17:44:50 UTC     2023-10-08 17:53:10 UTC
+         2023-10-09 05:07:50 UTC     2023-10-09 05:16:00 UTC
+         2023-10-09 06:41:20 UTC     2023-10-09 06:50:20 UTC
+         2023-10-09 08:17:10 UTC     2023-10-09 08:20:20 UTC
+         2023-10-09 15:52:20 UTC     2023-10-09 16:00:30 UTC
+         2023-10-09 17:25:40 UTC     2023-10-09 17:34:30 UTC
+         2023-10-10 04:49:30 UTC     2023-10-10 04:56:30 UTC
+         2023-10-10 06:22:30 UTC     2023-10-10 06:31:50 UTC
+
+     Gatineau Quebec
+         Start                       End
+         ____________________________________________________
+         2023-10-08 02:22:30 UTC     2023-10-08 02:24:10 UTC
+         2023-10-08 03:53:10 UTC     2023-10-08 04:02:30 UTC
+         2023-10-08 05:28:20 UTC     2023-10-08 05:33:50 UTC
+         2023-10-08 14:33:30 UTC     2023-10-08 14:42:30 UTC
+         2023-10-08 16:08:40 UTC     2023-10-08 16:15:30 UTC
+         2023-10-09 03:34:30 UTC     2023-10-09 03:43:30 UTC
+         2023-10-09 05:09:00 UTC     2023-10-09 05:16:00 UTC
+         2023-10-09 14:15:10 UTC     2023-10-09 14:23:40 UTC
+         2023-10-09 15:49:10 UTC     2023-10-09 15:57:20 UTC
+         2023-10-10 03:16:00 UTC     2023-10-10 03:24:30 UTC
+         2023-10-10 04:49:50 UTC     2023-10-10 04:58:00 UTC
+SOSO-5
+
+     Inuvik Northwest Territories
+         Start                       End
+         ____________________________________________________
+         2023-10-08 06:47:20 UTC     2023-10-08 06:55:20 UTC
+         2023-10-08 08:21:20 UTC     2023-10-08 08:30:50 UTC
+         2023-10-08 09:55:30 UTC     2023-10-08 10:04:20 UTC
+         2023-10-08 11:29:40 UTC     2023-10-08 11:36:50 UTC
+         2023-10-08 13:03:10 UTC     2023-10-08 13:09:00 UTC
+         2023-10-08 14:35:40 UTC     2023-10-08 14:42:10 UTC
+         2023-10-08 16:07:50 UTC     2023-10-08 16:16:00 UTC
+         2023-10-08 17:40:50 UTC     2023-10-08 17:50:20 UTC
+         2023-10-08 19:15:30 UTC     2023-10-08 19:24:30 UTC
+         2023-10-08 20:52:30 UTC     2023-10-08 20:58:00 UTC
+         2023-10-09 06:33:00 UTC     2023-10-09 06:40:40 UTC
+         2023-10-09 08:07:00 UTC     2023-10-09 08:16:20 UTC
+         2023-10-09 09:41:10 UTC     2023-10-09 09:50:20 UTC
+         2023-10-09 11:15:20 UTC     2023-10-09 11:22:50 UTC
+         2023-10-09 12:49:00 UTC     2023-10-09 12:55:00 UTC
+         2023-10-09 14:21:40 UTC     2023-10-09 14:27:50 UTC
+         2023-10-09 15:53:40 UTC     2023-10-09 16:01:40 UTC
+         2023-10-09 17:26:40 UTC     2023-10-09 17:36:00 UTC
+         2023-10-09 19:01:00 UTC     2023-10-09 19:10:10 UTC
+         2023-10-09 20:37:40 UTC     2023-10-09 20:43:50 UTC
+         2023-10-10 06:18:50 UTC     2023-10-10 06:25:50 UTC
+
+     Prince Albert Saskatchewan
+         Start                       End
+         ____________________________________________________
+         2023-10-08 05:16:00 UTC     2023-10-08 05:24:40 UTC
+         2023-10-08 06:50:00 UTC     2023-10-08 06:59:00 UTC
+         2023-10-08 08:26:40 UTC     2023-10-08 08:28:30 UTC
+         2023-10-08 16:02:20 UTC     2023-10-08 16:11:10 UTC
+         2023-10-08 17:36:30 UTC     2023-10-08 17:45:20 UTC
+         2023-10-09 05:02:00 UTC     2023-10-09 05:09:50 UTC
+         2023-10-09 06:35:40 UTC     2023-10-09 06:44:50 UTC
+         2023-10-09 08:11:20 UTC     2023-10-09 08:15:40 UTC
+         2023-10-09 15:48:30 UTC     2023-10-09 15:56:40 UTC
+         2023-10-09 17:22:00 UTC     2023-10-09 17:31:00 UTC
+         2023-10-10 04:48:00 UTC     2023-10-10 04:55:00 UTC
+         2023-10-10 06:21:20 UTC     2023-10-10 06:30:40 UTC
+
+     Gatineau Quebec
+         Start                       End
+         ____________________________________________________
+         2023-10-08 03:42:30 UTC     2023-10-08 03:51:50 UTC
+         2023-10-08 05:17:30 UTC     2023-10-08 05:24:10 UTC
+         2023-10-08 14:25:00 UTC     2023-10-08 14:34:00 UTC
+         2023-10-08 15:59:50 UTC     2023-10-08 16:07:30 UTC
+         2023-10-09 03:28:20 UTC     2023-10-09 03:37:20 UTC
+         2023-10-09 05:02:50 UTC     2023-10-09 05:10:30 UTC
+         2023-10-09 14:11:00 UTC     2023-10-09 14:19:30 UTC
+         2023-10-09 15:45:00 UTC     2023-10-09 15:53:30 UTC
+         2023-10-10 03:14:10 UTC     2023-10-10 03:22:40 UTC
+         2023-10-10 04:48:20 UTC     2023-10-10 04:56:40 UTC
+​
