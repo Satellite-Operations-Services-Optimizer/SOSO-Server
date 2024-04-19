@@ -39,7 +39,7 @@ add_pagination(app)
 app.include_router(satellite_activity_router, tags=["Satellite Operation"], prefix="/assets/satellites")
 app.include_router(asset_router, tags=["Asset Creation"], prefix="/assets")
 app.include_router(schedule_router, tags=["Schedule Interactions"], prefix="/schedules")
-app.include_router(image_router, tags=["Image Order Operations"], prefix="/images")
+app.include_router(image_router, tags=["Image Order Operations"], prefix="/imaging")
 app.include_router(maintenance_router, tags=["Maintenence Order Operations"], prefix="/maintenance")
 app.include_router(outage_router, tags=["Outage Order Operations"], prefix="/outage")
 

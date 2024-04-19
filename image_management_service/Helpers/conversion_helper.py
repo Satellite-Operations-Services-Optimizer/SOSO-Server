@@ -17,10 +17,10 @@ def transform_request_to_order(imageReq):
         freq_amount = imageReq["Recurrence"].get("RevisitFrequency")
         freq_unit = imageReq["Recurrence"].get("RevisitFrequencyUnits").lower()
         imageOrder["revisit_frequency"] = timedelta(**{freq_unit: freq_amount})
-        imageOrder["visits_remaining"] = imageReq["Recurrence"].get("NumberOfRevisits")
+        imageOrder["number_of_visits"] = imageReq["Recurrence"].get("NumberOfRevisits") + 1
     else:
         imageOrder["revisit_frequency"] = None
-        imageOrder["visits_remaining"] = 0
+        imageOrder["number_of_visits"] = 1
     
     
     return imageOrder
@@ -34,7 +34,7 @@ def transform_orderDict_to_orderDMModel(imageOrder):
         start_time=datetime.fromisoformat(imageOrder["start_time"]),
         end_time=datetime.fromisoformat(imageOrder["end_time"]),
         delivery_deadline=datetime.fromisoformat(imageOrder["delivery_deadline"]),
-        visits_remaining=imageOrder["visits_remaining"],
+        number_of_visits=imageOrder["number_of_visits"],
         revisit_frequency=imageOrder["revisit_frequency"]
         );
     

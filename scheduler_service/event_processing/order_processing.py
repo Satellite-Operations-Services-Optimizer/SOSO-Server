@@ -28,7 +28,7 @@ def order_processing_task():
 def process_earliest_order():
     session = get_db_session()
     order = session.query(SystemOrder).filter(
-        SystemOrder.visits_remaining > 0
+        SystemOrder.visit_counter < SystemOrder.number_of_visits
     ).order_by(SystemOrder.start_time).first()
     if order is None: return False
     
@@ -42,7 +42,7 @@ def process_earliest_order():
         order_table = GroundStationOutageOrder
     
     order = session.query(order_table).filter_by(id=order.id).with_for_update().first()
-    if order.visits_remaining == 0: return True # has been processed by another process
+    if order.visit_counter == order.number_of_visits: return True # has been processed by another process
 
     create_request(order)
     return True
@@ -61,11 +61,9 @@ def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Opt
     ).all()
 
     requests = []
-    orders_all_requested = False
-    while not orders_all_requested:
-        orders_all_requested = True
+    while order.visit_counter < order.number_of_visits:
         for order in orders:
-            if order.visits_remaining==0: continue
+            if order.visit_counter==order.number_of_visits: continue
             order_already_requested = session.query(exists(ScheduleRequest).where(
                 ScheduleRequest.schedule_id==order.schedule_id,
                 ScheduleRequest.order_id==order.id,
@@ -75,13 +73,8 @@ def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Opt
 
             if not order_already_requested:
                 requests.append(create_request(order))
-            order.start_time += order.revisit_frequency
-            order.end_time += order.revisit_frequency
-            order.delivery_deadline += order.revisit_frequency
-            order.visits_remaining -= 1
+            order.visit_counter += 1
 
-            end_time_tz = end_time.replace(tzinfo=order.end_time.tzinfo)  # Add timezone information to be able to compare
-            orders_all_requested = orders_all_requested and order.start_time > end_time_tz
     session.add_all(requests)
     session.commit()
 
@@ -97,22 +90,23 @@ def create_request(order):
     else:
         raise Exception(f"Order with id `{order.id}` has an invalid system order type `{order.order_type}`.")
     
-    if order.visits_remaining == 0:
+    if order.visit_counter == order.number_of_visits:
         return None
 
     session = get_db_session()
     # ensure that the order is in its concrete type, not as a polymorphic type
     order = session.query(order_class).filter_by(id=order.id).first()
+    time_offset = order.revisit_frequency * order.visit_counter
     request = ScheduleRequest(
         schedule_id=order.schedule_id,
         order_id=order.id,
         order_type=order.order_type,
         asset_id=order.asset_id,
         asset_type=order.asset_type,
-        window_start=order.start_time,
-        window_end=order.end_time,
+        window_start=order.start_time + time_offset,
+        window_end=order.end_time + time_offset,
         duration=order.duration,
-        delivery_deadline=order.delivery_deadline,
+        delivery_deadline=order.delivery_deadline + time_offset,
         priority=order.priority
     )
     if order.order_type=="imaging" or order.order_type=="maintenance":
@@ -121,11 +115,6 @@ def create_request(order):
         request.power_usage=order.power_usage,
 
     session.add(request)
-
-    order.start_time += order.revisit_frequency
-    order.end_time += order.revisit_frequency
-    order.delivery_deadline += order.revisit_frequency
-    order.visits_remaining -= 1
     session.commit()
 
     # publish request created

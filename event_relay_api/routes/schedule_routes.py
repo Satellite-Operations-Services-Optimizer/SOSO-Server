@@ -7,6 +7,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi import Query
 from sqlalchemy import case
 from rabbit_wrapper import TopicPublisher
+from helpers.queries import create_exposed_schedule_requests_query
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -18,11 +19,13 @@ async def get_schedules():
     return jsonable_encoder(schedules)
 
 @router.get("/requests")
-async def get_all_schedule_requests(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+async def get_all_schedule_requests(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
     session = get_db_session()
-    query = session.query(ScheduleRequest)
+    query = create_exposed_schedule_requests_query()
+    if request_types:
+        query = query.filter(ScheduleRequest.order_type.in_(request_types))
     if not all:
-        query.limit(per_page).offset((page - 1) * per_page)
+        query = query.limit(per_page).offset((page - 1) * per_page)
     return query.all()
 
 @router.post("/requests/{request_id}/decline")

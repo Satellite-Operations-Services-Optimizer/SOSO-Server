@@ -30,6 +30,6 @@ class ImageOrder(BaseModel):
     start_time: datetime
     end_time: datetime
     delivery_deadline: datetime
-    visits_remaining: int
+    number_of_visits: int
     revisit_frequency: timedelta
     

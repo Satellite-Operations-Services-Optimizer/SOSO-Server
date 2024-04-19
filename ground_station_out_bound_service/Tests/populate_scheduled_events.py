@@ -29,7 +29,6 @@ def create_valid_image_order_schedule(start_time: datetime, schedule_name: str):
 
     image_order_end_time = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
     delivery_deadline = image_order_end_time + timedelta(days=1) # downlink the photo you took by this time
-    repeat_count = 15
     image_order = ImageOrder(
         schedule_id=schedule.id,
         latitude=0.0,
@@ -38,8 +37,7 @@ def create_valid_image_order_schedule(start_time: datetime, schedule_name: str):
         start_time=start_time,
         end_time=image_order_end_time,
         delivery_deadline=delivery_deadline,
-        repeat_count=repeat_count,
-        visits_remaining=repeat_count+1,
+        number_of_visits=15,
         revisit_frequency=timedelta(days=1)
     )
     session.add(image_order)
@@ -52,30 +50,25 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
 
     session = get_db_session()
     # create repeated requests
-    order_item_count = 1
-    for visit_count in range(order.visits_remaining):
+    for _ in range(order.visit_counter, order.number_of_visits):
+        time_offset = order.revisit_frequency * order.visit_counter
         requests.append(
             ScheduleRequest(
                 schedule_id=order.schedule_id,
                 order_id=order.id,
                 order_type=order.order_type,
-                order_item_count=order_item_count,
-                window_start=order.start_time,
-                window_end=order.end_time,
+                window_start=order.start_time + time_offset,
+                window_end=order.end_time + time_offset,
                 duration=order.duration,
                 uplink_size=order.uplink_size,
                 downlink_size=order.downlink_size,
                 power_usage=order.power_usage,
-                delivery_deadline=order.delivery_deadline,
+                delivery_deadline=order.delivery_deadline + time_offset,
                 priority=order.priority,
                 status = "scheduled"
             )
         )
-        order_item_count += 1
-        order.visits_remaining -= 1
-        order.start_time += order.revisit_frequency
-        order.end_time += order.revisit_frequency
-        order.delivery_deadline += order.revisit_frequency
+        order.visit_counter += 1
         session.commit()
     
     session.add_all(requests)

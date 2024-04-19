@@ -102,16 +102,15 @@ CREATE TABLE IF NOT EXISTS system_order (
 	end_time timestamptz NOT NULL,
 	duration interval NOT NULL,
 	delivery_deadline timestamptz,
-    repeat_count integer DEFAULT 0 NOT NULL CHECK (repeat_count >= 0), -- if repeat_count is 0, then it is a one-time order
-	visits_remaining integer NOT NULL DEFAULT 1 CHECK (visits_remaining>=0), -- down counter of number of visits remaining to be completed
+    visit_counter integer DEFAULT 0 NOT NULL CHECK (visit_counter >= 0),
+    number_of_visits integer DEFAULT 1 NOT NULL CHECK (number_of_visits >= 1),
 	revisit_frequency interval DEFAULT '0 days', -- if revisit_frequency is 0 days, then it is a one-time order
 	revisit_frequency_max interval DEFAULT NULL,
 	priority integer DEFAULT 1 NOT NULL CHECK (priority > 0),
     priority_tier integer DEFAULT 1 NOT NULL CHECK (priority_tier > 0),
     order_type order_type DEFAULT NULL NOT NULL,
 	CONSTRAINT valid_end_time CHECK (end_time >= start_time),
-	CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= end_time),
-	CONSTRAINT valid_visits_remaining CHECK (visits_remaining>=0)
+	CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= end_time)
 );
 
 CREATE TABLE IF NOT EXISTS transmitted_order (
@@ -293,7 +292,6 @@ CREATE TABLE IF NOT EXISTS schedule_request (
     schedule_id integer NOT NULL REFERENCES schedule (id),
     order_id integer NOT NULL,
     order_type order_type, -- needed because order_id is not unique across the different order types
-    order_item_count integer NOT NULL DEFAULT 1 CHECK (order_item_count > 0),
     asset_id integer DEFAULT NULL, -- it is null in the case where we don't care what asset it is performed on
     asset_type asset_type DEFAULT NULL,
     window_start timestamptz,
