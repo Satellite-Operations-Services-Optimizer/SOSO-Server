@@ -39,7 +39,13 @@ async def get_all_image_orders(page: int = Query(1, ge=1), per_page: int = Query
 @router.get("/orders/{id}")
 async def get_image_order(id):
     session = get_db_session()
-    image_order = session.query(ImageOrder).filter_by(id=id).first()
+    image_order = session.query(
+        *ImageOrder.__table__.columns,
+        Asset.name.label("asset_name")
+    ).join(
+        Asset, (ImageOrder.asset_type==Asset.asset_type) & (ImageOrder.asset_id==Asset.id),
+        isouter=True
+    ).filter_by(id=id).first()
     if not image_order:
         raise HTTPException(404, detail="Image order with id={id} does not exist.")
     return image_order
