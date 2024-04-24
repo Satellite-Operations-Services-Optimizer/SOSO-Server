@@ -1,9 +1,9 @@
 from rabbit_wrapper import Consumer
 from app_config import rabbit as rab, ServiceQueues
-from image_management_service.services.handler import handle_message
+from Services.handler import handle_message
 import logging
 from apscheduler.schedulers.background import BackgroundScheduler
-from image_management_service.helpers.ftp_helper import *
+from Helpers.ftp_helper import *
 
 logger = logging.getLogger(__name__)
 scheduler = BackgroundScheduler()

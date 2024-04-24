@@ -1,7 +1,7 @@
-from image_management_service.helpers.postgres_helper import add_image_order
-from image_management_service.helpers.rabbit_helper import publish_message_to_queue
-from image_management_service.helpers.conversion_helper import transform_request_to_order
-from image_management_service.models.RequestModel import ImageRequest
+from Helpers.postgres_helper import add_image_order
+from Helpers.rabbit_helper import publish_message_to_queue
+from Helpers.conversion_helper import transform_request_to_order
+from models.RequestModel import ImageRequest
 from app_config.database.mapping import ImageOrder
 from pydantic import ValidationError
 from datetime import datetime, timedelta

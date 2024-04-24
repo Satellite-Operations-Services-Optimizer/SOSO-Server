@@ -4,12 +4,12 @@ import json
 from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
-from image_management_service.models.RequestModel import ImageRequest, ImageOrder
+from models.RequestModel import ImageRequest, ImageOrder
 from dotenv import load_dotenv, find_dotenv
 from typing import List
 from app_config import db_session, Base
 from rabbit_wrapper import Publisher, TopicPublisher, rabbit
-from image_management_service.services.handler import handle_image_orders
+from Services.handler import handle_image_orders
 import logging     
 
 def verifyImgReqSchema(imgReq):
