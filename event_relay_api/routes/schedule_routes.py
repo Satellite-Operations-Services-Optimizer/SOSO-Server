@@ -25,12 +25,12 @@ async def get_schedules(name: str = Query(None)):
     return jsonable_encoder(schedules)
 
 @router.get("/requests")
-async def get_all_schedule_requests(order_ids: List[int] = Query(None), page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
+async def get_all_schedule_requests(order_ids: List[int] = Query(None), page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), order_types: List[str] = Query(None)):
     query = create_exposed_schedule_requests_query()
     if order_ids and len(order_ids) > 0:
         query = query.filter(ScheduleRequest.order_id.in_(order_ids))
-    if request_types:
-        query = query.filter(ScheduleRequest.order_type.in_(request_types))
+    if order_types:
+        query = query.filter(ScheduleRequest.order_type.in_(order_types))
     total = query.count()
     if not all:
         query = query.limit(per_page).offset((page - 1) * per_page)
@@ -122,7 +122,7 @@ async def scheduled_events_by_id(response: Response, id: int, page: int = Query(
             events_subquery.c.order_id,
             *additional_columns
         ).join(
-            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type) & event_table.event_type==event_type
+            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type) & (event_table.event_type==event_type)
         )
 
         order_table = all_order_tables.get(event_type)

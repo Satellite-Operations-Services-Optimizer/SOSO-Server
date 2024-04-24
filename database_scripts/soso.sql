@@ -179,7 +179,7 @@ CREATE TABLE IF NOT EXISTS maintenance_order (
     description text,
     asset_id integer NOT NULL REFERENCES satellite (id), -- maintenance orders must be performed on a specific asset. TODO: My assumption is that we don't have maintenance orders for groundstations. veryfy with tsa.
     priority_tier integer DEFAULT 2 NOT NULL CHECK (priority_tier > 0),
-    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL CHECK (order_type = 'maintenance'),
+    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL CHECK (order_type = 'maintenance')
 ) INHERITS (transmitted_order);
 
 CREATE TABLE IF NOT EXISTS outage_order (
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS outage_order (
     schedule_id integer REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES ground_station (id),
     asset_type asset_type NOT NULL,
-    order_type order_type DEFAULT 'outage'::order_type NOT NULL CHECK (order_type = 'outage'),
+    order_type order_type DEFAULT 'outage'::order_type NOT NULL CHECK (order_type = 'outage')
 ) INHERITS (system_order);
 
 CREATE INDEX IF NOT EXISTS outage_order_window_start_index ON outage_order (window_start);

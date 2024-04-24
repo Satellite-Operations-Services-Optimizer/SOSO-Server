@@ -22,17 +22,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/orders")
-async def get_all_image_orders(response: Response, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+async def get_all_image_orders(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
     session = get_db_session()
     query = session.query(
         *ImageOrder.__table__.columns,
         Asset.name.label("asset_name")
     ).join(
-        Asset, (ImageOrder.asset_type==Asset.asset_type) & (ImageOrder.asset_id==Asset.id)
+        Asset, (ImageOrder.asset_type==Asset.asset_type) & (ImageOrder.asset_id==Asset.id),
+        isouter=True
     ).order_by(ImageOrder.window_start)
     total = query.count()
     if not all:
-        query.limit(per_page).offset((page - 1) * per_page)
+        query = query.limit(per_page).offset((page - 1) * per_page)
     return paginated_response([request._asdict() for request in query.all()], total)
 
 @router.get("/orders/{id}")

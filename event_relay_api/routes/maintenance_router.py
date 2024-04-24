@@ -23,7 +23,8 @@ async def get_all_maintenance_orders(response: Response, page: int = Query(1, ge
         *MaintenanceOrder.__table__.columns,
         Asset.name.label("asset_name")
     ).join(
-        Asset, (MaintenanceOrder.asset_type==Asset.asset_type) & (MaintenanceOrder.asset_id==Asset.id)
+        Asset, (MaintenanceOrder.asset_type==Asset.asset_type) & (MaintenanceOrder.asset_id==Asset.id),
+        isouter=True
     )
     total = str(query.count())
     if not all:

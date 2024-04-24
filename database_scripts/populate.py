@@ -47,7 +47,7 @@ def populate_database():
 import random
 import pytz
 import uuid
-from app_config.database.mapping import GroundStation, ImageOrder, Schedule, MaintenanceOrder, SatelliteOutageOrder, Satellite
+from app_config.database.mapping import GroundStation, ImageOrder, Schedule, MaintenanceOrder, OutageOrder, Satellite
 # Ground Stations
 def generate_random_ground_station():
 
@@ -246,13 +246,14 @@ def populate_random_outage_orders(num_orders=10):
 
     outage_orders = []
     for data in outage_orders_data:
-        outage_orders.append(
-            SatelliteOutageOrder(
-                asset_name=data["asset_name"],
-                start_time=data["start_time"],
-                end_time=data["end_time"]
-            )
-        )
+        pass
+        # outage_orders.append(
+        #     SatelliteOutageOrder(
+        #         asset_name=data["asset_name"],
+        #         start_time=data["start_time"],
+        #         end_time=data["end_time"]
+        #     )
+        # )
 
     session = get_session()
     session.add_all(outage_orders)

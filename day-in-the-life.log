@@ -4,7 +4,7 @@ Step 1: Ingest all Batch 1 orders and all maintenance orders except for OrbitMai
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 41 minutes, 4 seconds.
+Scheduler finished in 7 minutes, 7 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 120
@@ -34,26 +34,26 @@ Total Imaging request count: 100
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 36 events scheduled
-   imaging events: 18
+SOSO-1: 37 events scheduled
    maintenance events: 18
-SOSO-3: 32 events scheduled
+   imaging events: 19
+SOSO-3: 41 events scheduled
    maintenance events: 17
-   imaging events: 15
-SOSO-2: 34 events scheduled
-   imaging events: 16
+   imaging events: 24
+SOSO-2: 27 events scheduled
    maintenance events: 18
-SOSO-4: 46 events scheduled
+   imaging events: 9
+SOSO-4: 47 events scheduled
    maintenance events: 17
-   imaging events: 29
-SOSO-5: 29 events scheduled
-   imaging events: 11
+   imaging events: 30
+SOSO-5: 25 events scheduled
    maintenance events: 18
+   imaging events: 7
 
 ----------Per groundstation---------
 GATN: 74 scheduled contacts
-Inuvik: 63 scheduled contacts
-Prince Albert: 46 scheduled contacts
+Inuvik: 76 scheduled contacts
+Prince Albert: 41 scheduled contacts
 
 
 
@@ -63,7 +63,7 @@ Step 2: Ingest all Batch 2 orders
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 5 minutes, 20 seconds.
+Scheduler finished in 16 minutes, 10 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 140
@@ -93,26 +93,26 @@ Total Imaging request count: 120
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 39 events scheduled
-   imaging events: 21
+SOSO-1: 40 events scheduled
    maintenance events: 18
-SOSO-3: 38 events scheduled
+   imaging events: 22
+SOSO-3: 47 events scheduled
    maintenance events: 17
-   imaging events: 21
-SOSO-2: 36 events scheduled
-   imaging events: 18
+   imaging events: 30
+SOSO-2: 29 events scheduled
    maintenance events: 18
-SOSO-4: 50 events scheduled
-   maintenance events: 17
-   imaging events: 33
-SOSO-5: 29 events scheduled
    imaging events: 11
+SOSO-4: 51 events scheduled
+   maintenance events: 17
+   imaging events: 34
+SOSO-5: 25 events scheduled
    maintenance events: 18
+   imaging events: 7
 
 ----------Per groundstation---------
-GATN: 77 scheduled contacts
-Inuvik: 72 scheduled contacts
-Prince Albert: 49 scheduled contacts
+GATN: 74 scheduled contacts
+Inuvik: 82 scheduled contacts
+Prince Albert: 44 scheduled contacts
 
 
 
@@ -122,7 +122,7 @@ Step 3: Ingest all Batch 3 orders
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 1 minutes, 27 seconds.
+Scheduler finished in 3 minutes, 9 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 145
@@ -152,26 +152,26 @@ Total Imaging request count: 125
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 39 events scheduled
+SOSO-1: 40 events scheduled
    maintenance events: 18
-   imaging events: 21
-SOSO-3: 38 events scheduled
+   imaging events: 22
+SOSO-3: 47 events scheduled
    maintenance events: 17
-   imaging events: 21
-SOSO-2: 37 events scheduled
-   imaging events: 19
+   imaging events: 30
+SOSO-2: 30 events scheduled
    maintenance events: 18
-SOSO-4: 52 events scheduled
+   imaging events: 12
+SOSO-4: 53 events scheduled
    maintenance events: 17
-   imaging events: 35
-SOSO-5: 29 events scheduled
+   imaging events: 36
+SOSO-5: 25 events scheduled
    maintenance events: 18
-   imaging events: 11
+   imaging events: 7
 
 ----------Per groundstation---------
-GATN: 77 scheduled contacts
-Inuvik: 74 scheduled contacts
-Prince Albert: 50 scheduled contacts
+GATN: 74 scheduled contacts
+Inuvik: 84 scheduled contacts
+Prince Albert: 46 scheduled contacts
 
 
 
@@ -181,7 +181,7 @@ Step 4: Ingest outage for GATN and SOSO-3
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 1 minutes, 11 seconds.
+Scheduler finished in 2 minutes, 3 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 147
@@ -193,9 +193,9 @@ Total request count: 217
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      16: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 195
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     21: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     167: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     19: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     168: Reason: Successfully scheduled request.
 
 ======Breakdown by order type======
 Total Maintenance order count: 20
@@ -205,6 +205,10 @@ Total Maintenance request count: 90
    Scheduled requests: 88
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
      87: Reason: Successfully scheduled request.
+Total Outage order count: 2
+Total Outage request count: 2
+   Scheduled requests: 2
+     2: Reason: Successfully scheduled request.
 Total Imaging order count: 125
 Total Imaging request count: 125
    Rejected requests: 20
@@ -214,40 +218,32 @@ Total Imaging request count: 125
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      16: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 105
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     20: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     78: Reason: Successfully scheduled request.
-Total Gs_outage order count: 1
-Total Gs_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
-Total Sat_outage order count: 1
-Total Sat_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     18: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     79: Reason: Successfully scheduled request.
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
 SOSO-1: 39 events scheduled
    maintenance events: 18
    imaging events: 21
-SOSO-3: 35 events scheduled
+SOSO-3: 39 events scheduled
    maintenance events: 17
-   imaging events: 18
-SOSO-2: 40 events scheduled
-   maintenance events: 18
    imaging events: 22
-SOSO-4: 50 events scheduled
-   maintenance events: 17
-   imaging events: 33
-SOSO-5: 29 events scheduled
-   imaging events: 11
+SOSO-2: 36 events scheduled
    maintenance events: 18
+   imaging events: 18
+SOSO-4: 52 events scheduled
+   maintenance events: 17
+   imaging events: 35
+SOSO-5: 27 events scheduled
+   maintenance events: 18
+   imaging events: 9
 
 ----------Per groundstation---------
-GATN: 81 scheduled contacts
-Inuvik: 82 scheduled contacts
-Prince Albert: 59 scheduled contacts
+GATN: 77 scheduled contacts
+Inuvik: 91 scheduled contacts
+Prince Albert: 57 scheduled contacts
 
 
 
@@ -257,7 +253,7 @@ Step 5: Ingest all Batch 4 orders
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 3 minutes, 57 seconds.
+Scheduler finished in 3 minutes, 14 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 197
@@ -269,9 +265,9 @@ Total request count: 267
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 234
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     21: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     206: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     19: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     207: Reason: Successfully scheduled request.
 
 ======Breakdown by order type======
 Total Maintenance order count: 20
@@ -281,6 +277,10 @@ Total Maintenance request count: 90
    Scheduled requests: 88
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
      87: Reason: Successfully scheduled request.
+Total Outage order count: 2
+Total Outage request count: 2
+   Scheduled requests: 2
+     2: Reason: Successfully scheduled request.
 Total Imaging order count: 175
 Total Imaging request count: 175
    Rejected requests: 31
@@ -290,40 +290,32 @@ Total Imaging request count: 175
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 144
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     20: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     117: Reason: Successfully scheduled request.
-Total Gs_outage order count: 1
-Total Gs_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
-Total Sat_outage order count: 1
-Total Sat_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     18: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     118: Reason: Successfully scheduled request.
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 52 events scheduled
+SOSO-1: 53 events scheduled
    maintenance events: 18
-   imaging events: 34
-SOSO-3: 39 events scheduled
+   imaging events: 35
+SOSO-3: 45 events scheduled
    maintenance events: 17
-   imaging events: 22
-SOSO-2: 47 events scheduled
+   imaging events: 28
+SOSO-2: 42 events scheduled
    maintenance events: 18
-   imaging events: 29
-SOSO-4: 65 events scheduled
-   imaging events: 48
+   imaging events: 24
+SOSO-4: 64 events scheduled
    maintenance events: 17
-SOSO-5: 29 events scheduled
+   imaging events: 47
+SOSO-5: 28 events scheduled
    maintenance events: 18
-   imaging events: 11
+   imaging events: 10
 
 ----------Per groundstation---------
-GATN: 87 scheduled contacts
-Inuvik: 92 scheduled contacts
-Prince Albert: 71 scheduled contacts
+GATN: 88 scheduled contacts
+Inuvik: 99 scheduled contacts
+Prince Albert: 70 scheduled contacts
 
 
 
@@ -333,7 +325,7 @@ Step 6: Ingest all Batch 5 orders
 Database tables automapped and exported to global namespace
 Waiting for a while (max 10 secs) to allow scheduler system to notice new orders and kick off...
 Starting scheduler timer...
-Scheduler finished in 2 minutes, 16 seconds.
+Scheduler finished in 6 minutes, 6 seconds.
 Creating report...
 ===========Overall stats===========
 Total order count: 222
@@ -345,9 +337,9 @@ Total request count: 292
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 258
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     21: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     230: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     19: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     231: Reason: Successfully scheduled request.
 
 ======Breakdown by order type======
 Total Maintenance order count: 20
@@ -357,6 +349,10 @@ Total Maintenance request count: 90
    Scheduled requests: 88
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
      87: Reason: Successfully scheduled request.
+Total Outage order count: 2
+Total Outage request count: 2
+   Scheduled requests: 2
+     2: Reason: Successfully scheduled request.
 Total Imaging order count: 200
 Total Imaging request count: 200
    Rejected requests: 32
@@ -366,40 +362,32 @@ Total Imaging request count: 200
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 168
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     20: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     141: Reason: Successfully scheduled request.
-Total Gs_outage order count: 1
-Total Gs_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
-Total Sat_outage order count: 1
-Total Sat_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     18: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     142: Reason: Successfully scheduled request.
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 56 events scheduled
+SOSO-1: 57 events scheduled
    maintenance events: 18
-   imaging events: 38
-SOSO-3: 41 events scheduled
+   imaging events: 39
+SOSO-3: 52 events scheduled
    maintenance events: 17
-   imaging events: 24
-SOSO-2: 53 events scheduled
-   maintenance events: 18
    imaging events: 35
-SOSO-4: 73 events scheduled
-   imaging events: 56
-   maintenance events: 17
-SOSO-5: 33 events scheduled
+SOSO-2: 44 events scheduled
    maintenance events: 18
-   imaging events: 15
+   imaging events: 26
+SOSO-4: 69 events scheduled
+   maintenance events: 17
+   imaging events: 52
+SOSO-5: 34 events scheduled
+   maintenance events: 18
+   imaging events: 16
 
 ----------Per groundstation---------
-GATN: 93 scheduled contacts
-Inuvik: 97 scheduled contacts
-Prince Albert: 74 scheduled contacts
+GATN: 91 scheduled contacts
+Inuvik: 108 scheduled contacts
+Prince Albert: 79 scheduled contacts
 
 
 
@@ -421,9 +409,9 @@ Total request count: 294
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 259
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     21: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     231: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     19: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     232: Reason: Successfully scheduled request.
 
 ======Breakdown by order type======
 Total Maintenance order count: 22
@@ -433,6 +421,10 @@ Total Maintenance request count: 92
    Scheduled requests: 89
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
      88: Reason: Successfully scheduled request.
+Total Outage order count: 2
+Total Outage request count: 2
+   Scheduled requests: 2
+     2: Reason: Successfully scheduled request.
 Total Imaging order count: 200
 Total Imaging request count: 200
    Rejected requests: 32
@@ -442,40 +434,32 @@ Total Imaging request count: 200
      1: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Spent too much time trying to find a valid schedule plan. Failure reason during last try: No contacts found to downlink this request.
      22: Reason: No satellites can capture this area during the requested time window.
    Scheduled requests: 168
-     7: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
-     20: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
-     141: Reason: Successfully scheduled request.
-Total Gs_outage order count: 1
-Total Gs_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
-Total Sat_outage order count: 1
-Total Sat_outage request count: 1
-   Scheduled requests: 1
-     1: Reason: Successfully scheduled request.
+     8: Reason: Scheduled request was displaced due to an outage at satellite id=2. Succesfully scheduled request.
+     18: Reason: Scheduled request was displaced due to an outage at groundstation id=1. Succesfully scheduled request.
+     142: Reason: Successfully scheduled request.
 
 ==========Scheduled Events=========
 ------------Per satellite-----------
-SOSO-1: 56 events scheduled
+SOSO-1: 57 events scheduled
    maintenance events: 18
-   imaging events: 38
-SOSO-3: 42 events scheduled
-   maintenance events: 18
-   imaging events: 24
-SOSO-2: 53 events scheduled
+   imaging events: 39
+SOSO-3: 53 events scheduled
    maintenance events: 18
    imaging events: 35
-SOSO-4: 73 events scheduled
-   imaging events: 56
-   maintenance events: 17
-SOSO-5: 33 events scheduled
+SOSO-2: 44 events scheduled
    maintenance events: 18
-   imaging events: 15
+   imaging events: 26
+SOSO-4: 69 events scheduled
+   maintenance events: 17
+   imaging events: 52
+SOSO-5: 34 events scheduled
+   maintenance events: 18
+   imaging events: 16
 
 ----------Per groundstation---------
-GATN: 93 scheduled contacts
-Inuvik: 98 scheduled contacts
-Prince Albert: 74 scheduled contacts
+GATN: 91 scheduled contacts
+Inuvik: 109 scheduled contacts
+Prince Albert: 79 scheduled contacts
 
 
 
