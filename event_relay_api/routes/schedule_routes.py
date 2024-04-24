@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 import logging
 from app_config import get_db_session, rabbit
 from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, GroundStationOutageOrder, SatelliteOutageOrder
@@ -8,25 +8,33 @@ from fastapi import Query
 from sqlalchemy import case
 from rabbit_wrapper import TopicPublisher
 from helpers.queries import create_exposed_schedule_requests_query
+from helpers.utils import paginated_response
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/")
-async def get_schedules():
+async def get_schedules(name: str = Query(None)):
     session = get_db_session()
+    if name:
+        schedule = session.query(Schedule).filter_by(name=name).first()
+        if not schedule:
+            raise HTTPException(404, detail="Schedule does not exist.")
+        return jsonable_encoder(schedule)
     schedules = session.query(Schedule).all()
     return jsonable_encoder(schedules)
 
 @router.get("/requests")
-async def get_all_schedule_requests(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
-    session = get_db_session()
+async def get_all_schedule_requests(order_ids: List[int] = Query(None), page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
     query = create_exposed_schedule_requests_query()
+    if order_ids and len(order_ids) > 0:
+        query = query.filter(ScheduleRequest.order_id.in_(order_ids))
     if request_types:
         query = query.filter(ScheduleRequest.order_type.in_(request_types))
+    total = query.count()
     if not all:
         query = query.limit(per_page).offset((page - 1) * per_page)
-    return query.all()
+    return paginated_response([request._asdict() for request in query.all()], total)
 
 @router.post("/requests/{request_id}/decline")
 async def decline_schedule_request(request_id: int):
@@ -36,9 +44,8 @@ async def decline_schedule_request(request_id: int):
         raise HTTPException(404, detail="Request does not exist.")
     TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.decline").publish_message(request.id)
 
-
 @router.get("/{id}/events")
-async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: int = Query(1000, ge=1), all: bool = Query(False), event_types: List[str] = Query(None)):
+async def scheduled_events_by_id(response: Response, id: int, page: int = Query(1, ge=1), per_page: int = Query(1000, ge=1), all: bool = Query(False), event_types: List[str] = Query(None)):
     session = get_db_session()
     schedule = session.query(Schedule).filter_by(id=id).first()
     if not schedule:
@@ -60,10 +67,12 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
         ContactEvent, (ScheduledEvent.event_type==ContactEvent.event_type) & (ScheduledEvent.id==ContactEvent.id)
     ).outerjoin(
         GroundStation, ContactEvent.groundstation_id==GroundStation.id
-    ).filter(ScheduledEvent.schedule_id==id).order_by(ScheduledEvent.start_time)
+    ).filter(ScheduledEvent.schedule_id==id).order_by(ScheduledEvent.window_start)
     
     if event_types:
         events_subquery = events_subquery.filter(ScheduledEvent.event_type.in_(event_types))
+
+    total = events_subquery.count()
 
     if not all:
         events_subquery.limit(per_page).offset((page - 1) * per_page)
@@ -113,7 +122,7 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
             events_subquery.c.order_id,
             *additional_columns
         ).join(
-            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type)
+            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type) & event_table.event_type==event_type
         )
 
         order_table = all_order_tables.get(event_type)
@@ -125,14 +134,6 @@ async def scheduled_events_by_id(id: int, page: int = Query(1, ge=1), per_page: 
                 order_table, order_table.id==ScheduleRequest.order_id
             )
 
-        events.extend(events_query.order_by(event_table.start_time).all())
+        events.extend(events_query.order_by(event_table.window_start).all())
 
-    return [event._asdict() for event in events]
-
-@router.get("/name={name}")
-async def get_schedule_by_name(name: str):
-    session = get_db_session()
-    schedule = session.query(Schedule).filter_by(name=name).first()
-    if not schedule:
-        raise HTTPException(404, detail="Schedule does not exist.")
-    return jsonable_encoder(schedule)
+    return paginated_response([event._asdict() for event in events], total)

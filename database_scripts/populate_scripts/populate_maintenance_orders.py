@@ -52,8 +52,8 @@ def maintenance_order_from_json(maintenance_order_json):
     return MaintenanceOrder(
         asset_id=int(satellite.id),
         description=maintenance_order_json["Activity"],
-        start_time=datetime.fromisoformat(maintenance_order_json["Window"]["Start"]),
-        end_time=datetime.fromisoformat(maintenance_order_json["Window"]["End"]),
+        window_start=datetime.fromisoformat(maintenance_order_json["Window"]["Start"]),
+        window_end=datetime.fromisoformat(maintenance_order_json["Window"]["End"]),
         duration=duration,
         number_of_visits=number_of_visits,
         revisit_frequency=revisit_frequency,

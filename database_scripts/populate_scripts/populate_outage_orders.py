@@ -39,21 +39,21 @@ def outage_order_from_json(outage_order_json):
     if asset is None:
         raise Exception(f"Asset with name '{outage_order_json['Target']}' not found in database")
 
-    start_time= datetime.fromisoformat(outage_order_json["Window"]["Start"])
-    end_time= datetime.fromisoformat(outage_order_json["Window"]["End"])
-    duration = end_time-start_time
+    window_start= datetime.fromisoformat(outage_order_json["Window"]["Start"])
+    window_end = datetime.fromisoformat(outage_order_json["Window"]["End"])
+    duration = window_end-window_start
 
     if asset.asset_type=="satellite":
         return SatelliteOutageOrder(
             asset_id=asset.id,
-            start_time=start_time,
-            end_time=end_time,
+            window_start=window_start,
+            window_end=window_end,
             duration=duration,
         )
     if asset.asset_type=="groundstation":
         return GroundStationOutageOrder(
             asset_id=asset.id,
-            start_time=start_time,
-            end_time=end_time,
+            window_start=window_start,
+            window_end=window_end,
             duration=duration
         )

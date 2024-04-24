@@ -34,7 +34,7 @@ class TestImageManagementService(unittest.IsolatedAsyncioTestCase):
         
         print("output: ", returnable)
         
-        expected = "{'latitude': 37.348835836258075, 'longitude': 47.714415386670055, 'priority': 1, 'image_type': 'Medium', 'start_time': '2023-11-18T05:30:22', 'end_time': '2023-11-18T19:34:28', 'delivery_deadline': '2023-11-19T03:34:28', 'revisit_frequency': datetime.timedelta(days=6), 'number_of_visits': 4}"
+        expected = "{'latitude': 37.348835836258075, 'longitude': 47.714415386670055, 'priority': 1, 'image_type': 'Medium', 'window_start': '2023-11-18T05:30:22', 'window_end': '2023-11-18T19:34:28', 'delivery_deadline': '2023-11-19T03:34:28', 'revisit_frequency': datetime.timedelta(days=6), 'number_of_visits': 4}"
         
         self.assertEquals(str(returnable), expected);
         remove_image_order_from_db(key);
@@ -47,7 +47,7 @@ class TestImageManagementService(unittest.IsolatedAsyncioTestCase):
         
         returnable, key = handle_image_orders(sampleImgReq)
         
-        expected = "{'latitude': -88.33002794624812, 'longitude': -95.14940691709423, 'priority': 3, 'image_type': 'Low', 'start_time': '2023-11-18T04:55:36', 'end_time': '2023-11-18T07:57:21', 'delivery_deadline': '2023-11-18T15:57:21', 'revisit_frequency': None, 'number_of_visits': 1}"
+        expected = "{'latitude': -88.33002794624812, 'longitude': -95.14940691709423, 'priority': 3, 'image_type': 'Low', 'window_start': '2023-11-18T04:55:36', 'window_end': '2023-11-18T07:57:21', 'delivery_deadline': '2023-11-18T15:57:21', 'revisit_frequency': None, 'number_of_visits': 1}"
         
         self.assertEquals(str(returnable), expected);
         remove_image_order_from_db(key);

@@ -98,8 +98,8 @@ CREATE TABLE IF NOT EXISTS system_order (
 	schedule_id integer NOT NULL DEFAULT 0 REFERENCES schedule (id), -- default schedule has id 0
 	asset_id integer DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
     asset_type asset_type DEFAULT NULL, -- optional field. if null, then the order can be fulfilled by any asset
-	start_time timestamptz NOT NULL, -- maybe rename to make it clear that it is not the actual start/end time of the event, but the window in which it can be scheduled
-	end_time timestamptz NOT NULL,
+	window_start timestamptz NOT NULL, -- maybe rename to make it clear that it is not the actual start/end time of the event, but the window in which it can be scheduled
+	window_end timestamptz NOT NULL,
 	duration interval NOT NULL,
 	delivery_deadline timestamptz,
     visit_counter integer DEFAULT 0 NOT NULL CHECK (visit_counter >= 0),
@@ -109,8 +109,8 @@ CREATE TABLE IF NOT EXISTS system_order (
 	priority integer DEFAULT 1 NOT NULL CHECK (priority > 0),
     priority_tier integer DEFAULT 1 NOT NULL CHECK (priority_tier > 0),
     order_type order_type DEFAULT NULL NOT NULL,
-	CONSTRAINT valid_end_time CHECK (end_time >= start_time),
-	CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= end_time)
+	CONSTRAINT valid_window_end CHECK (window_end >= window_start),
+	CONSTRAINT valid_delivery_deadline CHECK (delivery_deadline >= window_end)
 );
 
 CREATE TABLE IF NOT EXISTS transmitted_order (
@@ -198,8 +198,8 @@ CREATE TABLE IF NOT EXISTS ground_station_outage_order (
     order_type order_type DEFAULT 'gs_outage'::order_type NOT NULL CHECK (order_type = 'gs_outage')
 ) INHERITS (outage_order);
 
-CREATE INDEX IF NOT EXISTS ground_station_outage_order_start_time_index ON ground_station_outage_order (start_time);
-CREATE INDEX IF NOT EXISTS ground_station_outage_order_end_time_index ON ground_station_outage_order (end_time);
+CREATE INDEX IF NOT EXISTS ground_station_outage_order_window_start_index ON ground_station_outage_order (window_start);
+CREATE INDEX IF NOT EXISTS ground_station_outage_order_window_end_index ON ground_station_outage_order (window_end);
 
 CREATE TABLE IF NOT EXISTS satellite_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -209,15 +209,15 @@ CREATE TABLE IF NOT EXISTS satellite_outage_order (
     order_type order_type DEFAULT 'sat_outage'::order_type NOT NULL CHECK (order_type = 'sat_outage')
 ) INHERITS (outage_order);
 
-CREATE INDEX IF NOT EXISTS satellite_outage_order_start_time_index ON satellite_outage_order (start_time);
-CREATE INDEX IF NOT EXISTS satellite_outage_order_end_time_index ON satellite_outage_order (end_time);
+CREATE INDEX IF NOT EXISTS satellite_outage_order_window_start_index ON satellite_outage_order (window_start);
+CREATE INDEX IF NOT EXISTS satellite_outage_order_window_end_index ON satellite_outage_order (window_end);
 
--- Trigger to set delivery_deadline to end_time if not set already
+-- Trigger to set delivery_deadline to window_end if not set already
 CREATE OR REPLACE FUNCTION set_default_delivery_deadline()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.delivery_deadline IS NULL THEN
-        NEW.delivery_deadline := NEW.end_time;
+        NEW.delivery_deadline := NEW.window_end;
     END IF;
     RETURN NEW;
 END;

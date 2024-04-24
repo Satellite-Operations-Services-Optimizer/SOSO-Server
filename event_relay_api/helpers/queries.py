@@ -3,7 +3,7 @@ from app_config.database.mapping import ScheduleRequest, Asset
 
 def create_exposed_schedule_requests_query():
     session = get_db_session()
-    requests_query = session.query(
+    query = session.query(
         ScheduleRequest.id,
         ScheduleRequest.order_id,
         ScheduleRequest.order_type,
@@ -20,5 +20,9 @@ def create_exposed_schedule_requests_query():
         ScheduleRequest.asset_id,
         ScheduleRequest.asset_type,
         Asset.name.label('asset_name')
-    ).join(Asset, Asset.id==ScheduleRequest.asset_id & Asset.asset_type==ScheduleRequest.asset_type)
-    return requests_query
+    ).join(
+        Asset,
+        (Asset.id==ScheduleRequest.asset_id) & (Asset.asset_type==ScheduleRequest.asset_type),
+        isouter=True
+    ).order_by(ScheduleRequest.window_start)
+    return query

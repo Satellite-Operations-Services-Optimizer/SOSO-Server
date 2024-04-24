@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends, Query, HTTPException
+from fastapi import APIRouter, Body, Depends, Query, HTTPException, Response
 from helpers.request_validation_helper import validate_request_schema
 from event_relay_api.models.image_request_model import ImageRequest
 from event_relay_api.models.event_relay_data import EventRelayApiMessage, RequestDetails
@@ -11,21 +11,29 @@ from event_relay_api.models.image_request_model import ImageRequest
 from event_relay_api.models.event_relay_data import EventRelayApiMessage, RequestDetails
 from app_config.database.mapping import ImageOrder, ScheduleRequest, Asset
 from app_config import get_db_session
+from sqlalchemy import and_
 import logging
 from datetime import timedelta, datetime
 from helpers.queries import create_exposed_schedule_requests_query
+from helpers.utils import paginated_response
 from typing import List
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/orders")
-async def get_all_image_orders(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+async def get_all_image_orders(response: Response, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
     session = get_db_session()
-    query = session.query(ImageOrder)
+    query = session.query(
+        ImageOrder,
+        Asset.name.label("asset_name")
+    ).join(
+        Asset, (ImageOrder.asset_type==Asset.asset_type) & (ImageOrder.asset_id==Asset.id)
+    ).order_by(ImageOrder.window_start)
+    total = query.count()
     if not all:
         query.limit(per_page).offset((page - 1) * per_page)
-    return query.all()
+    return paginated_response([request._asdict() for request in query.all()], total)
 
 @router.get("/orders/{id}")
 async def get_image_order(id):
@@ -34,20 +42,6 @@ async def get_image_order(id):
     if not image_order:
         raise HTTPException(404, detail="Image order with id={id} does not exist.")
     return image_order
-
-@router.get("/orders/{id}/requests")
-async def get_image_order_requests(id: int, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
-    session = get_db_session()
-    image_order = session.query(ImageOrder).filter_by(id=id).first()
-    if not image_order:
-        raise HTTPException(404, detail="Image order with id={id} does not exist.")
-    
-    requests_query = create_exposed_schedule_requests_query().filter_by(order_id=id, order_type=image_order.order_type)
-    if request_types:
-        requests_query = requests_query.filter(ScheduleRequest.order_type.in_(request_types))
-    if not all:
-        requests_query = requests_query.limit(per_page).offset((page - 1) * per_page)
-    return requests_query.all()
 
 @router.post("/orders/create")
 async def create_order(image_request: ImageRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ImageRequest))):
@@ -64,8 +58,8 @@ async def create_order(image_request: ImageRequest = Depends(lambda request_data
         longitude=image_request.Longitude,
         priority=image_request.Priority,
         image_type=parse_image_type(image_request.ImageType),
-        start_time=datetime.fromisoformat(image_request.ImageStartTime),
-        end_time=datetime.fromisoformat(image_request.ImageEndTime),
+        window_start=datetime.fromisoformat(image_request.ImageStartTime),
+        window_end=datetime.fromisoformat(image_request.ImageEndTime),
         delivery_deadline=datetime.fromisoformat(image_request.DeliveryTime),
         number_of_visits=number_of_visits,
         revisit_frequency=revisit_frequency

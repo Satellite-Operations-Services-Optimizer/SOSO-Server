@@ -1,26 +1,34 @@
-from fastapi import APIRouter, Body, Depends, Query, HTTPException
+from fastapi import APIRouter, Body, Depends, Query, HTTPException, Response
 import logging
 from models.activity_request import ActivityRequest
 from helpers.request_validation_helper import validate_request_schema
 from models.activity_request import ActivityRequest
 from event_relay_api.helpers.request_validation_helper import validate_request_schema
 from app_config import get_db_session, rabbit
-from app_config.database.mapping import MaintenanceOrder, Satellite, ScheduleRequest
+from app_config.database.mapping import MaintenanceOrder, Satellite, ScheduleRequest, Asset
 from datetime import timedelta, datetime
 from rabbit_wrapper import TopicPublisher
 from typing import List
 from helpers.queries import create_exposed_schedule_requests_query
+from helpers.utils import paginated_response
+from sqlalchemy import and_
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get("/orders")
-async def get_all_maintenance_orders(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
+async def get_all_maintenance_orders(response: Response, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
     session = get_db_session()
-    query = session.query(MaintenanceOrder)
+    query = session.query(
+        *MaintenanceOrder.__table__.columns,
+        Asset.name.label("asset_name")
+    ).join(
+        Asset, (MaintenanceOrder.asset_type==Asset.asset_type) & (MaintenanceOrder.asset_id==Asset.id)
+    )
+    total = str(query.count())
     if not all:
         query = query.limit(per_page).offset((page - 1) * per_page)
-    return query.all()
+    return paginated_response([request._asdict() for request in query.all()], total)
 
 @router.get("/orders/{id}")
 async def get_maintenance_order(id):
@@ -30,19 +38,6 @@ async def get_maintenance_order(id):
         raise HTTPException(404, detail="Maintenance order with id={id} does not exist.")
     return maintenance_order
 
-@router.get("orders/{id}/requests")
-async def get_maintenance_order_requests(id: int, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), request_types: List[str] = Query(None)):
-    session = get_db_session()
-    maintenance_order = session.query(MaintenanceOrder).filter_by(id=id).first()
-    if not maintenance_order:
-        raise HTTPException(404, detail="Maintenance order with id={id} does not exist.")
-    
-    requests_query = create_exposed_schedule_requests_query().filter_by(order_id=id, order_type=maintenance_order.order_type)
-    if request_types:
-        requests_query = requests_query.filter(ScheduleRequest.order_type.in_(request_types))
-    if not all:
-        requests_query = requests_query.limit(per_page).offset((page - 1) * per_page)
-    return requests_query.all()
 
 @router.post("/orders/create")
 async def create_maintenance_request(maintenance_request: ActivityRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ActivityRequest))):
@@ -63,8 +58,8 @@ async def create_maintenance_request(maintenance_request: ActivityRequest = Depe
     maintenance_order = MaintenanceOrder(
         asset_id=int(satellite.id),
         description=maintenance_request.Activity,
-        start_time=datetime.fromisoformat(maintenance_request.Window.Start),
-        end_time=datetime.fromisoformat(maintenance_request.Window.End),
+        window_start=datetime.fromisoformat(maintenance_request.Window.Start),
+        window_end=datetime.fromisoformat(maintenance_request.Window.End),
         duration=duration,
         number_of_visits=number_of_visits,
         revisit_frequency=revisit_frequency,

@@ -29,7 +29,7 @@ def process_earliest_order():
     session = get_db_session()
     order = session.query(SystemOrder).filter(
         SystemOrder.visit_counter < SystemOrder.number_of_visits
-    ).order_by(SystemOrder.start_time).first()
+    ).order_by(SystemOrder.window_start).first()
     if order is None: return False
     
     if order.order_type == "imaging":
@@ -45,6 +45,8 @@ def process_earliest_order():
     if order.visit_counter == order.number_of_visits: return True # has been processed by another process
 
     create_request(order)
+    order.visit_counter += 1
+    session.commit()
     return True
 
 def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Optional[datetime] = None):
@@ -57,7 +59,7 @@ def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Opt
     end_time = end_time or datetime.max
     time_range = TimeHorizon(start_time, end_time, include_overlap=True)
     orders = session.query(SystemOrder).filter(
-        *time_range.apply_filters(SystemOrder.start_time, SystemOrder.end_time)
+        *time_range.apply_filters(SystemOrder.window_start, SystemOrder.window_end)
     ).all()
 
     requests = []
@@ -103,8 +105,8 @@ def create_request(order):
         order_type=order.order_type,
         asset_id=order.asset_id,
         asset_type=order.asset_type,
-        window_start=order.start_time + time_offset,
-        window_end=order.end_time + time_offset,
+        window_start=order.window_start + time_offset,
+        window_end=order.window_end + time_offset,
         duration=order.duration,
         delivery_deadline=order.delivery_deadline + time_offset,
         priority=order.priority

@@ -42,8 +42,8 @@ def create_dummy_imaging_event(schedule_id, satellite_id, start_time, contact_st
         latitude=latitude,
         longitude=longitude,
         image_type="medium",
-        start_time=window_start,
-        end_time=window_end,
+        window_start=window_start,
+        window_end=window_end,
         delivery_deadline=window_end+timedelta(minutes=10)
     )
     session.add(order)
@@ -57,8 +57,8 @@ def create_dummy_imaging_event(schedule_id, satellite_id, start_time, contact_st
         order_type="imaging",
         order_id=order.id,
         priority=1,
-        window_start=order.start_time,
-        window_end=order.end_time,
+        window_start=order.window_start,
+        window_end=order.window_end,
         duration=order.duration,
         delivery_deadline=order.delivery_deadline,
         status="scheduled"

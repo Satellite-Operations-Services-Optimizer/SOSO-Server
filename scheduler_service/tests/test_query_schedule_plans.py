@@ -308,8 +308,8 @@ def test_candidate_contact_queries():
         latitude=target_latitude,
         longitude=target_longitude,
         image_type="medium",
-        start_time=request_start_time,
-        end_time=request_end_time,
+        window_start=request_start_time,
+        window_end=request_end_time,
         delivery_deadline=delivery_deadline
     )
     session.add(order)
@@ -321,8 +321,8 @@ def test_candidate_contact_queries():
         order_type="imaging",
         order_id=order.id,
         priority=1,
-        window_start=order.start_time,
-        window_end=order.end_time,
+        window_start=order.window_start,
+        window_end=order.window_end,
         duration=order.duration,
         delivery_deadline=order.delivery_deadline,
         uplink_size=order.uplink_size,

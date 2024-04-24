@@ -27,8 +27,8 @@ class ImageOrder(BaseModel):
     longitude: float
     priority: int
     image_type: str
-    start_time: datetime
-    end_time: datetime
+    window_start: datetime
+    window_end: datetime
     delivery_deadline: datetime
     number_of_visits: int
     revisit_frequency: timedelta

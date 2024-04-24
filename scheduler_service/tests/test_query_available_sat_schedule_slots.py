@@ -116,8 +116,8 @@ def test_query_available_satellite_schedule_slots():
         latitude=latitude,
         longitude=longitude,
         image_type="medium",
-        start_time=order_window_start,
-        end_time=order_window_end,
+        window_start=order_window_start,
+        window_end=order_window_end,
         delivery_deadline=order_window_end + timedelta(minutes=10)
     )
     session.add(order)
@@ -129,8 +129,8 @@ def test_query_available_satellite_schedule_slots():
         order_type="imaging",
         order_id=order.id,
         priority=1,
-        window_start=order.start_time,
-        window_end=order.end_time,
+        window_start=order.window_start,
+        window_end=order.window_end,
         duration=order.duration,
         delivery_deadline=order.delivery_deadline,
         uplink_size=0, # for now, let's not worry about making sure that there are contacts

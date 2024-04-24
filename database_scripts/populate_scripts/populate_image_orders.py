@@ -52,8 +52,8 @@ def image_order_from_json(image_order_json):
         longitude=image_order_json["Longitude"],
         priority=image_order_json["Priority"],
         image_type=parse_image_type(image_order_json["ImageType"]),
-        start_time=datetime.fromisoformat(image_order_json["ImageStartTime"]),
-        end_time=datetime.fromisoformat(image_order_json["ImageEndTime"]),
+        window_start=datetime.fromisoformat(image_order_json["ImageStartTime"]),
+        window_end=datetime.fromisoformat(image_order_json["ImageEndTime"]),
         delivery_deadline=datetime.fromisoformat(image_order_json["DeliveryTime"]),
         number_of_visits=number_of_visits,
         revisit_frequency=revisit_frequency

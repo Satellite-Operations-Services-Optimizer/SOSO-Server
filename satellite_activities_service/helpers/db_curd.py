@@ -34,8 +34,8 @@ def create_maintenence_request(db: Session, request: ActivityRequest):
     db_request = MaintenanceOrder(
         asset_id = satellite.id,
         description=request.Activity,
-        start_time=datetime.fromisoformat(request.Window.Start),
-        end_time=datetime.fromisoformat(request.Window.End),
+        window_start=datetime.fromisoformat(request.Window.Start),
+        window_end=datetime.fromisoformat(request.Window.End),
         duration=timedelta(seconds = int(request.Duration)),
         revisit_frequency=request.RepeatCycle.Repetition,
         revisit_frequency=request.RepeatCycle.Frequency.MinimumGap,
@@ -56,8 +56,8 @@ def create_outage_request(db: Session, request: RequestModel.OutageRequest):
     db_request = OutageOrder(
         asset_id = satellite.id,
         duration =  datetime.fromisoformat(request.Window.End) - datetime.fromisoformat(request.Window.Start),
-        start_time=datetime.fromisoformat(request.Window.Start),
-        end_time=datetime.fromisoformat(request.Window.End),
+        window_start=datetime.fromisoformat(request.Window.Start),
+        window_end=datetime.fromisoformat(request.Window.End),
     )
     #db = SessionLocal() 
     db.add(db_request)

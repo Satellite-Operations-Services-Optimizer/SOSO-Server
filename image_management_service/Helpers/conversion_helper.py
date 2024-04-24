@@ -9,8 +9,8 @@ def transform_request_to_order(imageReq):
     imageOrder["longitude"] = imageReq["Longitude"];
     imageOrder["priority"] = imageReq["Priority"];
     imageOrder["image_type"] = imageReq["ImageType"];
-    imageOrder["start_time"] = imageReq["ImageStartTime"];
-    imageOrder["end_time"] = imageReq["ImageEndTime"];
+    imageOrder["window_start"] = imageReq["ImageStartTime"];
+    imageOrder["window_end"] = imageReq["ImageEndTime"];
     imageOrder["delivery_deadline"] = imageReq["DeliveryTime"];
     
     if imageReq["Recurrence"].get("Revisit") == "True":
@@ -31,8 +31,8 @@ def transform_orderDict_to_orderDMModel(imageOrder):
         longitude=imageOrder["longitude"],
         priority=imageOrder["priority"],
         image_type=parse_image_type(imageOrder["image_type"]),
-        start_time=datetime.fromisoformat(imageOrder["start_time"]),
-        end_time=datetime.fromisoformat(imageOrder["end_time"]),
+        window_start=datetime.fromisoformat(imageOrder["window_start"]),
+        window_end=datetime.fromisoformat(imageOrder["window_end"]),
         delivery_deadline=datetime.fromisoformat(imageOrder["delivery_deadline"]),
         number_of_visits=imageOrder["number_of_visits"],
         revisit_frequency=imageOrder["revisit_frequency"]

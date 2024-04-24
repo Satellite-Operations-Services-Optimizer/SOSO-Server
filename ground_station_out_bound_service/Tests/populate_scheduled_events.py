@@ -27,15 +27,15 @@ def create_valid_image_order_schedule(start_time: datetime, schedule_name: str):
         raise Exception("No ground stations in database. Need at least one ground station to create a schedule.")
 
 
-    image_order_end_time = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
-    delivery_deadline = image_order_end_time + timedelta(days=1) # downlink the photo you took by this time
+    image_order_window_end = start_time + timedelta(hours=1) # take the photo anytime between start_time, and a day from start_time
+    delivery_deadline = image_order_window_end + timedelta(days=1) # downlink the photo you took by this time
     image_order = ImageOrder(
         schedule_id=schedule.id,
         latitude=0.0,
         longitude=0.0,
         image_type='medium',
-        start_time=start_time,
-        end_time=image_order_end_time,
+        window_start=start_time,
+        window_end=image_order_window_end,
         delivery_deadline=delivery_deadline,
         number_of_visits=15,
         revisit_frequency=timedelta(days=1)
@@ -57,8 +57,8 @@ def schedule_image_order(order: ImageOrder, schedule: Schedule, satellites: list
                 schedule_id=order.schedule_id,
                 order_id=order.id,
                 order_type=order.order_type,
-                window_start=order.start_time + time_offset,
-                window_end=order.end_time + time_offset,
+                window_start=order.window_start + time_offset,
+                window_end=order.window_end + time_offset,
                 duration=order.duration,
                 uplink_size=order.uplink_size,
                 downlink_size=order.downlink_size,

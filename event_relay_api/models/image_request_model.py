@@ -26,8 +26,8 @@ class ImageOrder(BaseModel):
     image_res: int
     image_height: int
     image_width: int
-    start_time: datetime
-    end_time: datetime
+    window_start: datetime
+    window_end: datetime
     delivery_deadline: datetime
     num_of_revisits: int
     revisit_frequency: int

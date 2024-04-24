@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, Query
 import json
 from fastapi.encoders import jsonable_encoder
 from models.asset_creation import GroundStationCreationRequest, SatelliteCreationRequest
@@ -61,3 +61,17 @@ async def new_satellite(tle_file: UploadFile, satellite_form_data: SatelliteCrea
     new_satellite = json.load(tle_json.file)
     new_satellite_id = add_satellite(new_satellite, tle_json, satellite_form_data)
     return new_satellite_id
+
+@router.get("/names")
+async def get_names(asset_type: str = Query(None)):
+    session = get_db_session()
+    if asset_type is not None and asset_type not in ["satellite", "groundstation"]:
+        raise HTTPException(400, detail="Invalid asset type")
+
+    sat_names, gs_names = [],[]
+    if asset_type == "satellite" or asset_type == None:
+        sat_names = [res.name for res in session.query(Satellite.name).all()]
+    if asset_type == "groundstation" or asset_type == None:
+        gs_names = [res.name for res in session.query(GroundStation.name).all()]
+
+    return jsonable_encoder({"satellites": sat_names, "groundstations": gs_names})
