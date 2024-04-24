@@ -56,4 +56,4 @@ async def create_outage(outage_request: OutageOrderCreationRequest = Depends(lam
         window_end=window_end,
         duration=window_end-window_start,
     )
-    return outage
+    return outage.id

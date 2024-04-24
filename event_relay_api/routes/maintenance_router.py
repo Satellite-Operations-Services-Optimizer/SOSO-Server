@@ -43,7 +43,7 @@ async def get_maintenance_order(id):
 @router.post("/orders/create")
 async def create_maintenance_request(maintenance_request: ActivityRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ActivityRequest))):
     session = get_db_session()
-    satellite = session.query(Satellite).filter_by(name=maintenance_request["Target"]).one()
+    satellite = session.query(Satellite).filter_by(name=maintenance_request.Target).one()
 
     duration = timedelta(seconds=int(maintenance_request.Duration))
 
