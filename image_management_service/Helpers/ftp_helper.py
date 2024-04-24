@@ -7,7 +7,7 @@ from typing import Optional
 from models.RequestModel import ImageRequest, ImageOrder
 from dotenv import load_dotenv, find_dotenv
 from typing import List
-from app_config import db_session, Base
+from app_config import get_db_session
 from rabbit_wrapper import Publisher, TopicPublisher, rabbit
 from Services.handler import handle_image_orders
 import logging     

@@ -32,6 +32,6 @@ ftpServer.on("STOR", (error, fileName) => {
   console.log("File with name (" + fileName + ") has been uploaded.");
 });
 
-ftpServer.on("RETR", (error, filePath) => {
+ftpServer.on("RETR", (error, fileName) => {
   console.log("File with name (" + fileName + ") has been downloaded.");
 });

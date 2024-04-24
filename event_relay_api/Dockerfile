@@ -11,6 +11,9 @@ ARG SERVICE_NAME=event_relay_api
 RUN apk update
 RUN apk add git
 
+# install gcc and other build tools
+# RUN sudo apt install build-essential 
+
 RUN pip install --upgrade pip
 
 # copy the base requirements file for all services, and install it

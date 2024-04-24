@@ -1,6 +1,6 @@
 from app_config.database.setup import get_session, Base
 from app_config.database.mapping import ImageOrder
-from image_management_service.helpers.conversion_helper import transform_orderDict_to_orderDMModel
+from Helpers.conversion_helper import transform_orderDict_to_orderDMModel
 
 def add_image_order(data):
     """

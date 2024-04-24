@@ -16,7 +16,7 @@ def startup_event():
     consumer.register_callback(callback=handle_message) # replace handle_message with whatever function you want to call whenever a message is received.
     rab().start_consuming()
 
-@scheduler.scheduled_job('interval', seconds=60*60)
+@scheduler.scheduled_job('interval', seconds=15)
 def timed_job():
     logging.info('[Cron Job | Pull From FTP] Running')
     imageRequests = getJSONsFromFTP()

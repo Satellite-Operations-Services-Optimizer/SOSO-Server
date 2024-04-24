@@ -9,4 +9,4 @@ Make sure to download NPM (Node Package Manager) in order to run this applicatio
 
 ## Functionality
 
-All the files interacted within this server are in the "FileSystem" folder of this application
+All the files interacted within this server are in the "file_system" folder of this application
