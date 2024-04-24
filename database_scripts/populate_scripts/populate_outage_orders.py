@@ -2,7 +2,7 @@ from database_scripts.utils import get_data_from_json_files
 from pathlib import Path
 from datetime import datetime, timedelta
 from app_config import get_db_session
-from app_config.database.mapping import MaintenanceOrder, Satellite, GroundStation, SatelliteOutageOrder, GroundStationOutageOrder
+from app_config.database.mapping import Satellite, GroundStation, OutageOrder
 from app_config import logging, rabbit
 from rabbit_wrapper import TopicPublisher
 
@@ -44,15 +44,17 @@ def outage_order_from_json(outage_order_json):
     duration = window_end-window_start
 
     if asset.asset_type=="satellite":
-        return SatelliteOutageOrder(
+        return OutageOrder(
             asset_id=asset.id,
+            asset_type="satellite",
             window_start=window_start,
             window_end=window_end,
             duration=duration,
         )
     if asset.asset_type=="groundstation":
-        return GroundStationOutageOrder(
+        return OutageOrder(
             asset_id=asset.id,
+            asset_type="groundstation",
             window_start=window_start,
             window_end=window_end,
             duration=duration

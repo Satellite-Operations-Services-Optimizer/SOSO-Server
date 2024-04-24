@@ -59,6 +59,7 @@ def test_query_available_satellite_schedule_slots():
     sat_outage = SatelliteOutage(
         schedule_id=schedule.id,
         asset_id=satellite_1.id,
+        asset_type="satellite",
         start_time=sat_outage_start,
         duration=outage_duration
     )

@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Response
 import logging
 from app_config import get_db_session, rabbit
-from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, GroundStationOutageOrder, SatelliteOutageOrder
+from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, OutageOrder
 from fastapi.encoders import jsonable_encoder
 from fastapi import Query
 from sqlalchemy import case
@@ -91,8 +91,8 @@ async def scheduled_events_by_id(response: Response, id: int, page: int = Query(
     all_order_tables = {
         "imaging": ImageOrder,
         "maintenance": MaintenanceOrder,
-        "gs_outage": GroundStationOutageOrder,
-        "sat_outage": SatelliteOutageOrder,
+        "gs_outage": OutageOrder,
+        "sat_outage": OutageOrder,
     }
     events = []
     for event_type in event_types:

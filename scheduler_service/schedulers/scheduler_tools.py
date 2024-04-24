@@ -22,10 +22,7 @@ import random
 #     session = get_db_session()
 #     outage_requests = session.query(ScheduleRequest).filter(
 #         ScheduleRequest.schedule_id==schedule_id,
-#         or_(
-#             ScheduleRequest.order_type=="sat_outage",
-#             ScheduleRequest.order_type=="gs_outage"
-#         ),
+#         ScheduleRequest.order_type=="outage"
 #         ScheduleRequest.status=="processing",
 #         ScheduleRequest.window_start >= start_time,
 #         ScheduleRequest.window_end <= end_time

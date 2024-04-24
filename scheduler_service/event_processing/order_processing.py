@@ -1,6 +1,6 @@
 from datetime import datetime
 from app_config import get_db_session, rabbit, logging
-from app_config.database.mapping import SystemOrder, ScheduleRequest, ImageOrder, MaintenanceOrder, SatelliteOutageOrder, GroundStationOutageOrder
+from app_config.database.mapping import SystemOrder, ScheduleRequest, ImageOrder, MaintenanceOrder, OutageOrder
 from scheduler_service.schedulers.utils import TimeHorizon
 from typing import Optional
 from sqlalchemy import exists
@@ -36,10 +36,8 @@ def process_earliest_order():
         order_table = ImageOrder
     elif order.order_type == "maintenance":
         order_table = MaintenanceOrder
-    elif order.order_type == "sat_outage":
-        order_table = SatelliteOutageOrder
-    elif order.order_type == "gs_outage":
-        order_table = GroundStationOutageOrder
+    elif order.order_type == "outage":
+        order_table = OutageOrder
     
     order = session.query(order_table).filter_by(id=order.id).with_for_update().first()
     if order.visit_counter == order.number_of_visits: return True # has been processed by another process
@@ -82,13 +80,11 @@ def ensure_orders_requested(start_time: Optional[datetime] = None, end_time: Opt
 
 def create_request(order):
     if order.order_type=="imaging":
-        order_class = ImageOrder
+        order_table = ImageOrder
     elif order.order_type=="maintenance":
-        order_class = MaintenanceOrder
-    elif order.order_type=="gs_outage":
-        order_class = GroundStationOutageOrder
-    elif order.order_type=="sat_outage":
-        order_class = SatelliteOutageOrder
+        order_table = MaintenanceOrder
+    elif order.order_type=="outage":
+        order_table = OutageOrder
     else:
         raise Exception(f"Order with id `{order.id}` has an invalid system order type `{order.order_type}`.")
     
@@ -97,7 +93,7 @@ def create_request(order):
 
     session = get_db_session()
     # ensure that the order is in its concrete type, not as a polymorphic type
-    order = session.query(order_class).filter_by(id=order.id).first()
+    order = session.query(order_table).filter_by(id=order.id).first()
     time_offset = order.revisit_frequency * order.visit_counter
     request = ScheduleRequest(
         schedule_id=order.schedule_id,

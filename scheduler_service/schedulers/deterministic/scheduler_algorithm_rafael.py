@@ -649,10 +649,7 @@ class System:
             OutageOrder,
             and_(
                 OutageOrder.id==ScheduleRequest.order_id,
-                or_(
-                    ScheduleRequest.order_type=="gs_outage",
-                    ScheduleRequest.order_type=="sat_outage"
-                )
+                ScheduleRequest.order_type=="outage"
             )
         ).join(
             Satellite, Satellite.id==OutageOrder.asset_id

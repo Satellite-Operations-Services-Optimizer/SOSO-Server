@@ -25,7 +25,7 @@ router = APIRouter()
 async def get_all_image_orders(response: Response, page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
     session = get_db_session()
     query = session.query(
-        ImageOrder,
+        *ImageOrder.__table__.columns,
         Asset.name.label("asset_name")
     ).join(
         Asset, (ImageOrder.asset_type==Asset.asset_type) & (ImageOrder.asset_id==Asset.id)

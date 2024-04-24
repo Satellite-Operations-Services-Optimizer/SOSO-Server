@@ -91,7 +91,7 @@ EXECUTE FUNCTION set_default_name('satellite');
 -- ================== End of Asset Tables ==================
 
 -- ================== Order Tables ==================
-CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'sat_outage', 'gs_outage');
+CREATE TYPE order_type AS ENUM ('imaging', 'maintenance', 'outage');
 -- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS system_order (
 	id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
@@ -179,38 +179,19 @@ CREATE TABLE IF NOT EXISTS maintenance_order (
     description text,
     asset_id integer NOT NULL REFERENCES satellite (id), -- maintenance orders must be performed on a specific asset. TODO: My assumption is that we don't have maintenance orders for groundstations. veryfy with tsa.
     priority_tier integer DEFAULT 2 NOT NULL CHECK (priority_tier > 0),
-    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL,
-    CONSTRAINT valid_order_type CHECK (order_type = 'maintenance')
+    order_type order_type DEFAULT 'maintenance'::order_type NOT NULL CHECK (order_type = 'maintenance'),
 ) INHERITS (transmitted_order);
 
--- abstract table. do not define constraints on this (including primary/foreign key constraints), as it won't be inherited by the children
 CREATE TABLE IF NOT EXISTS outage_order (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    asset_id integer NOT NULL,
-    asset_type asset_type NOT NULL
-) INHERITS (system_order);
-
-CREATE TABLE IF NOT EXISTS ground_station_outage_order (
     id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
     schedule_id integer REFERENCES schedule (id),
     asset_id integer NOT NULL REFERENCES ground_station (id),
-    asset_type asset_type DEFAULT 'groundstation'::asset_type NOT NULL CHECK (asset_type = 'groundstation'),
-    order_type order_type DEFAULT 'gs_outage'::order_type NOT NULL CHECK (order_type = 'gs_outage')
-) INHERITS (outage_order);
+    asset_type asset_type NOT NULL,
+    order_type order_type DEFAULT 'outage'::order_type NOT NULL CHECK (order_type = 'outage'),
+) INHERITS (system_order);
 
-CREATE INDEX IF NOT EXISTS ground_station_outage_order_window_start_index ON ground_station_outage_order (window_start);
-CREATE INDEX IF NOT EXISTS ground_station_outage_order_window_end_index ON ground_station_outage_order (window_end);
-
-CREATE TABLE IF NOT EXISTS satellite_outage_order (
-    id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    schedule_id integer REFERENCES schedule (id),
-    asset_id integer NOT NULL REFERENCES satellite (id),
-    asset_type asset_type DEFAULT 'satellite'::asset_type NOT NULL CHECK (asset_type = 'satellite'),
-    order_type order_type DEFAULT 'sat_outage'::order_type NOT NULL CHECK (order_type = 'sat_outage')
-) INHERITS (outage_order);
-
-CREATE INDEX IF NOT EXISTS satellite_outage_order_window_start_index ON satellite_outage_order (window_start);
-CREATE INDEX IF NOT EXISTS satellite_outage_order_window_end_index ON satellite_outage_order (window_end);
+CREATE INDEX IF NOT EXISTS outage_order_window_start_index ON outage_order (window_start);
+CREATE INDEX IF NOT EXISTS outage_order_window_end_index ON outage_order (window_end);
 
 -- Trigger to set delivery_deadline to window_end if not set already
 CREATE OR REPLACE FUNCTION set_default_delivery_deadline()
@@ -229,13 +210,8 @@ BEFORE INSERT ON maintenance_order
 FOR EACH ROW
 EXECUTE FUNCTION set_default_delivery_deadline();
 
-CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_gs
-BEFORE INSERT ON ground_station_outage_order
-FOR EACH ROW
-EXECUTE FUNCTION set_default_delivery_deadline();
-
-CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_sat
-BEFORE INSERT ON satellite_outage_order
+CREATE OR REPLACE TRIGGER set_default_delivery_deadline_trigger_outage
+BEFORE INSERT ON outage_order
 FOR EACH ROW
 EXECUTE FUNCTION set_default_delivery_deadline();
 

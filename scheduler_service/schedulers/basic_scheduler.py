@@ -28,7 +28,7 @@ def process_request(request_id: int):
     request.status = "processing"
     session.commit()
     logger.info(f"Processing {request.order_type} request with id={request_id}...")
-    if request.order_type == "gs_outage" or request.order_type == "sat_outage":
+    if request.order_type == "outage":
         schedule_outage_request(request.id)
     else:
         schedule_transmitted_event(request.id)
@@ -253,7 +253,7 @@ def schedule_outage_request(request_id):
     session = get_db_session()
 
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
-    if request.order_type != "gs_outage" and request.order_type != "sat_outage":
+    if request.order_type != "outage":
         raise Exception("This function only scheduling outages.")
 
     # events scheduled to be performed during the outage
