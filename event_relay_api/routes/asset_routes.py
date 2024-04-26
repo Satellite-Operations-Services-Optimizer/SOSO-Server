@@ -34,7 +34,6 @@ async def new_ground_station(ground_station: GroundStationCreationRequest):
     new_ground_station = GroundStation(**ground_station.model_dump())
     session.add(new_ground_station)
     session.commit()
-    session.refresh(new_ground_station)
     return new_ground_station.id
 
 #satellite end points

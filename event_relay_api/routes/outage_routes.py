@@ -40,20 +40,42 @@ async def get_outage_order(id: int):
         raise HTTPException(404, detail=f"Outage order with id={id} does not exist.")
     return outage_order
 
+@router.get("/orders/{id}/requests")
+async def get_image_order_requests(id):
+    requests = create_exposed_schedule_requests_query().filter(ScheduleRequest.order_id==id & ScheduleRequest.order_type=="outage")
+    return [request._asdict() for request in requests.all()]
+
+@router.post("/orders/{id}/requests/decline")
+async def decline_outage_order_requests(id):
+    session = get_db_session()
+    order = session.query(OutageOrder).filter_by(id=id).first()
+    if not order:
+        raise HTTPException(404, detail="Order does not exist.")
+    requests = session.query(ScheduleRequest).filter_by(order_id=order.id, order_type="outage").all()
+    for request in requests:
+        TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.decline").publish_message(request.id)
+    session.commit()
+
+
 @router.post("/orders/create")
 async def create_outage(outage_request: OutageOrderCreationRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, OutageOrderCreationRequest))):
     session = get_db_session()
-    asset = session.query(Satellite).filter_by(name=outage_request.Target).one()
+    asset = session.query(Satellite).filter_by(name=outage_request.Target).one_or_none()
     if asset is None:
         asset = session.query(GroundStation).filter_by(name=outage_request.Target).one()
     
     window_start = datetime.fromisoformat(outage_request.Window.Start)
     window_end = datetime.fromisoformat(outage_request.Window.End)
-    outage = OutageOrder(
+    outage_order = OutageOrder(
         asset_id=asset.id,
         asset_type=asset.asset_type,
         window_start=window_start,
         window_end=window_end,
         duration=window_end-window_start,
     )
-    return outage.id
+
+    session.add(outage_order)
+    session.commit()
+
+    TopicPublisher(rabbit(), f"order.{outage_order.order_type}.created").publish_message(outage_order.id)
+    return outage_order.id

@@ -25,4 +25,7 @@ def create_exposed_schedule_requests_query():
         (Asset.id==ScheduleRequest.asset_id) & (Asset.asset_type==ScheduleRequest.asset_type),
         isouter=True
     ).order_by(ScheduleRequest.window_start)
+
+
+
     return query

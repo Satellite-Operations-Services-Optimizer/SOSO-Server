@@ -50,6 +50,27 @@ async def get_image_order(id):
         raise HTTPException(404, detail="Image order with id={id} does not exist.")
     return image_order
 
+@router.get("/orders/{id}/requests")
+async def get_image_order_requests(id):
+    requests = create_exposed_schedule_requests_query().filter(
+        and_(
+            ScheduleRequest.order_id==id,
+            ScheduleRequest.order_type=="imaging"
+        )
+    )
+    return [request._asdict() for request in requests.all()]
+
+@router.post("/orders/{id}/requests/decline")
+async def decline_image_order_requests(id):
+    session = get_db_session()
+    order = session.query(ImageOrder).filter_by(id=id).first()
+    if not order:
+        raise HTTPException(404, detail="Order does not exist.")
+    requests = session.query(ScheduleRequest).filter_by(order_id=order.id, order_type="imaging").all()
+    for request in requests:
+        TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.decline").publish_message(request.id)
+    session.commit()
+
 @router.post("/orders/create")
 async def create_order(image_request: ImageRequest = Depends(lambda request_data=Body(...): validate_request_schema(request_data, ImageRequest))):
     number_of_visits = image_request.Recurrence.NumberOfRevisits + 1

@@ -4,11 +4,13 @@ import logging
 from app_config import get_db_session, rabbit
 from app_config.database.mapping import Schedule, ScheduledEvent, Asset, ScheduleRequest, ContactEvent, GroundStation, ScheduledImaging, ScheduledMaintenance, CaptureOpportunity, SatelliteEclipse, SatelliteOutage, GroundStationOutage, ImageOrder, MaintenanceOrder, OutageOrder
 from fastapi.encoders import jsonable_encoder
+import os
 from fastapi import Query
 from sqlalchemy import case
 from rabbit_wrapper import TopicPublisher
 from helpers.queries import create_exposed_schedule_requests_query
 from helpers.utils import paginated_response
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -24,17 +26,73 @@ async def get_schedules(name: str = Query(None)):
     schedules = session.query(Schedule).all()
     return jsonable_encoder(schedules)
 
+@router.get("/default")
+async def get_default_schedule():
+    session = get_db_session()
+    default_schedule_id = os.getenv('DEFAULT_SCHEDULE_ID')
+    schedule = session.query(Schedule).filter_by(id=default_schedule_id).first()
+    if not schedule:
+        raise HTTPException(404, detail="Default schedule does not exist.")
+    return jsonable_encoder(schedule)
+
+@router.post("/{id}/set_reference_time")
+async def set_schedule_reference_time(id: int, reference_time: datetime):
+    session = get_db_session()
+    schedule = session.query(Schedule).filter_by(id=id).first()
+    if not schedule:
+        raise HTTPException(404, detail="Schedule does not exist.")
+    current_time = datetime.now()
+    reference_time = reference_time.replace(tzinfo=current_time.tzinfo)
+    schedule.time_offset = reference_time - current_time
+    session.commit()
+    return {"reference_time": reference_time, "time_offset": schedule.time_offset}
+
 @router.get("/requests")
 async def get_all_schedule_requests(order_ids: List[int] = Query(None), page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False), order_types: List[str] = Query(None)):
-    query = create_exposed_schedule_requests_query()
+    session = get_db_session()
+    requests_subquery = create_exposed_schedule_requests_query()
     if order_ids and len(order_ids) > 0:
-        query = query.filter(ScheduleRequest.order_id.in_(order_ids))
+        requests_subquery = requests_subquery.filter(ScheduleRequest.order_id.in_(order_ids))
     if order_types:
-        query = query.filter(ScheduleRequest.order_type.in_(order_types))
-    total = query.count()
+        requests_subquery = requests_subquery.filter(ScheduleRequest.order_type.in_(order_types))
+    total = requests_subquery.count()
     if not all:
-        query = query.limit(per_page).offset((page - 1) * per_page)
-    return paginated_response([request._asdict() for request in query.all()], total)
+        requests_subquery = requests_subquery.limit(per_page).offset((page - 1) * per_page)
+
+    order_types = order_types or []
+    if len(order_types) == 0:
+        return paginated_response([request._asdict() for request in requests_subquery.all()], total)
+    
+
+    requests_subquery = requests_subquery.subquery()
+    all_order_tables = {
+        "imaging": ImageOrder,
+        "maintenance": MaintenanceOrder,
+        "outage": OutageOrder,
+    }
+
+    requests = []
+    for order_type in order_types:
+        additional_columns = []
+        if order_type=="imaging":
+            additional_columns.extend([
+                ImageOrder.image_type,
+                ImageOrder.latitude,
+                ImageOrder.longitude
+            ])
+        elif order_type=="maintenance":
+            additional_columns.append(MaintenanceOrder.description)
+
+        order_table = all_order_tables.get(order_type)
+        if order_table:
+            requests_query = session.query(
+                *requests_subquery.c,
+                *additional_columns
+            ).join(
+                order_table, (order_table.id==requests_subquery.c.order_id) & (order_table.order_type==requests_subquery.c.order_type) & (order_table.order_type==order_type)
+            ).order_by(requests_subquery.c.window_start)
+            requests.extend([request._asdict() for request in requests_query.all()])
+    return paginated_response(requests, total)
 
 @router.post("/requests/{request_id}/decline")
 async def decline_schedule_request(request_id: int):
@@ -122,7 +180,7 @@ async def scheduled_events_by_id(response: Response, id: int, page: int = Query(
             events_subquery.c.order_id,
             *additional_columns
         ).join(
-            events_subquery, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type) & (event_table.event_type==event_type)
+            event_table, (event_table.id==events_subquery.c.id) & (event_table.event_type==events_subquery.c.event_type) & (event_table.event_type==event_type)
         )
 
         order_table = all_order_tables.get(event_type)

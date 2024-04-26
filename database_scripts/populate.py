@@ -23,7 +23,7 @@ def set_reference_time(reference_time: Union[datetime, str]):
         reference_time = datetime.fromisoformat(reference_time)
     print(f"Setting reference time to {reference_time}. schedule={os.getenv('DEFAULT_SCHEDULE_ID')}")
     session.query(Schedule).filter_by(id=os.getenv("DEFAULT_SCHEDULE_ID")).update(dict(
-        reference_time=reference_time,
+        # reference_time=reference_time,
         time_offset=reference_time - datetime.now()
     ))
     session.commit()
