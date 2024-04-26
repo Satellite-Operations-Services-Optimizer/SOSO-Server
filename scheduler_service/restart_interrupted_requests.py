@@ -10,22 +10,20 @@ from app_config.database.mapping import ScheduleRequest
 from rabbit_wrapper import TopicPublisher
 from sqlalchemy import or_
 import threading
-import os
 
-logger = logging.getLogger(__name__)
-
-def startup_event():
-    register_state_streaming_listeners()
-    register_order_processing_listener()
-    # Order processor runs whenever an order is created. make sure we process all orders that came in before we started listening for the order created event
-    ensure_order_processor_running() 
-    register_request_scheduler_listener()
-
-    # os.system(f"sleep 10; python {os.path.dirname(__file__)}/restart_interrupted_requests.py")
-    rabbit().start_consuming()
-
-
-
+def restart_interrupted_requests():
+    session = get_db_session()
+    # if there were orders we never finished processing, reset them
+    interrupted_requests = session.query(ScheduleRequest).filter(
+        or_(
+            ScheduleRequest.status=="processing",
+            ScheduleRequest.status=="received"
+        )
+    ).all()
+    for request in interrupted_requests:
+        request.status = "received"
+        TopicPublisher(create_rabbit(), f"schedule.request.{request.order_type}.created").publish_message(request.id)
+        session.commit()
 
 if __name__ == "__main__":
-    startup_event()
+    restart_interrupted_requests()

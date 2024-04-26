@@ -11,6 +11,9 @@ def rabbit(blocking=True):
     if blocking: return _get_sync_connection()
     else: return _get_async_connection()
 
+def create_rabbit():
+    return create_rabbit_connection()
+
 # enum for getting names of the services' queues
 class ServiceQueues(Enum):
     RELAY_API = os.environ["RELAY_API_QUEUE"]

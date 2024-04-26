@@ -20,6 +20,7 @@ def register_request_scheduler_listener():
     schedule_decline_consumer.register_callback(lambda request_id: decline_request(request_id))
 
 def process_request(request_id: int):
+    restart_interrupted_requests()
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
     if not (request.status == "received" or request.status == "displaced"):
@@ -34,6 +35,20 @@ def process_request(request_id: int):
         schedule_transmitted_event(request.id)
     pass
         
+def restart_interrupted_requests():
+    session = get_db_session()
+    # if there were orders we never finished processing, reset them
+    interrupted_requests = session.query(ScheduleRequest).filter(
+        or_(
+            ScheduleRequest.status=="processing",
+            ScheduleRequest.status=="received"
+        )
+    ).all()
+    for request in interrupted_requests:
+        request.status = "received"
+        session.commit()
+        TopicPublisher(rabbit(), f"schedule.request.{request.order_type}.created").publish_message(request.id)
+
 def decline_request(request_id: int):
     session = get_db_session()
     request = session.query(ScheduleRequest).filter_by(id=request_id).one()
@@ -305,7 +320,9 @@ def displace_scheduled_request(request_id, message, emit=True):
     session = get_db_session()
 
     request =session.query(ScheduleRequest).filter_by(id=request_id).one()
-    event = session.query(TransmittedEvent).filter_by(request_id=request.id).one()
+    event = session.query(TransmittedEvent).filter_by(request_id=request.id).one_or_none()
+    if event is None:
+        return
 
     if event.uplink_contact_id is not None:
         session.query(TransmissionOutage).filter_by(
