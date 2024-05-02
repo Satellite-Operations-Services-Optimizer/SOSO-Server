@@ -150,10 +150,12 @@ async def scheduled_events_by_id(response: Response, id: int, page: int = Query(
         "imaging": ImageOrder,
         "maintenance": MaintenanceOrder,
         "gs_outage": OutageOrder,
-        "sat_outage": OutageOrder,
+        "sat_outage": OutageOrder
     }
     events = []
     for event_type in event_types:
+        if event_type not in all_event_tables:
+            continue
         event_table = all_event_tables[event_type]
 
         additional_columns = []

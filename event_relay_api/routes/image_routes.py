@@ -21,6 +21,12 @@ from typing import List
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+@router.get("/dashBoardOrders")
+async def getDashBoardOrders():
+    session = get_db_session()
+    order_items = session.query(ScheduleRequest).filter(ScheduleRequest.order_type=="imaging" or ScheduleRequest.order_type=="maintenance").order_by(ScheduleRequest.window_start).limit(100).all()
+    return order_items
+
 @router.get("/orders")
 async def get_all_image_orders(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1), all: bool = Query(False)):
     session = get_db_session()

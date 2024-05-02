@@ -15,7 +15,7 @@ fi
 clear
 echo "Running the day-in-the-life (DITL) test from folder: $DITL_PATH" | tee day-in-the-life.log
 echo "Step 0: Cleanup database and set schedule reference time to 2023-09-01T00:00:00" | tee -a day-in-the-life.log
-python database_scripts/cleanup.py --schema --reference-time "2022-09-01T00:00:00" > /dev/null 2>&1
+python database_scripts/cleanup.py --schema --reference-time "2023-09-01T00:00:00" > /dev/null 2>&1
 python database_scripts/populate.py --satellites --groundstations > /dev/null 2>&1
 
 # Step 1
